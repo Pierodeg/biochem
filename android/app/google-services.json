@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "859078273796",
+    "project_id": "biochem-b5d74",
+    "storage_bucket": "biochem-b5d74.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:859078273796:android:8b16f57ec3fe40fea17e51",
+        "android_client_info": {
+          "package_name": "com.biochem.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOajxqGhYcIuE-xvomozSMOEg6y_cUbg4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:859078273796:android:e215e9ea2e0ec1c0a17e51",
+        "android_client_info": {
+          "package_name": "com.example.biochem"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOajxqGhYcIuE-xvomozSMOEg6y_cUbg4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

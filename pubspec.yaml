@@ -1,0 +1,47 @@
+name: biochem
+description: "Gestionale aziendale per il settore sanificazione - Biochem"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.4.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigazione
+  go_router: ^14.6.2
+
+  # Localizzazione date
+  intl: ^0.20.2
+
+  # Calendario
+  table_calendar: ^3.1.2
+
+  # Storage locale (per evitare notifiche duplicate all'avvio)
+  shared_preferences: ^2.3.2
+
+  # firebase_messaging: ^15.1.3  # Fase 2 — richiede Service Worker su web
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/data/cap_sardegna.json
+    - assets/images/
+    - assets/icons/

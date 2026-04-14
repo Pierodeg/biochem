@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "biochem-b5d74",
+          "appId": "1:859078273796:android:e215e9ea2e0ec1c0a17e51",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "biochem-b5d74",
+          "configurations": {
+            "android": "1:859078273796:android:e215e9ea2e0ec1c0a17e51",
+            "ios": "1:859078273796:ios:d1ba55160873c8caa17e51",
+            "macos": "1:859078273796:ios:d1ba55160873c8caa17e51",
+            "web": "1:859078273796:web:407ccca5d18fc2d6a17e51",
+            "windows": "1:859078273796:web:527c7e131a5a9190a17e51"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
