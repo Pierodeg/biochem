@@ -728,34 +728,39 @@ class _ServizioPestFormPageState
                 ? Center(
                     child: Text('Errore: $_erroreCaricamento',
                         style: const TextStyle(color: AppColors.error)))
-                : LayoutBuilder(
-                    builder: (ctx, constraints) {
-                      final isDesktop = constraints.maxWidth >= 600;
-                      return Form(
-                        key: _formKey,
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.all(isDesktop ? 24 : 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildGruppo1(isDesktop),
-                              const SizedBox(height: 16),
-                              _buildGruppo2(isDesktop),
-                              const SizedBox(height: 16),
-                              _buildGruppo3(isDesktop),
-                              const SizedBox(height: 16),
-                              _buildGruppo4(isDesktop),
-                              const SizedBox(height: 16),
-                              _buildGruppo5(isDesktop),
-                              const SizedBox(height: 16),
-                              _buildGruppo6(isDesktop),
-                              const SizedBox(height: 32),
-                              _buildBottoni(),
-                            ],
-                          ),
+                : Column(
+                    children: [
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (ctx, constraints) {
+                            final isDesktop = constraints.maxWidth >= 600;
+                            return Form(
+                              key: _formKey,
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.all(isDesktop ? 24 : 16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildGruppo1(isDesktop),
+                                    const SizedBox(height: 16),
+                                    _buildGruppo2(isDesktop),
+                                    const SizedBox(height: 16),
+                                    _buildGruppo3(isDesktop),
+                                    const SizedBox(height: 16),
+                                    _buildGruppo4(isDesktop),
+                                    const SizedBox(height: 16),
+                                    _buildGruppo5(isDesktop),
+                                    const SizedBox(height: 16),
+                                    _buildGruppo6(isDesktop),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                      _buildBottoni(),
+                    ],
                   ),
       ),
     );
@@ -1271,50 +1276,54 @@ class _ServizioPestFormPageState
   // ─── Bottoni ──────────────────────────────────────────────────────────────
 
   Widget _buildBottoni() {
-    return Row(
-      children: [
-        // Annulla
-        OutlinedButton(
-          onPressed: _isSaving ? null : _chiudiPagina,
-          child: const Text('Annulla'),
-        ),
-        const SizedBox(width: 12),
-        // Esci
-        Expanded(
-          child: OutlinedButton(
-            onPressed: _isSaving ? null : _esci,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        color: AppColors.textSecondary, strokeWidth: 2))
-                : const Text('Esci'),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.divider)),
+        color: AppColors.surface,
+      ),
+      child: Row(
+        children: [
+          // Annulla
+          OutlinedButton(
+            onPressed: _isSaving ? null : _chiudiPagina,
+            child: const Text('Annulla'),
           ),
-        ),
-        const SizedBox(width: 12),
-        // Salva
-        Expanded(
-          child: FilledButton(
-            onPressed: _isSaving ? null : _salva,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.buttonPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+          const SizedBox(width: 12),
+          // Esci
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _isSaving ? null : _esci,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: AppColors.textSecondary, strokeWidth: 2))
+                  : const Text('Esci'),
             ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        color: AppColors.surface, strokeWidth: 2))
-                : const Text('Salva'),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          // Salva
+          Expanded(
+            child: FilledButton(
+              onPressed: _isSaving ? null : _salva,
+              style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: AppColors.surface, strokeWidth: 2))
+                  : const Text('Salva'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

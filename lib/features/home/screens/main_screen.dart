@@ -112,8 +112,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         ),
         automaticallyImplyLeading: false,
         actions: [
-          // Badge notifiche campanella
-          _NotificaBadgeButton(scaffoldKey: _scaffoldKey),
+          // Badge notifiche campanella — bianca su AppBar mobile
+          _NotificaBadgeButton(scaffoldKey: _scaffoldKey, iconColor: AppColors.surface),
           _AppBarAvatarButton(scaffoldKey: _scaffoldKey),
         ],
       ),
@@ -266,8 +266,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
           const Spacer(),
-          // Badge notifiche campanella (desktop)
-          _NotificaBadgeButton(scaffoldKey: _scaffoldKey),
+          // Badge notifiche campanella — blu su sidebar desktop
+          _NotificaBadgeButton(scaffoldKey: _scaffoldKey, iconColor: AppColors.blue),
         ],
       ),
     );
@@ -280,7 +280,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 /// Tap → apre il pannello notifiche (drawer start).
 class _NotificaBadgeButton extends ConsumerWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
-  const _NotificaBadgeButton({required this.scaffoldKey});
+  final Color iconColor;
+
+  const _NotificaBadgeButton({
+    required this.scaffoldKey,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -304,7 +309,7 @@ class _NotificaBadgeButton extends ConsumerWidget {
         backgroundColor: AppColors.error,
         child: const Icon(Icons.notifications_outlined),
       ),
-      color: AppColors.appBarForeground,
+      color: iconColor,
       tooltip: 'Notifiche',
     );
   }

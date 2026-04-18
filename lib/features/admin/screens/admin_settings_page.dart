@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/service_providers.dart';
@@ -14,6 +16,16 @@ import '../../../services/impostazioni_service.dart';
 //   impostazioni/pest_prodotti             → { nome: "Prodotti Pest",         hasSottocategorie: false, items: [] }
 //   impostazioni/pest_ulteriori_interventi  → { nome: "Ulteriori interventi Pest", hasSottocategorie: false, items: [] }
 //   impostazioni/pest_voci_economiche       → { nome: "Voci economiche Pest", hasSottocategorie: false, items: [] }
+//
+// NOTA: Documenti Firestore da creare per Preventivo (se non esistono):
+//   impostazioni/preventivo_listino    → { nome: "Listino servizi",          hasSottocategorie: false,
+//                                         items: [ { "codice": "P_DSF2", "descrizione": "Disinfezione in ott alla L.82/94 DM 274/97", "prezzoUnitario": 150.0 } ] }
+//   impostazioni/preventivo_giornata   → { nome: "Giornata/esecuzione",      hasSottocategorie: false, items: ["FERIALE","FESTIVO","NOTTURNO"] }
+//   impostazioni/preventivo_pagamento  → { nome: "Modalità di pagamento",    hasSottocategorie: false,
+//                                         items: ["Bonifico","Contanti","Assegno","Anticipo 30% saldo alla esecuzione","Immediato"] }
+//   impostazioni/preventivo_validita   → { nome: "Validità preventivo",      hasSottocategorie: false, items: ["30 giorni","60 giorni","90 giorni"] }
+//   impostazioni/preventivo_rinnovo    → { nome: "Rinnovo preventivo",       hasSottocategorie: false, items: ["Sì","No"] }
+//   NOTA preventivo_listino: il campo items contiene Map, non stringhe.
 //
 // NOTA: Questa pagina è accessibile SOLO agli utenti con role == 'admin'
 
@@ -56,6 +68,7 @@ const _macroSezioni = [
     colore: AppColors.primary,
     categorieId: [
       'categorie_analisi',
+      'lab_tecnici',
       'campioni_riferimento',
       'prelevato_da',
       'modalita_prelievo',
@@ -79,7 +92,13 @@ const _macroSezioni = [
     titolo: 'PREVENTIVO',
     icona: Icons.description_outlined,
     colore: AppColors.info,
-    categorieId: ['categorie_preventivo'],
+    categorieId: [
+      'preventivo_listino',     // Listino servizi (voci Map con codice/descrizione/prezzo)
+      'preventivo_giornata',    // Giornata/esecuzione (FERIALE, FESTIVO, NOTTURNO)
+      'preventivo_pagamento',   // Modalità di pagamento
+      'preventivo_validita',    // Validità del preventivo
+      'preventivo_rinnovo',     // Rinnovo automatico
+    ],
   ),
   _MacroSezione(
     titolo: 'FATTURE',
@@ -139,7 +158,7 @@ class AdminSettingsPage extends ConsumerWidget {
             onPressed: () => _mostraDialogNuovaCategoria(context, ref),
             icon: const Icon(Icons.add, size: 18, color: AppColors.surface),
             label: const Text(
-              '+ Nuova categoria',
+              'Nuova categoria',
               style: TextStyle(color: AppColors.surface, fontSize: 13),
             ),
           ),
@@ -335,8 +354,12 @@ class AdminSettingsPage extends ConsumerWidget {
         },
       ),
     );
-    nomeCtrl.dispose();
-    idCtrl.dispose();
+    // I controller NON vanno disposti qui: il dialog esegue un'animazione di
+    // uscita dopo il pop, e i TextField al suo interno avrebbero ancora listener
+    // attivi → disporre il controller prima che l'animazione termini causa
+    // "TextEditingController used after being disposed".
+    // I controller verranno rilasciati dal GC quando i TextField saranno
+    // effettivamente distrutti al termine dell'animazione.
   }
 
   String _generaId(String nome) {
@@ -713,11 +736,15 @@ class _CategoriaTileState extends State<_CategoriaTile> {
           const Divider(height: 1, color: AppColors.divider),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: categoria.hasSottocategorie
-                ? _ContenutoConSottocategorie(
+            // preventivo_listino usa widget speciale per voci Map
+            child: categoria.id == 'preventivo_listino'
+                ? _ContenutoListino(
                     categoriaId: categoria.id, service: _service)
-                : _ContenutoListaSemplice(
-                    categoriaId: categoria.id, service: _service),
+                : categoria.hasSottocategorie
+                    ? _ContenutoConSottocategorie(
+                        categoriaId: categoria.id, service: _service)
+                    : _ContenutoListaSemplice(
+                        categoriaId: categoria.id, service: _service),
           ),
         ],
       ),
@@ -1179,6 +1206,378 @@ class _SottocategoriaTileState extends State<_SottocategoriaTile> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Contenuto: listino voci preventivo ──────────────────────────────────────
+
+/// Widget speciale per la categoria [preventivo_listino].
+///
+/// Ogni voce del listino è una Map Firestore con i campi:
+///   { "codice": String, "descrizione": String, "prezzoUnitario": double }
+///
+/// Layout responsive: tabella su desktop (≥ 500 px), card su mobile.
+class _ContenutoListino extends StatefulWidget {
+  final String categoriaId;
+  final ImpostazioniService service;
+  const _ContenutoListino({required this.categoriaId, required this.service});
+
+  @override
+  State<_ContenutoListino> createState() => _ContenutoListinoState();
+}
+
+class _ContenutoListinoState extends State<_ContenutoListino> {
+  final _codiceCtrl = TextEditingController();
+  final _descrizioneCtrl = TextEditingController();
+  final _prezzoCtrl = TextEditingController(text: '0.00');
+  bool _salvando = false;
+
+  // Formattatore moneta italiano
+  final _moneyFmt =
+      NumberFormat.currency(locale: 'it_IT', symbol: '€', decimalDigits: 2);
+
+  @override
+  void dispose() {
+    _codiceCtrl.dispose();
+    _descrizioneCtrl.dispose();
+    _prezzoCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Aggiunge la nuova voce al listino su Firestore
+  Future<void> _aggiungi() async {
+    final codice = _codiceCtrl.text.trim();
+    final descrizione = _descrizioneCtrl.text.trim();
+    if (codice.isEmpty || descrizione.isEmpty) return;
+    // Arrotonda il prezzo a 2 decimali
+    final prezzo = double.parse(
+      (double.tryParse(_prezzoCtrl.text.replaceAll(',', '.')) ?? 0.0)
+          .toStringAsFixed(2),
+    );
+
+    setState(() => _salvando = true);
+    try {
+      await widget.service.aggiungiVoceListino(widget.categoriaId, {
+        'codice': codice,
+        'descrizione': descrizione,
+        'prezzoUnitario': prezzo,
+      });
+      _codiceCtrl.clear();
+      _descrizioneCtrl.clear();
+      _prezzoCtrl.text = '0.00';
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Errore: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
+  /// Elimina la voce all'indice indicato (read-modify-write su Firestore)
+  Future<void> _elimina(int indice) async {
+    try {
+      await widget.service
+          .eliminaVoceListinoPerIndice(widget.categoriaId, indice);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Errore: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 500;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Lista/tabella voci esistenti in real-time
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: widget.service.getVociListino(widget.categoriaId),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary));
+                }
+                final voci = snap.data ?? [];
+                if (voci.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Nessuna voce nel listino',
+                      style: TextStyle(
+                          color: AppColors.textDisabled, fontSize: 13),
+                    ),
+                  );
+                }
+                return isDesktop
+                    ? _buildTabellaDesktop(voci)
+                    : _buildListaMobile(voci);
+              },
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.divider),
+            const SizedBox(height: 12),
+            // Etichetta sezione aggiunta
+            const Text(
+              'Aggiungi voce al listino',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Form di inserimento — riga orizzontale su desktop, colonna su mobile
+            if (isDesktop)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: TextField(
+                      controller: _codiceCtrl,
+                      decoration: _dec('Codice'),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _descrizioneCtrl,
+                      decoration: _dec('Descrizione'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 140,
+                    child: TextField(
+                      controller: _prezzoCtrl,
+                      decoration: _dec('Prezzo unit. (€)'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  FilledButton(
+                    onPressed: _salvando ? null : _aggiungi,
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary),
+                    child: _salvando
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                color: AppColors.surface, strokeWidth: 2))
+                        : const Text('Aggiungi'),
+                  ),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _codiceCtrl,
+                    decoration: _dec('Codice'),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _descrizioneCtrl,
+                    decoration: _dec('Descrizione'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _prezzoCtrl,
+                    decoration: _dec('Prezzo unitario (€)'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: _salvando ? null : _aggiungi,
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary),
+                    child: _salvando
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                color: AppColors.surface, strokeWidth: 2))
+                        : const Text('Aggiungi'),
+                  ),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Tabella desktop: Codice | Descrizione | Prezzo unit. | Elimina
+  Widget _buildTabellaDesktop(List<Map<String, dynamic>> voci) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        headingRowColor: WidgetStateProperty.all(AppColors.tableHeader),
+        headingTextStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+          color: AppColors.textSecondary,
+        ),
+        dataRowMinHeight: 44,
+        dataRowMaxHeight: 60,
+        columnSpacing: 16,
+        columns: const [
+          DataColumn(label: Text('Codice')),
+          DataColumn(label: Text('Descrizione')),
+          DataColumn(label: Text('Prezzo unit.')),
+          DataColumn(label: Text('')),
+        ],
+        rows: voci.asMap().entries.map((entry) {
+          final i = entry.key;
+          final v = entry.value;
+          return DataRow(cells: [
+            DataCell(Text(
+              v['codice'] as String? ?? '',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: AppColors.primary,
+              ),
+            )),
+            DataCell(SizedBox(
+              width: 300,
+              child: Text(
+                v['descrizione'] as String? ?? '',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                style: const TextStyle(fontSize: 12),
+              ),
+            )),
+            DataCell(Text(
+              _moneyFmt.format(
+                  (v['prezzoUnitario'] as num?)?.toDouble() ?? 0.0),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                color: AppColors.primaryDark,
+              ),
+            )),
+            DataCell(IconButton(
+              icon: const Icon(Icons.delete_outline,
+                  color: AppColors.error, size: 18),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              tooltip: 'Elimina voce',
+              onPressed: () => _elimina(i),
+            )),
+          ]);
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Lista card mobile: badge codice + descrizione + prezzo + elimina
+  Widget _buildListaMobile(List<Map<String, dynamic>> voci) {
+    return Column(
+      children: voci.asMap().entries.map((entry) {
+        final i = entry.key;
+        final v = entry.value;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Row(
+            children: [
+              // Badge codice colorato in verde chiaro
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  v['codice'] as String? ?? '',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      v['descrizione'] as String? ?? '',
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _moneyFmt.format(
+                          (v['prezzoUnitario'] as num?)?.toDouble() ?? 0.0),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline,
+                    color: AppColors.error, size: 18),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+                onPressed: () => _elimina(i),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  InputDecoration _dec(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: AppColors.inputBackground,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     );
   }
 }

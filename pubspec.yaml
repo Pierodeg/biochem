@@ -31,6 +31,10 @@ dependencies:
   # Storage locale (per evitare notifiche duplicate all'avvio)
   shared_preferences: ^2.3.2
 
+  # Generazione e stampa/condivisione PDF
+  pdf: ^3.11.1
+  printing: ^5.13.1
+
   # firebase_messaging: ^15.1.3  # Fase 2 — richiede Service Worker su web
 
 dev_dependencies:

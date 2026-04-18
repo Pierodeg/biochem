@@ -6,7 +6,8 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/calendario/screens/appuntamento_form_page.dart';
 import '../../features/calendario/screens/calendario_page.dart';
 import '../../features/home/screens/main_screen.dart';
-import '../../features/home/screens/preventivo_page.dart';
+import '../../features/preventivo/screens/preventivi_page.dart';
+import '../../features/preventivo/screens/preventivo_form_page.dart';
 import '../../features/servizi_pest/screens/servizi_pest_page.dart';
 import '../../features/servizi_pest/screens/servizio_pest_form_page.dart';
 import '../../features/home/screens/fatture_page.dart';
@@ -78,6 +79,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/servizi-pest/nuovo',
         '/anagrafiche/nuovo',
         '/calendario/nuovo',
+        '/preventivo/nuovo',
       ];
       final isServizioLabEdit =
           state.matchedLocation.startsWith('/servizi-lab/') &&
@@ -88,11 +90,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isCalendarioEdit =
           state.matchedLocation.startsWith('/calendario/') &&
           state.matchedLocation != '/calendario';
+      final isPreventivoEdit =
+          state.matchedLocation.startsWith('/preventivo/') &&
+          state.matchedLocation != '/preventivo';
       final isRouteProtettaAdmin =
           routeProtetteEsatte.contains(state.matchedLocation) ||
           isServizioLabEdit ||
           isServizioPestEdit ||
-          isCalendarioEdit;
+          isCalendarioEdit ||
+          isPreventivoEdit;
 
       if (isRouteProtettaAdmin) {
         final userAsync = ref.read(currentUserProvider);
@@ -116,7 +122,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                           ? '/calendario'
                           : state.matchedLocation.startsWith('/anagrafiche')
                               ? '/anagrafiche'
-                              : '/anagrafiche';
+                              : state.matchedLocation.startsWith('/preventivo')
+                                  ? '/preventivo'
+                                  : '/anagrafiche';
 
           // Notifica la pagina di destinazione tramite provider
           ref.read(pendingNotificationProvider.notifier).state =
@@ -162,7 +170,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/preventivo',
-              builder: (context, state) => const PreventivoPage(),
+              builder: (context, state) => const PreventiviPage(),
             ),
           ]),
           // Branch 2 — Servizi Lab
@@ -250,6 +258,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           return AppuntamentoFormPage(appuntamentoId: id);
+        },
+      ),
+
+      // ─── Form preventivi (admin only, fuori dalla shell) ─────────────────────
+      GoRoute(
+        path: '/preventivo/nuovo',
+        builder: (context, state) => const PreventivoFormPage(),
+      ),
+      GoRoute(
+        path: '/preventivo/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PreventivoFormPage(preventivoId: id);
         },
       ),
 

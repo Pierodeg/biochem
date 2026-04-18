@@ -8,6 +8,16 @@ import '../models/categoria_model.dart';
 //   impostazioni/pest_prodotti             → { nome: "Prodotti Pest",         hasSottocategorie: false, items: [] }
 //   impostazioni/pest_ulteriori_interventi  → { nome: "Ulteriori interventi Pest", hasSottocategorie: false, items: [] }
 //   impostazioni/pest_voci_economiche       → { nome: "Voci economiche Pest", hasSottocategorie: false, items: [] }
+//
+// NOTA: Documenti Firestore da creare per la sezione Preventivo (se non esistono):
+//   impostazioni/preventivo_listino    → { nome: "Listino servizi", hasSottocategorie: false,
+//                                         items: [ { "codice": "P_DSF2", "descrizione": "Disinfezione in ott alla L.82/94 DM 274/97", "prezzoUnitario": 150.0 } ] }
+//   impostazioni/preventivo_giornata   → { nome: "Giornata/esecuzione",     hasSottocategorie: false, items: ["FERIALE","FESTIVO","NOTTURNO"] }
+//   impostazioni/preventivo_pagamento  → { nome: "Modalità di pagamento",   hasSottocategorie: false,
+//                                         items: ["Bonifico","Contanti","Assegno","Anticipo 30% saldo alla esecuzione","Immediato"] }
+//   impostazioni/preventivo_validita   → { nome: "Validità preventivo",     hasSottocategorie: false, items: ["30 giorni","60 giorni","90 giorni"] }
+//   impostazioni/preventivo_rinnovo    → { nome: "Rinnovo preventivo",      hasSottocategorie: false, items: ["Sì","No"] }
+//   NOTA listino: il campo items contiene Map, non stringhe.
 
 /// Servizio per la gestione delle impostazioni applicazione su Firestore
 ///
@@ -149,5 +159,42 @@ class ImpostazioniService {
     await _collection.doc(categoriaId).update({
       'sottocategorie.$nomeSotto': FieldValue.arrayRemove([elemento]),
     });
+  }
+
+  // ─── Listino preventivo (items come lista di Map) ────────────────────────────
+
+  /// Stream real-time delle voci del listino preventivo.
+  /// Ogni voce è una Map con i campi: codice, descrizione, prezzoUnitario.
+  Stream<List<Map<String, dynamic>>> getVociListino(String categoriaId) {
+    return _collection.doc(categoriaId).snapshots().map((snap) {
+      if (!snap.exists) return <Map<String, dynamic>>[];
+      final data = snap.data() as Map<String, dynamic>;
+      final rawItems = data['items'] as List<dynamic>? ?? [];
+      // Considera solo le voci di tipo Map (ignora eventuali stringhe residue)
+      return rawItems.whereType<Map<String, dynamic>>().toList();
+    });
+  }
+
+  /// Aggiunge una voce Map al listino.
+  /// Usa arrayUnion per evitare duplicati esatti.
+  Future<void> aggiungiVoceListino(
+      String categoriaId, Map<String, dynamic> voce) async {
+    await _collection.doc(categoriaId).set(
+      {'items': FieldValue.arrayUnion([voce])},
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Elimina la voce del listino all'indice specificato.
+  /// Usa read-modify-write perché arrayRemove con indice non è supportato.
+  Future<void> eliminaVoceListinoPerIndice(
+      String categoriaId, int indice) async {
+    final doc = await _collection.doc(categoriaId).get();
+    if (!doc.exists) return;
+    final data = doc.data() as Map<String, dynamic>;
+    final items = List<dynamic>.from(data['items'] as List<dynamic>? ?? []);
+    if (indice < 0 || indice >= items.length) return;
+    items.removeAt(indice);
+    await _collection.doc(categoriaId).update({'items': items});
   }
 }

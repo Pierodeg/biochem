@@ -5,6 +5,8 @@ import '../../services/clienti_service.dart';
 import '../../services/impostazioni_service.dart';
 import '../../services/indirizzi_servizio_service.dart';
 import '../../services/notifiche_service.dart';
+import '../../services/preventivi_service.dart';
+import '../../services/preventivo_pdf_service.dart';
 import '../../services/servizi_lab_service.dart';
 import '../../services/servizi_pest_service.dart';
 
@@ -43,3 +45,11 @@ final appuntamentiServiceProvider =
 /// Singleton del servizio notifiche in-app (Firestore notifiche/{uid}/items)
 final notificheServiceProvider =
     Provider<NotificheService>((ref) => NotificheService());
+
+/// Singleton del servizio preventivi (Firestore collection 'preventivi')
+final preventiviServiceProvider =
+    Provider<PreventiviService>((ref) => PreventiviService());
+
+/// Singleton del service per la generazione PDF dei preventivi
+final preventivoPdfServiceProvider =
+    Provider<PreventivoPdfService>((ref) => PreventivoPdfService());
