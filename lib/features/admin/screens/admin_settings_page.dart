@@ -7,7 +7,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/service_providers.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../models/categoria_model.dart';
+import '../../../models/listino_model.dart';
 import '../../../services/impostazioni_service.dart';
+import '../../../services/listino_service.dart';
 
 // NOTA: Documenti Firestore da creare per Servizi Pest (se non esistono):
 //   impostazioni/pest_tipi_intervento       → { nome: "Tipi intervento Pest", hasSottocategorie: false, items: [] }
@@ -93,7 +95,7 @@ const _macroSezioni = [
     icona: Icons.description_outlined,
     colore: AppColors.info,
     categorieId: [
-      'preventivo_listino',     // Listino servizi (voci Map con codice/descrizione/prezzo)
+      'preventivo_listino',  // Listino a cascata (tipologie → sotto-tipi → servizi)
       'preventivo_giornata',    // Giornata/esecuzione (FERIALE, FESTIVO, NOTTURNO)
       'preventivo_pagamento',   // Modalità di pagamento
       'preventivo_validita',    // Validità del preventivo
@@ -578,17 +580,17 @@ class _MacroExpansionTileState extends State<_MacroExpansionTile> {
 
 // ─── Tile per una singola categoria ──────────────────────────────────────────
 
-class _CategoriaTile extends StatefulWidget {
+class _CategoriaTile extends ConsumerStatefulWidget {
   final CategoriaModel categoria;
   final ImpostazioniService service;
 
   const _CategoriaTile({required this.categoria, required this.service});
 
   @override
-  State<_CategoriaTile> createState() => _CategoriaTileState();
+  ConsumerState<_CategoriaTile> createState() => _CategoriaTileState();
 }
 
-class _CategoriaTileState extends State<_CategoriaTile> {
+class _CategoriaTileState extends ConsumerState<_CategoriaTile> {
   bool _isExpanded = false;
 
   ImpostazioniService get _service => widget.service;
@@ -736,15 +738,13 @@ class _CategoriaTileState extends State<_CategoriaTile> {
           const Divider(height: 1, color: AppColors.divider),
           Padding(
             padding: const EdgeInsets.all(16),
-            // preventivo_listino usa widget speciale per voci Map
             child: categoria.id == 'preventivo_listino'
-                ? _ContenutoListino(
-                    categoriaId: categoria.id, service: _service)
+                ? _ContenutoListinoV2(listinoService: ref.read(listinoServiceProvider))
                 : categoria.hasSottocategorie
-                    ? _ContenutoConSottocategorie(
-                        categoriaId: categoria.id, service: _service)
-                    : _ContenutoListaSemplice(
-                        categoriaId: categoria.id, service: _service),
+                        ? _ContenutoConSottocategorie(
+                            categoriaId: categoria.id, service: _service)
+                        : _ContenutoListaSemplice(
+                            categoriaId: categoria.id, service: _service),
           ),
         ],
       ),
@@ -1581,3 +1581,455 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
     );
   }
 }
+
+// ─── Listino v2 a cascata ─────────────────────────────────────────────────────
+
+/// Editor del listino a cascata v2.
+/// Carica le tipologie tramite [getTipologie()] e mostra l'albero interattivo.
+class _ContenutoListinoV2 extends StatefulWidget {
+  final ListinoService listinoService;
+  const _ContenutoListinoV2({required this.listinoService});
+
+  @override
+  State<_ContenutoListinoV2> createState() => _ContenutoListinoV2State();
+}
+
+class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
+  List<TipologiaListino>? _tipologie;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _caricaListino();
+  }
+
+  Future<void> _caricaListino() async {
+    if (mounted) setState(() => _loading = true);
+    try {
+      final t = await widget.listinoService.getTipologie();
+      if (mounted) setState(() { _tipologie = t; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _tipologie = []; _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ));
+    }
+    final tipologie = _tipologie ?? [];
+    if (tipologie.isEmpty) {
+      return const Center(
+        child: Text('Nessun servizio configurato',
+            style: TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+    return _buildListaTipologie(tipologie);
+  }
+
+  Widget _buildListaTipologie(List<TipologiaListino> tipologie) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tipologie.length,
+      itemBuilder: (_, i) {
+        final tipologia = tipologie[i];
+        final colore = _coloreTipologia(tipologia.id);
+        return ExpansionTile(
+          leading: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: colore.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            alignment: Alignment.center,
+            child: Text(tipologia.id,
+                style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 11, color: colore)),
+          ),
+          title: Text(tipologia.nome,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          trailing: Text('${tipologia.tuttiServizi.length} servizi',
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          children:
+              tipologia.sottotipi.map((st) => _buildSottotipoTile(tipologia, st)).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildSottotipoTile(TipologiaListino tipologia, SottotipoListino st) {
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.only(left: 16, right: 16),
+      title: Row(children: [
+        SizedBox(
+          width: 80,
+          child: Text(st.id,
+              style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.blue)),
+        ),
+        Text(' — ${st.nome}',
+            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+      ]),
+      trailing: Text('${st.servizi.length}',
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+      children: [
+        ...st.servizi.map((s) => ListTile(
+              contentPadding: const EdgeInsets.only(left: 32, right: 8),
+              leading: Text(s.codiceUnivoco,
+                  style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.blue)),
+              title: Text(s.descrizione,
+                  style: const TextStyle(fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('€ ${s.prezzoUnitario.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryDark)),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined,
+                      size: 18, color: AppColors.blue),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _dialogModificaServizio(tipologia, st, s),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      size: 18, color: AppColors.error),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _dialogEliminaServizio(tipologia, st, s),
+                ),
+              ]),
+            )),
+        Padding(
+          padding: const EdgeInsets.only(left: 32, bottom: 8, top: 4),
+          child: OutlinedButton.icon(
+            onPressed: () => _dialogAggiungiServizio(tipologia, st),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Aggiungi servizio', style: TextStyle(fontSize: 12)),
+            style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _coloreTipologia(String id) {
+    switch (id) {
+      case 'P':
+        return AppColors.primary;
+      case 'A':
+        return AppColors.blue;
+      case 'V':
+        return AppColors.warning;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  Future<void> _dialogModificaServizio(
+    TipologiaListino tipologia,
+    SottotipoListino sottotipo,
+    ServizioListino servizio,
+  ) async {
+    final nomeCtrl = TextEditingController(text: servizio.descrizione);
+    final prezzoCtrl =
+        TextEditingController(text: servizio.prezzoUnitario.toStringAsFixed(2));
+    bool salvando = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: const Text('Modifica servizio',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          content: SizedBox(
+            width: 400,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                    color: AppColors.inputBackground,
+                    borderRadius: BorderRadius.circular(6)),
+                child: Row(children: [
+                  const Text('Codice: ',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
+                  Text(servizio.codiceUnivoco,
+                      style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.blue)),
+                ]),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: nomeCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                    labelText: 'Nome / descrizione',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: prezzoCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Prezzo (€)',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))
+                ],
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annulla')),
+            FilledButton(
+              onPressed: salvando
+                  ? null
+                  : () async {
+                      setDialog(() => salvando = true);
+                      final nome = nomeCtrl.text.trim();
+                      final prezzo =
+                          double.tryParse(prezzoCtrl.text.replaceAll(',', '.')) ??
+                              0.0;
+                      try {
+                        await widget.listinoService.aggiornaServizio(
+                          _tipologie!,
+                          tipologia.id,
+                          sottotipo.id,
+                          servizio.codiceUnivoco,
+                          nome,
+                          prezzo,
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _caricaListino();
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Errore: $e'),
+                              backgroundColor: AppColors.error));
+                        }
+                      } finally {
+                        if (ctx.mounted) setDialog(() => salvando = false);
+                      }
+                    },
+              style:
+                  FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              child: salvando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          color: AppColors.surface, strokeWidth: 2))
+                  : const Text('Salva'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _dialogEliminaServizio(
+    TipologiaListino tipologia,
+    SottotipoListino sottotipo,
+    ServizioListino servizio,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Elimina "${servizio.codiceUnivoco}"?'),
+        content: Text(
+            'Eliminare "${servizio.descrizione}"? Azione irreversibile.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await widget.listinoService
+          .eliminaServizio(_tipologie!, tipologia.id, sottotipo.id, servizio.codiceUnivoco);
+      await _caricaListino();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Errore: $e'), backgroundColor: AppColors.error));
+      }
+    }
+  }
+
+  Future<void> _dialogAggiungiServizio(
+    TipologiaListino tipologia,
+    SottotipoListino sottotipo,
+  ) async {
+    // Numero suggerito: max numero esistente + 1
+    int maxNum = 0;
+    for (final s in sottotipo.servizi) {
+      final n = int.tryParse(s.codiceUnivoco.replaceAll(RegExp('[^0-9]'), '')) ?? 0;
+      if (n > maxNum) maxNum = n;
+    }
+    final suggerito = (maxNum + 1).toString();
+
+    final nCtrl = TextEditingController(text: suggerito);
+    final nomeCtrl = TextEditingController();
+    final prezzoCtrl = TextEditingController(text: '0.00');
+    String anteprima = '${sottotipo.id}$suggerito';
+    bool aggiungendo = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: const Text('Aggiungi servizio',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          content: SizedBox(
+            width: 400,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(6)),
+                child: Row(children: [
+                  const Text('Codice: ',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
+                  Text(anteprima,
+                      style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary)),
+                ]),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: nCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                    labelText: 'Numero',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onChanged: (v) =>
+                    setDialog(() => anteprima = '${sottotipo.id}$v'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: nomeCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Nome / descrizione *',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: prezzoCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Prezzo (€) *',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))
+                ],
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annulla')),
+            FilledButton(
+              onPressed: aggiungendo
+                  ? null
+                  : () async {
+                      final numero = nCtrl.text.trim();
+                      final nome = nomeCtrl.text.trim();
+                      final prezzo = double.tryParse(
+                              prezzoCtrl.text.replaceAll(',', '.')) ??
+                          0.0;
+                      if (numero.isEmpty || nome.isEmpty) return;
+                      setDialog(() => aggiungendo = true);
+                      try {
+                        final nuovo = ServizioListino(
+                          codiceUnivoco: '${sottotipo.id}$numero',
+                          descrizione: nome,
+                          prezzoUnitario: prezzo,
+                        );
+                        await widget.listinoService.aggiungiServizio(
+                            _tipologie!, tipologia.id, sottotipo.id, nuovo);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _caricaListino();
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Errore: $e'),
+                              backgroundColor: AppColors.error));
+                        }
+                      } finally {
+                        if (ctx.mounted) setDialog(() => aggiungendo = false);
+                      }
+                    },
+              style:
+                  FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              child: aggiungendo
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          color: AppColors.surface, strokeWidth: 2))
+                  : const Text('Aggiungi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

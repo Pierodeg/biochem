@@ -18,6 +18,15 @@ import '../models/categoria_model.dart';
 //   impostazioni/preventivo_validita   → { nome: "Validità preventivo",     hasSottocategorie: false, items: ["30 giorni","60 giorni","90 giorni"] }
 //   impostazioni/preventivo_rinnovo    → { nome: "Rinnovo preventivo",      hasSottocategorie: false, items: ["Sì","No"] }
 //   NOTA listino: il campo items contiene Map, non stringhe.
+//
+// Regola da aggiungere in Firestore:
+// Il documento preventivo_listino_v2 è dentro impostazioni/
+// quindi è già coperto dalla regola esistente:
+// match /impostazioni/{docId} {
+//   allow read: if isAuth();
+//   allow write: if isAdmin();
+// }
+// Nessuna regola aggiuntiva necessaria.
 
 /// Servizio per la gestione delle impostazioni applicazione su Firestore
 ///

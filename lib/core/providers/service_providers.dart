@@ -4,6 +4,7 @@ import '../../services/cap_service.dart';
 import '../../services/clienti_service.dart';
 import '../../services/impostazioni_service.dart';
 import '../../services/indirizzi_servizio_service.dart';
+import '../../services/listino_service.dart';
 import '../../services/notifiche_service.dart';
 import '../../services/preventivi_service.dart';
 import '../../services/preventivo_pdf_service.dart';
@@ -53,3 +54,7 @@ final preventiviServiceProvider =
 /// Singleton del service per la generazione PDF dei preventivi
 final preventivoPdfServiceProvider =
     Provider<PreventivoPdfService>((ref) => PreventivoPdfService());
+
+/// Singleton del servizio listino a cascata v2 (impostazioni/preventivo_listino_v2)
+final listinoServiceProvider =
+    Provider<ListinoService>((ref) => ListinoService());

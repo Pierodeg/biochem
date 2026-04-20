@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,6 +49,39 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
   void dispose() {
     _cercaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _eliminaPreventivo(PreventivoModel p) async {
+    final conferma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Elimina preventivo'),
+        content: Text('Eliminare il preventivo di ${p.committente}? Azione irreversibile.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    if (conferma != true || !mounted) return;
+    try {
+      await ref.read(preventiviServiceProvider).eliminaPreventivo(p.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preventivo eliminato')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   /// Mostra un'anteprima del PDF prima di scaricare/condividere
@@ -225,6 +259,12 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                               color: AppColors.primary, size: 18),
                         ),
                   if (isAdmin) ...[
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => _eliminaPreventivo(p),
+                      child: const Icon(Icons.delete_outline,
+                          color: AppColors.error, size: 18),
+                    ),
                     const SizedBox(width: 4),
                     const Icon(Icons.chevron_right,
                         color: AppColors.textDisabled, size: 18),
@@ -428,6 +468,15 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.delete_outline,
+                  color: AppColors.error, size: 18),
+              tooltip: 'Elimina',
+              onPressed: () => _eliminaPreventivo(p),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
           ],
         )),
     ]);
@@ -639,7 +688,7 @@ class _PdfPreviewDialog extends StatelessWidget {
                   build: (_) async => bytes,
                   pdfFileName: nomeFile,
                   allowPrinting: true,
-                  allowSharing: true,
+                  allowSharing: !kIsWeb,   // sharePdf non disponibile su web
                   canChangeOrientation: false,
                   canChangePageFormat: false,
                   canDebug: false,
