@@ -24,8 +24,7 @@ class PreventivoFormPage extends ConsumerStatefulWidget {
   const PreventivoFormPage({super.key, this.preventivoId});
 
   @override
-  ConsumerState<PreventivoFormPage> createState() =>
-      _PreventivoFormPageState();
+  ConsumerState<PreventivoFormPage> createState() => _PreventivoFormPageState();
 }
 
 class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
@@ -149,7 +148,9 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     _ibanCtrl.dispose();
     _intestatoACtrl.dispose();
     _causaleCtrl.dispose();
-    for (final r in _righeCtrl) { r.dispose(); }
+    for (final r in _righeCtrl) {
+      r.dispose();
+    }
     super.dispose();
   }
 
@@ -164,7 +165,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       _tipologie = await _listinoService.getTipologie();
 
       if (widget.preventivoId != null) {
-        final p = await _preventiviService.getPreventivoById(widget.preventivoId!);
+        final p =
+            await _preventiviService.getPreventivoById(widget.preventivoId!);
         if (p != null) {
           _preventivoOriginale = p;
           _popolaDaModello(p);
@@ -184,7 +186,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     _numeroPrev = p.numeroPrev;
     _dataPrev = p.data;
     _dataCtrl.text = _dateFmt.format(p.data);
-    _oraCtrl.text = p.ora.isNotEmpty ? p.ora : DateFormat('HH:mm').format(DateTime.now());
+    _oraCtrl.text =
+        p.ora.isNotEmpty ? p.ora : DateFormat('HH:mm').format(DateTime.now());
     _codiceClienteId = p.codiceCliente;
     _clienteDisplayCtrl.text = p.committente;
 
@@ -206,8 +209,10 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     _indirizzoServizioCtrl.text = p.indirizzoServizio;
     _oggettoCtrl.text = p.oggetto;
 
-    _giornataEsecuzione = p.giornataEsecuzione.isNotEmpty ? p.giornataEsecuzione : null;
-    _tipologiaServizi = p.tipologiaServizi.isNotEmpty ? p.tipologiaServizi : null;
+    _giornataEsecuzione =
+        p.giornataEsecuzione.isNotEmpty ? p.giornataEsecuzione : null;
+    _tipologiaServizi =
+        p.tipologiaServizi.isNotEmpty ? p.tipologiaServizi : null;
 
     for (final riga in p.righe) {
       _righeCtrl.add(_RigaController.fromRiga(riga));
@@ -306,7 +311,6 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     });
   }
 
-
   void _ricalcola() {
     double arrotonda(double v) => double.parse(v.toStringAsFixed(2));
     double parseDbl(String t) => double.tryParse(t.replaceAll(',', '.')) ?? 0.0;
@@ -387,7 +391,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   }
 
   Map<String, Object?> _snapshotCorrente() {
-    final m = _costruisciModello(isDraft: _preventivoOriginale?.isDraft ?? false);
+    final m =
+        _costruisciModello(isDraft: _preventivoOriginale?.isDraft ?? false);
     return {
       'committente': m.committente,
       'data': m.data.toIso8601String(),
@@ -434,7 +439,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(isDraft ? 'Salvato come bozza' : 'Preventivo salvato'),
-          backgroundColor: isDraft ? AppColors.textSecondary : AppColors.success,
+          backgroundColor:
+              isDraft ? AppColors.textSecondary : AppColors.success,
         ));
         if (closeAfterSave) {
           await _chiudiPagina();
@@ -461,7 +467,10 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       _persistiPreventivo(isDraft: false, closeAfterSave: true);
 
   Future<void> _esci() async {
-    if (!_hasUnsavedChanges) { await _chiudiPagina(); return; }
+    if (!_hasUnsavedChanges) {
+      await _chiudiPagina();
+      return;
+    }
     final scelta = await showDialog<_SceltaEsci>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -470,7 +479,9 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             ? 'Ci sono modifiche non salvate. Cosa vuoi fare?'
             : 'Ci sono modifiche non salvate. Salvarle prima di uscire?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, _SceltaEsci.annulla), child: const Text('Rimani')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, _SceltaEsci.annulla),
+              child: const Text('Rimani')),
           if (_canSaveAsDraft)
             OutlinedButton(
               onPressed: () => Navigator.pop(ctx, _SceltaEsci.bozza),
@@ -501,12 +512,17 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Modifiche non salvate'),
-            content: const Text('Il PDF verrà generato con i dati salvati in precedenza. Procedere?'),
+            content: const Text(
+                'Il PDF verrà generato con i dati salvati in precedenza. Procedere?'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Annulla'),
+              ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                style:
+                    FilledButton.styleFrom(backgroundColor: AppColors.primary),
                 child: const Text('Genera PDF'),
               ),
             ],
@@ -535,9 +551,12 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Elimina preventivo'),
-        content: Text('Eliminare il preventivo di ${_committenteCtrl.text.trim()}? Azione irreversibile.'),
+        content: Text(
+            'Eliminare il preventivo di ${_committenteCtrl.text.trim()}? Azione irreversibile.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
@@ -550,12 +569,14 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     try {
       await _preventiviService.eliminaPreventivo(_preventivoIdCorrente!);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preventivo eliminato')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Preventivo eliminato')));
         await _chiudiPagina();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e'), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Errore: $e'), backgroundColor: AppColors.error));
       }
     }
   }
@@ -564,32 +585,46 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final titolo = _preventivoIdCorrente == null ? 'Nuovo preventivo' : 'Modifica preventivo';
+    final titolo = _preventivoIdCorrente == null
+        ? 'Nuovo preventivo'
+        : 'Modifica preventivo';
     final userAsync = ref.watch(currentUserProvider);
     if (userAsync.isLoading) {
-      return Scaffold(appBar: AppBar(title: Text(titolo)), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(
+          appBar: AppBar(title: Text(titolo)),
+          body: const Center(child: CircularProgressIndicator()));
     }
     final user = userAsync.valueOrNull;
     if (user == null || !user.isAdmin) {
-      return Scaffold(appBar: AppBar(title: Text(titolo)), body: const Center(child: Text('Accesso non autorizzato')));
+      return Scaffold(
+          appBar: AppBar(title: Text(titolo)),
+          body: const Center(child: Text('Accesso non autorizzato')));
     }
 
     return PopScope(
       canPop: _allowDirectPop,
-      onPopInvokedWithResult: (didPop, _) async { if (didPop) return; await _esci(); },
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _esci();
+      },
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: Text(titolo),
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: _esci),
+          leading:
+              IconButton(icon: const Icon(Icons.arrow_back), onPressed: _esci),
           actions: [
             if (!_isLoading && _preventivoIdCorrente != null) ...[
               _isGeneratingPdf
                   ? const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                      child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2)))
                   : IconButton(
-                      icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary),
+                      icon: const Icon(Icons.picture_as_pdf_outlined,
+                          color: AppColors.primary),
                       tooltip: 'Genera PDF',
                       onPressed: _isSaving ? null : _generaPdf,
                     ),
@@ -602,9 +637,12 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           ],
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary))
             : _erroreCaricamento != null
-                ? Center(child: Text('Errore: $_erroreCaricamento', style: const TextStyle(color: AppColors.error)))
+                ? Center(
+                    child: Text('Errore: $_erroreCaricamento',
+                        style: const TextStyle(color: AppColors.error)))
                 : Column(children: [
                     Expanded(
                       child: LayoutBuilder(builder: (ctx, constraints) {
@@ -643,7 +681,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   Widget _buildGruppo1(bool isDesktop) {
     final numeroTesto = _numeroPrev == null
         ? 'Auto'
-        : '${_dataPrev.year % 100}${(_dataPrev.month).toString().padLeft(2,'0')}${_dataPrev.day.toString().padLeft(2,'0')}${_numeroPrev.toString().padLeft(3,'0')}';
+        : '${_dataPrev.year % 100}${(_dataPrev.month).toString().padLeft(2, '0')}${_dataPrev.day.toString().padLeft(2, '0')}${_numeroPrev.toString().padLeft(3, '0')}';
 
     return _buildGruppoCard(
       titolo: 'Intestazione documento',
@@ -657,7 +695,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             decoration: _dec('pvr off n°').copyWith(
               filled: true,
               fillColor: AppColors.inputBackground,
-              suffixIcon: const Icon(Icons.lock_outline, size: 16, color: AppColors.textDisabled),
+              suffixIcon: const Icon(Icons.lock_outline,
+                  size: 16, color: AppColors.textDisabled),
             ),
           ),
           GestureDetector(
@@ -665,7 +704,9 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             child: AbsorbPointer(
               child: TextFormField(
                 controller: _oraCtrl,
-                decoration: _dec('Ora').copyWith(suffixIcon: const Icon(Icons.access_time_outlined, size: 18)),
+                decoration: _dec('Ora').copyWith(
+                    suffixIcon:
+                        const Icon(Icons.access_time_outlined, size: 18)),
               ),
             ),
           ),
@@ -674,8 +715,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             child: AbsorbPointer(
               child: TextFormField(
                 controller: _dataCtrl,
-                decoration: _dec('Data').copyWith(suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18)),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
+                decoration: _dec('Data').copyWith(
+                    suffixIcon:
+                        const Icon(Icons.calendar_today_outlined, size: 18)),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
               ),
             ),
           ),
@@ -714,15 +758,23 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         const SizedBox(height: 8),
         // Indirizzo servizio
         Row(children: [
-          const Text('indirizzo servizio:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          const Text('indirizzo servizio:',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           const SizedBox(width: 8),
-          Expanded(child: TextFormField(controller: _indirizzoServizioCtrl, decoration: _dec('').copyWith(isDense: true))),
+          Expanded(
+              child: TextFormField(
+                  controller: _indirizzoServizioCtrl,
+                  decoration: _dec('').copyWith(isDense: true))),
         ]),
         const SizedBox(height: 12),
         // Oggetto
-        const Text('Oggetto:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        const Text('Oggetto:',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         const SizedBox(height: 4),
-        TextFormField(controller: _oggettoCtrl, maxLines: 2, decoration: _dec('Oggetto del preventivo')),
+        TextFormField(
+            controller: _oggettoCtrl,
+            maxLines: 2,
+            decoration: _dec('Oggetto del preventivo')),
       ],
     );
   }
@@ -731,16 +783,22 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Dati azienda', style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+        const Text('Dati azienda',
+            style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _committenteCtrl,
           decoration: _dec('Committente'),
           style: const TextStyle(fontWeight: FontWeight.w600),
-          validator: (v) => v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
         ),
         const SizedBox(height: 8),
-        TextFormField(controller: _indirizzoCommCtrl, decoration: _dec('Indirizzo')),
+        TextFormField(
+            controller: _indirizzoCommCtrl, decoration: _dec('Indirizzo')),
         const SizedBox(height: 8),
         Row(children: [
           SizedBox(
@@ -749,58 +807,76 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               controller: _capCommCtrl,
               decoration: _dec('CAP'),
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(5)
+              ],
               onChanged: _onCapChanged,
             ),
           ),
           const SizedBox(width: 6),
-          Expanded(child: TextFormField(controller: _cittaCommCtrl, decoration: _dec('Città'))),
+          Expanded(
+              child: TextFormField(
+                  controller: _cittaCommCtrl, decoration: _dec('Città'))),
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          _buildLabelField('P.I.', _codiceFiscaleCtrl),
+          Expanded(
+            child: TextFormField(
+                controller: _codiceFiscaleCtrl, decoration: _dec('P.I.')),
+          ),
           const SizedBox(width: 6),
-          _buildLabelField('CU', _codiceUnivocoCtrl),
+          Expanded(
+            child: TextFormField(
+                controller: _codiceUnivocoCtrl, decoration: _dec('CU')),
+          ),
         ]),
       ],
     );
   }
 
+  // ─── FIX 3: _buildDatiDestra usa _dec() invece di _buildLabelField ────────
   Widget _buildDatiDestra() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Spett. / destinatario', style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+        const Text('Spett. / destinatario',
+            style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
-        _buildLabelField('Spett.', _spettCtrl, expanded: false),
-        const SizedBox(height: 6),
-        _buildLabelField('alla cortese att. D', _allaCorteseDiCtrl, expanded: false),
-        const SizedBox(height: 6),
-        _buildLabelField('indirizzo', _indirizzoSpettCtrl, expanded: false),
-        const SizedBox(height: 6),
-        _buildLabelField('città', _cittaSpettCtrl, expanded: false),
-        const SizedBox(height: 6),
+        TextFormField(
+            controller: _spettCtrl,
+            decoration: _dec('Spett.')),
+        const SizedBox(height: 8),
+        TextFormField(
+            controller: _allaCorteseDiCtrl,
+            decoration: _dec('Alla cortese att. di')),
+        const SizedBox(height: 8),
+        TextFormField(
+            controller: _indirizzoSpettCtrl,
+            decoration: _dec('Indirizzo')),
+        const SizedBox(height: 8),
+        TextFormField(
+            controller: _cittaSpettCtrl,
+            decoration: _dec('Città')),
+        const SizedBox(height: 8),
         Row(children: [
-          _buildLabelField('PI', _piSpettCtrl),
-          const SizedBox(width: 6),
-          _buildLabelField('CU', _cuSpettCtrl),
+          Expanded(
+            child: TextFormField(
+                controller: _piSpettCtrl,
+                decoration: _dec('P.I.')),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextFormField(
+                controller: _cuSpettCtrl,
+                decoration: _dec('CU')),
+          ),
         ]),
       ],
     );
-  }
-
-  Widget _buildLabelField(String label, TextEditingController ctrl, {bool expanded = true}) {
-    final field = TextFormField(
-      controller: ctrl,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const UnderlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        isDense: true,
-      ),
-      style: const TextStyle(fontSize: 12),
-    );
-    return expanded ? Expanded(child: field) : field;
   }
 
   // ─── Gruppo 3 — Dettaglio servizi ─────────────────────────────────────────
@@ -826,7 +902,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             hint: const Text('Seleziona...'),
             isExpanded: true,
             items: _tipologie
-                .map((t) => DropdownMenuItem(value: t.nome, child: Text('${t.id} — ${t.nome}')))
+                .map((t) => DropdownMenuItem(
+                    value: t.nome, child: Text('${t.id} — ${t.nome}')))
                 .toList(),
             onChanged: (v) => setState(() => _tipologiaServizi = v),
           ),
@@ -843,7 +920,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               color: AppColors.warningLight,
             ),
             child: const Row(children: [
-              Icon(Icons.warning_amber_outlined, color: AppColors.warning, size: 20),
+              Icon(Icons.warning_amber_outlined,
+                  color: AppColors.warning, size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -872,7 +950,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _righeCtrl.length,
-            separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.divider),
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: AppColors.divider),
             itemBuilder: (_, i) => _buildRigaServizio(i, isDesktop),
           ),
         const Divider(height: 1, color: AppColors.primaryDark),
@@ -882,10 +961,14 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Text('Totale', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const Text('Totale',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(width: 24),
               Text(_moneyFmt.format(_totale),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primaryDark)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppColors.primaryDark)),
             ],
           ),
         ),
@@ -894,7 +977,9 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           onPressed: _aggiungiRiga,
           icon: const Icon(Icons.add, size: 18),
           label: const Text('Aggiungi servizio'),
-          style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary)),
+          style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary)),
         ),
       ],
     );
@@ -908,21 +993,73 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       child: const Row(children: [
         SizedBox(width: 32),
         SizedBox(width: 6),
-        SizedBox(width: 120, child: Text('Tipologia', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600))),
+        SizedBox(
+            width: 100,
+            child: Text('Tipologia',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600))),
         SizedBox(width: 6),
-        SizedBox(width: 150, child: Text('Sotto-tipo', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600))),
+        SizedBox(
+            width: 130,
+            child: Text('Sotto-tipo',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600))),
         SizedBox(width: 6),
-        Expanded(child: Text('Servizio', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600))),
+        Expanded(
+            child: Text('Servizio',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600))),
         SizedBox(width: 6),
-        SizedBox(width: 90, child: Text('cad', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
+        SizedBox(
+            width: 90,
+            child: Text('cad',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center)),
         SizedBox(width: 6),
-        SizedBox(width: 60, child: Text('num', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
+        SizedBox(
+            width: 60,
+            child: Text('num',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center)),
         SizedBox(width: 6),
-        SizedBox(width: 65, child: Text('sct %', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
+        SizedBox(
+            width: 65,
+            child: Text('sct %',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center)),
         SizedBox(width: 6),
-        SizedBox(width: 90, child: Text('cst an/ser', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
+        SizedBox(
+            width: 90,
+            child: Text('cst an/ser',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center)),
         SizedBox(width: 6),
-        SizedBox(width: 90, child: Text('tot', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
+        SizedBox(
+            width: 90,
+            child: Text('tot',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center)),
       ]),
     );
   }
@@ -949,12 +1086,15 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     DropdownMenuItem<String> ddItem(String value, String label) =>
         DropdownMenuItem<String>(
           value: value,
-          child: Text(label, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+          child: Text(label,
+              style: const TextStyle(fontSize: 11),
+              overflow: TextOverflow.ellipsis),
         );
 
     if (isDesktop) {
       return Container(
-        color: i.isOdd ? AppColors.primaryLightest.withValues(alpha: 0.3) : null,
+        color:
+            i.isOdd ? AppColors.primaryLightest.withValues(alpha: 0.3) : null,
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -970,12 +1110,14 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               ),
             ),
             const SizedBox(width: 6),
+            // ─── FIX 1 desktop: larghezze ridotte + isExpanded: true ────────
             // Tipologia
             SizedBox(
-              width: 120,
+              width: 100,
               child: DropdownButtonFormField<String>(
                 key: ValueKey('tip_${i}_${r.tipologiaId}'),
                 isDense: true,
+                isExpanded: true,
                 decoration: decCascade,
                 value: r.tipologiaId,
                 hint: const Text('Tip.', style: TextStyle(fontSize: 11)),
@@ -995,10 +1137,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             const SizedBox(width: 6),
             // Sotto-tipo
             SizedBox(
-              width: 150,
+              width: 130,
               child: DropdownButtonFormField<String>(
                 key: ValueKey('sub_${i}_${r.tipologiaId}_${r.sottotipoId}'),
                 isDense: true,
+                isExpanded: true,
                 decoration: decCascade,
                 value: r.sottotipoId,
                 hint: const Text('Sotto-tipo', style: TextStyle(fontSize: 11)),
@@ -1022,12 +1165,12 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               child: DropdownButtonFormField<String>(
                 key: ValueKey('srv_${i}_${r.sottotipoId}_${r.codice}'),
                 isDense: true,
+                isExpanded: true,
                 decoration: decCascade,
                 value: r.codice.isNotEmpty ? r.codice : null,
                 hint: const Text('Servizio', style: TextStyle(fontSize: 11)),
                 items: serviziRiga
-                    .map((s) => ddItem(
-                        s.codiceUnivoco,
+                    .map((s) => ddItem(s.codiceUnivoco,
                         '[${s.codiceUnivoco}] ${s.descrizione} — €${s.prezzoUnitario.toStringAsFixed(2)}'))
                     .toList(),
                 onChanged: (r.tipologiaId == null || r.sottotipoId == null)
@@ -1055,7 +1198,9 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             SizedBox(width: 90, child: _buildCampoNumDesktop(r.prezzoCtrl)),
             const SizedBox(width: 6),
             // num
-            SizedBox(width: 60, child: _buildCampoNumDesktop(r.qtaCtrl, intero: true)),
+            SizedBox(
+                width: 60,
+                child: _buildCampoNumDesktop(r.qtaCtrl, intero: true)),
             const SizedBox(width: 6),
             // sct %
             SizedBox(width: 65, child: _buildCampoNumDesktop(r.scontoCtrl)),
@@ -1066,7 +1211,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               child: Text(
                   _moneyFmt.format(
                       r.costoCaduno * (int.tryParse(r.qtaCtrl.text) ?? 0)),
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center),
             ),
             const SizedBox(width: 6),
@@ -1085,7 +1231,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       );
     }
 
-    // Mobile — Column verticale
+    // ─── FIX 2 mobile: isExpanded: true su tutti i dropdown ─────────────────
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
       child: Column(
@@ -1107,13 +1253,15 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
             key: ValueKey('m_tip_${i}_${r.tipologiaId}'),
+            isExpanded: true,
             decoration: _dec('Tipologia'),
             value: r.tipologiaId,
             items: _tipologie
                 .map((t) => DropdownMenuItem(
                     value: t.id,
                     child: Text('${t.id} — ${t.nome}',
-                        style: const TextStyle(fontSize: 12))))
+                        style: const TextStyle(fontSize: 12),
+                        overflow: TextOverflow.ellipsis)))
                 .toList(),
             onChanged: (v) => setState(() {
               r.tipologiaId = v;
@@ -1127,13 +1275,15 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             key: ValueKey('m_sub_${i}_${r.tipologiaId}_${r.sottotipoId}'),
+            isExpanded: true,
             decoration: _dec('Sotto-tipo'),
             value: r.sottotipoId,
             items: sottotipiRiga
                 .map((st) => DropdownMenuItem(
                     value: st.id,
                     child: Text('${st.id} — ${st.nome}',
-                        style: const TextStyle(fontSize: 12))))
+                        style: const TextStyle(fontSize: 12),
+                        overflow: TextOverflow.ellipsis)))
                 .toList(),
             onChanged: r.tipologiaId == null
                 ? null
@@ -1148,6 +1298,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             key: ValueKey('m_srv_${i}_${r.sottotipoId}_${r.codice}'),
+            isExpanded: true,
             decoration: _dec('Servizio'),
             value: r.codice.isNotEmpty ? r.codice : null,
             items: serviziRiga
@@ -1181,7 +1332,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           Row(children: [
             Expanded(child: _buildCampoNumerico('€ cad', r.prezzoCtrl)),
             const SizedBox(width: 6),
-            Expanded(child: _buildCampoNumerico('num', r.qtaCtrl, intero: true)),
+            Expanded(
+                child: _buildCampoNumerico('num', r.qtaCtrl, intero: true)),
             const SizedBox(width: 6),
             Expanded(child: _buildCampoNumerico('sct %', r.scontoCtrl)),
           ]),
@@ -1194,14 +1346,20 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     );
   }
 
-  Widget _buildCampoNumDesktop(TextEditingController ctrl, {bool intero = false}) {
+  Widget _buildCampoNumDesktop(TextEditingController ctrl,
+      {bool intero = false}) {
     return TextFormField(
       controller: ctrl,
       style: const TextStyle(fontSize: 12),
       textAlign: TextAlign.center,
-      decoration: const InputDecoration(border: UnderlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4)),
+      decoration: const InputDecoration(
+          border: UnderlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4)),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: intero ? [FilteringTextInputFormatter.digitsOnly] : [FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))],
+      inputFormatters: intero
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : [FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))],
       onChanged: (_) => _ricalcola(),
     );
   }
@@ -1213,10 +1371,13 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       isDesktop: isDesktop,
       children: [
         // PAGAMENTO
-        TextFormField(controller: _pagamentoCtrl, decoration: _dec('PAGAMENTO')),
+        TextFormField(
+            controller: _pagamentoCtrl, decoration: _dec('PAGAMENTO')),
         const SizedBox(height: 12),
         _buildRiga(isDesktop, [
-          TextFormField(controller: _durataContrattoCtrl, decoration: _dec('Durata contratto')),
+          TextFormField(
+              controller: _durataContrattoCtrl,
+              decoration: _dec('Durata contratto')),
           CategoriaDropdown(
             categoriaId: 'preventivo_rinnovo',
             label: 'Rinnovo a scadenza',
@@ -1226,8 +1387,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         ]),
         const SizedBox(height: 12),
         _buildRiga(isDesktop, [
-          TextFormField(controller: _periodoInterventoCtrl, decoration: _dec('Periodo intervento')),
-          TextFormField(controller: _validitaCtrl, decoration: _dec('Validità offerta')),
+          TextFormField(
+              controller: _periodoInterventoCtrl,
+              decoration: _dec('Periodo intervento')),
+          TextFormField(
+              controller: _validitaCtrl, decoration: _dec('Validità offerta')),
         ]),
       ],
     );
@@ -1239,7 +1403,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       titolo: 'NOTE VARIE SERVIZI CONDIZIONI OFFERTA',
       isDesktop: isDesktop,
       children: [
-        TextFormField(controller: _noteCtrl, maxLines: 6, decoration: _dec('Note')),
+        TextFormField(
+            controller: _noteCtrl, maxLines: 6, decoration: _dec('Note')),
       ],
     );
   }
@@ -1251,36 +1416,58 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       isDesktop: isDesktop,
       children: [
         _buildRiga(isDesktop, [
-          TextFormField(controller: _ibanCtrl, decoration: _dec('Coordinate IBAN')),
-          TextFormField(controller: _intestatoACtrl, decoration: _dec('Intestato a')),
+          TextFormField(
+              controller: _ibanCtrl, decoration: _dec('Coordinate IBAN')),
+          TextFormField(
+              controller: _intestatoACtrl, decoration: _dec('Intestato a')),
         ]),
         const SizedBox(height: 12),
-        TextFormField(controller: _causaleCtrl, decoration: _dec('Causale (auto-generata se vuota)')),
+        TextFormField(
+            controller: _causaleCtrl,
+            decoration: _dec('Causale (auto-generata se vuota)')),
         const SizedBox(height: 16),
         // Sezione firme (solo visuale)
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(8)),
           child: Row(
             children: [
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('DATA, LUOGO', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                  const SizedBox(height: 20),
-                  const Divider(color: AppColors.textPrimary),
-                  const Text('FIRMA CLIENTE', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('DATA, LUOGO',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary)),
+                      const SizedBox(height: 20),
+                      const Divider(color: AppColors.textPrimary),
+                      const Text('FIRMA CLIENTE',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary)),
+                    ]),
               ),
               const SizedBox(width: 24),
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  const Text('Biochemlabs', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
-                  const Text('il chimico', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
-                  const Text('Dr. Leonardo Daga', style: TextStyle(fontSize: 12)),
-                  const Text('iscr. Ord. Pur Chimici n° 219A', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                  const SizedBox(height: 20),
-                  const Divider(color: AppColors.textPrimary),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('Biochemlabs',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary)),
+                      const Text('il chimico',
+                          style: TextStyle(
+                              fontStyle: FontStyle.italic, fontSize: 12)),
+                      const Text('Dr. Leonardo Daga',
+                          style: TextStyle(fontSize: 12)),
+                      const Text('iscr. Ord. Pur Chimici n° 219A',
+                          style: TextStyle(
+                              fontSize: 10, color: AppColors.textSecondary)),
+                      const SizedBox(height: 20),
+                      const Divider(color: AppColors.textPrimary),
+                    ]),
               ),
             ],
           ),
@@ -1298,13 +1485,17 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         color: AppColors.surface,
       ),
       child: Row(children: [
-        OutlinedButton(onPressed: _isSaving ? null : _esci, child: const Text('Annulla')),
+        OutlinedButton(
+            onPressed: _isSaving ? null : _esci, child: const Text('Annulla')),
         const SizedBox(width: 8),
         Expanded(
           child: OutlinedButton(
             onPressed: _isSaving ? null : _salvaEResta,
             child: _isSaving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
                 : const Text('Salva e resta'),
           ),
         ),
@@ -1314,7 +1505,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             onPressed: _isSaving ? null : _salvaEsci,
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             child: _isSaving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
                 : const Text('Salva ed esci'),
           ),
         ),
@@ -1324,19 +1519,33 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
 
   // ─── Helpers UI ──────────────────────────────────────────────────────────
 
-  Widget _buildGruppoCard({required String titolo, required bool isDesktop, required List<Widget> children}) {
+  Widget _buildGruppoCard(
+      {required String titolo,
+      required bool isDesktop,
+      required List<Widget> children}) {
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.divider)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.divider)),
       color: AppColors.surface,
       child: ExpansionTile(
         initiallyExpanded: isDesktop,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(titolo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary)),
+        collapsedShape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(titolo,
+            style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: AppColors.textPrimary)),
         children: [
           const Divider(height: 1, color: AppColors.divider),
-          Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)),
+          Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children)),
         ],
       ),
     );
@@ -1346,24 +1555,39 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     if (!isDesktop || fields.length == 1) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: fields.asMap().entries.map((e) => Padding(
-          padding: EdgeInsets.only(bottom: e.key < fields.length - 1 ? 12 : 0),
-          child: e.value,
-        )).toList(),
+        children: fields
+            .asMap()
+            .entries
+            .map((e) => Padding(
+                  padding: EdgeInsets.only(
+                      bottom: e.key < fields.length - 1 ? 12 : 0),
+                  child: e.value,
+                ))
+            .toList(),
       );
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: fields.asMap().entries.expand((e) => [if (e.key > 0) const SizedBox(width: 12), Expanded(child: e.value)]).toList(),
+      children: fields
+          .asMap()
+          .entries
+          .expand((e) => [
+                if (e.key > 0) const SizedBox(width: 12),
+                Expanded(child: e.value)
+              ])
+          .toList(),
     );
   }
 
-  Widget _buildCampoNumerico(String label, TextEditingController ctrl, {bool intero = false}) {
+  Widget _buildCampoNumerico(String label, TextEditingController ctrl,
+      {bool intero = false}) {
     return TextFormField(
       controller: ctrl,
       decoration: _dec(label),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: intero ? [FilteringTextInputFormatter.digitsOnly] : [FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))],
+      inputFormatters: intero
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : [FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))],
       onChanged: (_) => _ricalcola(),
     );
   }
@@ -1373,11 +1597,14 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       optionsBuilder: (TextEditingValue valore) {
         if (valore.text.isEmpty) return const Iterable<ClienteModel>.empty();
         final q = valore.text.toLowerCase();
-        return _clienti.where((c) => c.committente.toLowerCase().contains(q) || c.numeroFormattato.toLowerCase().contains(q));
+        return _clienti.where((c) =>
+            c.committente.toLowerCase().contains(q) ||
+            c.numeroFormattato.toLowerCase().contains(q));
       },
       displayStringForOption: (c) => '${c.numeroFormattato} — ${c.committente}',
       fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
-        if (_clienteDisplayCtrl.text.isNotEmpty && ctrl.text != _clienteDisplayCtrl.text) {
+        if (_clienteDisplayCtrl.text.isNotEmpty &&
+            ctrl.text != _clienteDisplayCtrl.text) {
           ctrl.text = _clienteDisplayCtrl.text;
         }
         return TextFormField(
@@ -1404,10 +1631,21 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
                   final c = options.elementAt(i);
                   return ListTile(
                     dense: true,
-                    leading: CircleAvatar(radius: 16, backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                        child: Text(c.initials, style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w700))),
-                    title: Text(c.committente, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    subtitle: Text(c.numeroFormattato, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    leading: CircleAvatar(
+                        radius: 16,
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.1),
+                        child: Text(c.initials,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700))),
+                    title: Text(c.committente,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
+                    subtitle: Text(c.numeroFormattato,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary)),
                     onTap: () => onSelected(c),
                   );
                 },
@@ -1422,7 +1660,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   InputDecoration _dec(String label) => InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       );
 }
 
@@ -1490,7 +1729,8 @@ class _RigaController {
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
     return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

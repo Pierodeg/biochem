@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:biochem/utils/web_pdf_preview_stub.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -627,7 +628,7 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
 
 // ─── Dialog anteprima PDF ─────────────────────────────────────────────────────
 
-class _PdfPreviewDialog extends StatelessWidget {
+class _PdfPreviewDialog extends StatefulWidget {
   const _PdfPreviewDialog({
     required this.titolo,
     required this.nomeFile,
@@ -637,6 +638,17 @@ class _PdfPreviewDialog extends StatelessWidget {
   final String titolo;
   final String nomeFile;
   final Uint8List bytes;
+
+  @override
+  State<_PdfPreviewDialog> createState() => _PdfPreviewDialogState();
+}
+
+class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
+  @override
+  void dispose() {
+    if (kIsWeb) disposeWebPdfIframePreview();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -662,7 +674,7 @@ class _PdfPreviewDialog extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      titolo,
+                      widget.titolo,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -671,8 +683,7 @@ class _PdfPreviewDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon:
-                        const Icon(Icons.close, color: Colors.white, size: 20),
+                    icon: const Icon(Icons.close, color: Colors.white, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                     tooltip: 'Chiudi',
                   ),
@@ -684,23 +695,33 @@ class _PdfPreviewDialog extends StatelessWidget {
               child: ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(bottom: Radius.circular(16)),
-                child: PdfPreview(
-                  build: (_) async => bytes,
-                  pdfFileName: nomeFile,
-                  allowPrinting: true,
-                  allowSharing: !kIsWeb,   // sharePdf non disponibile su web
-                  canChangeOrientation: false,
-                  canChangePageFormat: false,
-                  canDebug: false,
-                  initialPageFormat: PdfPageFormat.a4,
-                  maxPageWidth: 800,
-                  actions: const [],
-                ),
+                child: kIsWeb
+                    ? _buildWebPreview()
+                    : PdfPreview(
+                        build: (_) async => widget.bytes,
+                        pdfFileName: widget.nomeFile,
+                        allowPrinting: true,
+                        allowSharing: true,
+                        canChangeOrientation: false,
+                        canChangePageFormat: false,
+                        canDebug: false,
+                        initialPageFormat: PdfPageFormat.a4,
+                        maxPageWidth: 800,
+                        actions: const [],
+                      ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildWebPreview() {
+    final webWidget = buildWebPdfIframePreview(widget.bytes);
+    if (webWidget != null) return webWidget;
+    return const Center(
+      child: Text('Anteprima non disponibile su questo browser'),
     );
   }
 }
