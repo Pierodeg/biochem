@@ -12,10 +12,6 @@ import '../../../models/indirizzo_servizio_model.dart';
 import '../../../services/indirizzi_servizio_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
 
-/// Form per la creazione e modifica di un cliente
-///
-/// Parametri:
-/// - [clienteId] null → modalità creazione, stringa → modalità modifica
 class ClienteFormPage extends ConsumerStatefulWidget {
   final String? clienteId;
   const ClienteFormPage({super.key, this.clienteId});
@@ -30,19 +26,15 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
   late final CapService _capService;
   late final IndirizziServizioService _indirizziService;
 
-  // Stato del form
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errore;
   String? _clienteIdCorrente;
   bool _allowDirectPop = false;
   Map<String, Object?>? _snapshotIniziale;
-
-  // Dati del cliente in modifica (null = creazione)
   ClienteModel? _clienteOriginale;
   int _numeroCliente = 0;
 
-  // Controller per ogni campo
   final _committenteCtrl = TextEditingController();
   final _indirizzoCtrl = TextEditingController();
   final _capCtrl = TextEditingController();
@@ -53,27 +45,19 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
   final _referenteCtrl = TextEditingController();
   final _numeroClienteCtrl = TextEditingController();
   final _indirizzoServizioCtrl = TextEditingController();
-
-  // Campi CAP/Città/Provincia servizio (separati)
   final _capServizioCtrl = TextEditingController();
   final _cittaServizioCtrl = TextEditingController();
   final _provinciaServizioCtrl = TextEditingController();
-
   final _emailCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
   final _cellulareCtrl = TextEditingController();
   final _pecCtrl = TextEditingController();
 
-  // Tipo committente (aggiornato via CategoriaDropdown)
   String? _tipoCommittente;
-
-  // Cache suggerimenti per i campi Autocomplete
   List<String> _sugCodiceUnivoco = [];
   List<String> _sugReferente = [];
   List<String> _sugEmail = [];
   List<String> _sugPec = [];
-
-  // Lista indirizzi servizio multipli (caricati da Firestore)
   List<IndirizzoServizioModel> _indirizzi = [];
 
   @override
@@ -110,7 +94,6 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
 
   Future<void> _inizializza() async {
     try {
-      // Carica suggerimenti con una sola lettura Firestore
       final suggerimenti = await _clientiService.getAllSuggerimenti([
         'codiceUnivoco',
         'referente',
@@ -123,9 +106,7 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
       _sugPec = suggerimenti['pec'] ?? [];
 
       if (widget.clienteId != null) {
-        // Modalità modifica: carica il cliente esistente
-        final cliente =
-            await _clientiService.getClienteById(widget.clienteId!);
+        final cliente = await _clientiService.getClienteById(widget.clienteId!);
         if (cliente != null) {
           _clienteOriginale = cliente;
           _numeroCliente = cliente.numeroCliente;
@@ -150,16 +131,11 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
           _cellulareCtrl.text = cliente.cellulare;
           _pecCtrl.text = cliente.pec;
         }
-
-        // Carica indirizzi servizio multipli
-        final indirizzi = await _indirizziService
-            .getIndirizzi(widget.clienteId!)
-            .first;
+        final indirizzi =
+            await _indirizziService.getIndirizzi(widget.clienteId!).first;
         _indirizzi = indirizzi;
       } else {
-        // Modalità creazione: il numero verrà assegnato solo al momento del salvataggio
-        // per evitare di incrementare il contatore se l'utente annulla
-        _numeroCliente = 0; // 0 = "Auto" (non ancora assegnato)
+        _numeroCliente = 0;
       }
     } catch (e) {
       _errore = e.toString();
@@ -171,39 +147,30 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     }
   }
 
-  /// Lookup automatico CAP indirizzo principale
   Future<void> _onCapChanged(String cap) async {
     if (cap.length == 5) {
-      final risultato = await _capService.cercaPerCap(cap);
-      if (risultato != null && mounted) {
+      final r = await _capService.cercaPerCap(cap);
+      if (r != null && mounted)
         setState(() {
-          _cittaCtrl.text = risultato.citta;
-          _provinciaCtrl.text = risultato.provincia;
+          _cittaCtrl.text = r.citta;
+          _provinciaCtrl.text = r.provincia;
         });
-      }
     }
   }
 
-  /// Lookup automatico CAP servizio
   Future<void> _onCapServizioChanged(String cap) async {
     if (cap.length == 5) {
-      final risultato = await _capService.cercaPerCap(cap);
-      if (risultato != null && mounted) {
+      final r = await _capService.cercaPerCap(cap);
+      if (r != null && mounted)
         setState(() {
-          _cittaServizioCtrl.text = risultato.citta;
-          _provinciaServizioCtrl.text = risultato.provincia;
+          _cittaServizioCtrl.text = r.citta;
+          _provinciaServizioCtrl.text = r.provincia;
         });
-      }
     }
   }
 
-  /// Costruisce il ClienteModel dai controller e salva su Firestore.
-  /// Per i nuovi clienti, chiama getNextNumeroCliente() atomicamente
-  /// solo in questo momento per non sprecare numeri se l'utente annulla.
-  /// [isDraft] true = salva come bozza, false = salva come definitivo.
   Future<ClienteModel> _costruisciEsalva({bool isDraft = false}) async {
     if (_clienteOriginale == null) {
-      // Creazione: usa il numero inserito dall'admin se valido, altrimenti auto
       final customNum = int.tryParse(_numeroClienteCtrl.text.trim());
       if (customNum != null && customNum > 0) {
         _numeroCliente = customNum;
@@ -211,7 +178,6 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
         _numeroCliente = await _clientiService.getNextNumeroCliente();
       }
     } else {
-      // Modifica: usa il numero dal controller (admin può averlo modificato)
       _numeroCliente = int.tryParse(_numeroClienteCtrl.text.trim()) ??
           _clienteOriginale!.numeroCliente;
     }
@@ -266,95 +232,55 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     return cliente;
   }
 
-  /// Salva il cliente come definitivo e rimane nella schermata corrente
   Future<void> _salva() async {
-    final isAdmin =
-        ref.read(currentUserProvider).valueOrNull?.isAdmin ?? false;
+    final isAdmin = ref.read(currentUserProvider).valueOrNull?.isAdmin ?? false;
     if (!isAdmin) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
     setState(() => _isSaving = true);
     try {
       final salvato = await _costruisciEsalva(isDraft: false);
       if (mounted) {
-        // Aggiorna il riferimento originale e il controller del numero
         _clienteOriginale = salvato;
         _numeroClienteCtrl.text = salvato.numeroCliente.toString();
         _snapshotIniziale = _snapshotCorrente();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cliente salvato con successo'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        _showSnackBar('Cliente salvato con successo', AppColors.primary);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (mounted) _showSnackBar('Errore: $e', AppColors.error);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  /// Mostra il dialog "Esci": l'utente sceglie se salvare, salvare come bozza o annullare
   Future<void> _esci() async {
-    final isAdmin =
-        ref.read(currentUserProvider).valueOrNull?.isAdmin ?? false;
-    if (!isAdmin) {
-      await _chiudiPagina();
-      return;
-    }
-
-    if (!_hasUnsavedChanges) {
+    final isAdmin = ref.read(currentUserProvider).valueOrNull?.isAdmin ?? false;
+    if (!isAdmin || !_hasUnsavedChanges) {
       await _chiudiPagina();
       return;
     }
 
     final scelta = await showDialog<_SceltaEsci>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Uscire dal form',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        content: Text(
-          _canSaveAsDraft
-              ? 'Vuoi salvare le modifiche prima di uscire o impostare il cliente come bozza?'
-              : 'Vuoi salvare le modifiche prima di uscire?',
-        ),
-        actions: [
+      builder: (ctx) => _buildDialog(
+        titolo: 'Uscire dal form',
+        contenuto: _canSaveAsDraft
+            ? 'Ci sono modifiche non salvate. Cosa vuoi fare?'
+            : 'Ci sono modifiche non salvate. Salvarle prima di uscire?',
+        azioni: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, _SceltaEsci.annulla),
-            child: const Text('Rimani'),
-          ),
+              onPressed: () => Navigator.pop(ctx, _SceltaEsci.annulla),
+              child: const Text('Rimani')),
           if (_canSaveAsDraft)
-            OutlinedButton(
-              onPressed: () => Navigator.pop(ctx, _SceltaEsci.bozza),
-              style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary),
-              child: const Text('Salva come bozza'),
-            ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, _SceltaEsci.salva),
-            style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary),
-            child: const Text('Salva'),
-          ),
+            _glassOutlinedButton('Salva come bozza',
+                () => Navigator.pop(ctx, _SceltaEsci.bozza)),
+          _glassPrimaryButton(
+              'Salva ed esci', () => Navigator.pop(ctx, _SceltaEsci.salva)),
         ],
       ),
     );
 
     if (scelta == null || scelta == _SceltaEsci.annulla || !mounted) return;
-
     final isDraft = scelta == _SceltaEsci.bozza;
-
-    // Per salvare validiamo il form solo se non è bozza
     if (!isDraft && !(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isSaving = true);
@@ -362,94 +288,54 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
       final salvato = await _costruisciEsalva(isDraft: isDraft);
       if (mounted) {
         _clienteOriginale = salvato;
-        _numeroClienteCtrl.text = salvato.numeroCliente.toString();
         _snapshotIniziale = _snapshotCorrente();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isDraft
-                ? 'Cliente salvato come bozza'
-                : 'Cliente salvato con successo'),
-            backgroundColor:
-                isDraft ? AppColors.textSecondary : AppColors.success,
-          ),
-        );
+        _showSnackBar(isDraft ? 'Salvato come bozza' : 'Cliente salvato',
+            isDraft ? AppColors.textOnDarkSecondary : AppColors.primary);
         await _chiudiPagina();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (mounted) _showSnackBar('Errore: $e', AppColors.error);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  /// Elimina il cliente corrente dopo conferma (solo admin, solo in modifica)
   Future<void> _elimina() async {
     final nome = _committenteCtrl.text.trim().isNotEmpty
         ? _committenteCtrl.text.trim()
         : 'questo cliente';
     final conferma = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Elimina cliente'),
-        content: Text(
-            'Eliminare "$nome"? L\'azione è irreversibile.'),
-        actions: [
+      builder: (ctx) => _buildDialog(
+        titolo: 'Elimina cliente',
+        contenuto: 'Eliminare "$nome"? L\'azione è irreversibile.',
+        azioni: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annulla')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Elimina'),
-          ),
+              child: const Text('Annulla',
+                  style: TextStyle(color: AppColors.textOnDarkSecondary))),
+          _glassDangerButton('Elimina', () => Navigator.pop(ctx, true)),
         ],
       ),
     );
-
     if (conferma != true || !mounted) return;
-
     try {
       await _clientiService.eliminaCliente(_clienteIdCorrente!);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cliente eliminato')),
-        );
+        _showSnackBar('Cliente eliminato', AppColors.error);
         await _chiudiPagina();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore eliminazione: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (mounted) _showSnackBar('Errore: $e', AppColors.error);
     }
   }
 
-  /// Apre il dialog per aggiungere/modificare un indirizzo di servizio.
-  /// Usa un StatefulWidget dedicato per evitare il dispose prematuro dei
-  /// TextEditingController durante l'animazione di chiusura del dialog.
-  Future<void> _apriDialogIndirizzo(
-      [IndirizzoServizioModel? esistente]) async {
+  Future<void> _apriDialogIndirizzo([IndirizzoServizioModel? esistente]) async {
     if (_clienteIdCorrente == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Salva prima il cliente per aggiungere indirizzi di servizio'),
-        ),
-      );
+      _showSnackBar(
+          'Salva prima il cliente per aggiungere indirizzi', AppColors.warning);
       return;
     }
-
     await showDialog(
       context: context,
       builder: (ctx) => _IndirizzoDialog(
@@ -464,23 +350,19 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     );
   }
 
-  /// Elimina un indirizzo di servizio con conferma
   Future<void> _eliminaIndirizzo(IndirizzoServizioModel indirizzo) async {
     if (_clienteIdCorrente == null) return;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Elimina indirizzo'),
-        content: Text('Eliminare "${indirizzo.etichetta}"?'),
-        actions: [
+      builder: (ctx) => _buildDialog(
+        titolo: 'Elimina indirizzo',
+        contenuto: 'Eliminare "${indirizzo.etichetta}"?',
+        azioni: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annulla')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Elimina'),
-          ),
+              child: const Text('Annulla',
+                  style: TextStyle(color: AppColors.textOnDarkSecondary))),
+          _glassDangerButton('Elimina', () => Navigator.pop(ctx, true)),
         ],
       ),
     );
@@ -492,39 +374,30 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
           await _indirizziService.getIndirizzi(_clienteIdCorrente!).first;
       if (mounted) setState(() => _indirizzi = lista);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (mounted) _showSnackBar('Errore: $e', AppColors.error);
     }
   }
 
-  Map<String, Object?> _snapshotCorrente() {
-    return {
-      'numeroCliente': _numeroClienteCtrl.text.trim(),
-      'tipoCommittente': _tipoCommittente ?? '',
-      'committente': _committenteCtrl.text.trim(),
-      'indirizzo': _indirizzoCtrl.text.trim(),
-      'cap': _capCtrl.text.trim(),
-      'citta': _cittaCtrl.text.trim(),
-      'provincia': _provinciaCtrl.text.trim().toUpperCase(),
-      'pivaCodiceFiscale': _pivaCtrl.text.trim(),
-      'codiceUnivoco': _codiceUnivocoCtrl.text.trim(),
-      'referente': _referenteCtrl.text.trim(),
-      'indirizzoServizio': _indirizzoServizioCtrl.text.trim(),
-      'capServizio': _capServizioCtrl.text.trim(),
-      'cittaServizio': _cittaServizioCtrl.text.trim(),
-      'provinciaServizio': _provinciaServizioCtrl.text.trim().toUpperCase(),
-      'email': _emailCtrl.text.trim(),
-      'telefono': _telefonoCtrl.text.trim(),
-      'cellulare': _cellulareCtrl.text.trim(),
-      'pec': _pecCtrl.text.trim(),
-    };
-  }
+  Map<String, Object?> _snapshotCorrente() => {
+        'numeroCliente': _numeroClienteCtrl.text.trim(),
+        'tipoCommittente': _tipoCommittente ?? '',
+        'committente': _committenteCtrl.text.trim(),
+        'indirizzo': _indirizzoCtrl.text.trim(),
+        'cap': _capCtrl.text.trim(),
+        'citta': _cittaCtrl.text.trim(),
+        'provincia': _provinciaCtrl.text.trim().toUpperCase(),
+        'pivaCodiceFiscale': _pivaCtrl.text.trim(),
+        'codiceUnivoco': _codiceUnivocoCtrl.text.trim(),
+        'referente': _referenteCtrl.text.trim(),
+        'indirizzoServizio': _indirizzoServizioCtrl.text.trim(),
+        'capServizio': _capServizioCtrl.text.trim(),
+        'cittaServizio': _cittaServizioCtrl.text.trim(),
+        'provinciaServizio': _provinciaServizioCtrl.text.trim().toUpperCase(),
+        'email': _emailCtrl.text.trim(),
+        'telefono': _telefonoCtrl.text.trim(),
+        'cellulare': _cellulareCtrl.text.trim(),
+        'pec': _pecCtrl.text.trim(),
+      };
 
   bool get _hasUnsavedChanges {
     final iniziale = _snapshotIniziale;
@@ -541,10 +414,20 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     context.pop();
   }
 
-  Future<void> _gestisciBackNavigation() async {
-    if (_isSaving) return;
-    await _esci();
+  void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(color: Colors.white)),
+      backgroundColor: color.withValues(alpha: 0.90),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side:
+            BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+      ),
+    ));
   }
+
+  // ─── BUILD ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -557,45 +440,28 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
         : (isReadOnly ? 'Dettaglio cliente' : 'Modifica cliente');
 
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text(titolo)),
-        body: const Center(
-            child: CircularProgressIndicator(color: AppColors.primary)),
-      );
+      return _buildScaffold(titolo, isAdmin,
+          body: const Center(
+              child:
+                  CircularProgressIndicator(color: AppColors.accentGreenDark)));
     }
 
     if (_errore != null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(titolo)),
-        body: Center(
-          child: Text('Errore: $_errore',
-              style: const TextStyle(color: AppColors.error)),
-        ),
-      );
+      return _buildScaffold(titolo, isAdmin,
+          body: Center(
+              child: Text('Errore: $_errore',
+                  style: const TextStyle(color: AppColors.error))));
     }
 
     return PopScope(
       canPop: _allowDirectPop,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        await _gestisciBackNavigation();
+        if (!_isSaving) await _esci();
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(titolo),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _gestisciBackNavigation,
-          ),
-          actions: [
-            if (isAdmin && _clienteIdCorrente != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                tooltip: 'Elimina cliente',
-                onPressed: _isSaving ? null : _elimina,
-              ),
-          ],
-        ),
+      child: _buildScaffold(
+        titolo,
+        isAdmin,
         body: Form(
           key: _formKey,
           child: isDesktop
@@ -603,6 +469,53 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
               : _buildLayoutMobile(isReadOnly),
         ),
       ),
+    );
+  }
+
+  Widget _buildScaffold(String titolo, bool isAdmin, {required Widget body}) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.gradientStart,
+            AppColors.gradientMid1,
+            AppColors.gradientMid2,
+            AppColors.gradientEnd,
+          ],
+          stops: [0.0, 0.3, 0.7, 1.0],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _buildAppBar(titolo, isAdmin),
+        body: body,
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(String titolo, bool isAdmin) {
+    return AppBar(
+      backgroundColor: AppColors.glassDarkest,
+      title: Text(titolo,
+          style: const TextStyle(
+              color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: AppColors.textOnDark),
+        onPressed: () {
+          if (!_isSaving) _esci();
+        },
+      ),
+      actions: [
+        if (isAdmin && _clienteIdCorrente != null)
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                color: AppColors.error.withValues(alpha: 0.8)),
+            tooltip: 'Elimina cliente',
+            onPressed: _isSaving ? null : _elimina,
+          ),
+      ],
     );
   }
 
@@ -621,44 +534,90 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildCampoNumero(),
-                    const SizedBox(height: 16),
-                    _buildCampoTipoCommittente(),
-                    const SizedBox(height: 16),
-                    _buildCampoCommittente(),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _indirizzoCtrl, label: 'Indirizzo'),
-                    const SizedBox(height: 16),
-                    _buildCampoCapLookup(),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _cittaCtrl, label: 'Città'),
-                    const SizedBox(height: 16),
-                    _buildCampoProvincia(),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _pivaCtrl, label: 'P.IVA / Codice Fiscale'),
-                    const SizedBox(height: 16),
-                    _buildCampoAutocomplete(controller: _codiceUnivocoCtrl, label: 'Codice Univoco', suggerimenti: _sugCodiceUnivoco),
-                    const SizedBox(height: 16),
-                    _buildCampoAutocomplete(controller: _referenteCtrl, label: 'C/A Referente', suggerimenti: _sugReferente),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _indirizzoServizioCtrl, label: 'Indirizzo Servizio'),
-                    const SizedBox(height: 16),
-                    // CAP servizio con lookup automatico
-                    _buildCampoCapServizioLookup(),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _cittaServizioCtrl, label: 'Città servizio'),
-                    const SizedBox(height: 16),
-                    _buildCampoProvinciaServizio(),
-                    const SizedBox(height: 16),
-                    _buildCampoAutocomplete(controller: _emailCtrl, label: 'Email', suggerimenti: _sugEmail, tastiera: TextInputType.emailAddress, validatore: _validaEmail),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _telefonoCtrl, label: 'Telefono', tastiera: TextInputType.phone),
-                    const SizedBox(height: 16),
-                    _buildCampoTesto(controller: _cellulareCtrl, label: 'Cellulare', tastiera: TextInputType.phone),
-                    const SizedBox(height: 16),
-                    _buildCampoAutocomplete(controller: _pecCtrl, label: 'PEC', suggerimenti: _sugPec, tastiera: TextInputType.emailAddress, validatore: _validaEmail),
-                    const SizedBox(height: 24),
-                    // Sezione indirizzi servizio multipli
+                    _buildGruppoCard('Identificazione', [
+                      _buildCampoNumero(),
+                      const SizedBox(height: 12),
+                      _buildCampoTipoCommittente(),
+                      const SizedBox(height: 12),
+                      _buildCampoCommittente(),
+                    ]),
+                    const SizedBox(height: 12),
+                    _buildGruppoCard('Indirizzo principale', [
+                      _buildCampoTesto(
+                          controller: _indirizzoCtrl, label: 'Indirizzo'),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        SizedBox(width: 90, child: _buildCampoCapLookup()),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: _buildCampoTesto(
+                                controller: _cittaCtrl, label: 'Città')),
+                        const SizedBox(width: 8),
+                        SizedBox(width: 70, child: _buildCampoProvincia()),
+                      ]),
+                    ]),
+                    const SizedBox(height: 12),
+                    _buildGruppoCard('Dati fiscali', [
+                      _buildCampoTesto(
+                          controller: _pivaCtrl,
+                          label: 'P.IVA / Codice Fiscale'),
+                      const SizedBox(height: 12),
+                      _buildCampoAutocomplete(
+                          controller: _codiceUnivocoCtrl,
+                          label: 'Codice Univoco',
+                          suggerimenti: _sugCodiceUnivoco),
+                      const SizedBox(height: 12),
+                      _buildCampoAutocomplete(
+                          controller: _referenteCtrl,
+                          label: 'C/A Referente',
+                          suggerimenti: _sugReferente),
+                    ]),
+                    const SizedBox(height: 12),
+                    _buildGruppoCard('Indirizzo servizio', [
+                      _buildCampoTesto(
+                          controller: _indirizzoServizioCtrl,
+                          label: 'Indirizzo servizio'),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        SizedBox(
+                            width: 90, child: _buildCampoCapServizioLookup()),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: _buildCampoTesto(
+                                controller: _cittaServizioCtrl,
+                                label: 'Città')),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                            width: 70, child: _buildCampoProvinciaServizio()),
+                      ]),
+                    ]),
+                    const SizedBox(height: 12),
+                    _buildGruppoCard('Contatti', [
+                      _buildCampoAutocomplete(
+                          controller: _emailCtrl,
+                          label: 'Email',
+                          suggerimenti: _sugEmail,
+                          tastiera: TextInputType.emailAddress,
+                          validatore: _validaEmail),
+                      const SizedBox(height: 12),
+                      _buildCampoTesto(
+                          controller: _telefonoCtrl,
+                          label: 'Telefono',
+                          tastiera: TextInputType.phone),
+                      const SizedBox(height: 12),
+                      _buildCampoTesto(
+                          controller: _cellulareCtrl,
+                          label: 'Cellulare',
+                          tastiera: TextInputType.phone),
+                      const SizedBox(height: 12),
+                      _buildCampoAutocomplete(
+                          controller: _pecCtrl,
+                          label: 'PEC',
+                          suggerimenti: _sugPec,
+                          tastiera: TextInputType.emailAddress,
+                          validatore: _validaEmail),
+                    ]),
+                    const SizedBox(height: 12),
                     _buildSezioneIndirizzi(isReadOnly),
                   ],
                 ),
@@ -674,47 +633,132 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
   // ─── LAYOUT DESKTOP ───────────────────────────────────────────────────────
 
   Widget _buildLayoutDesktop(bool isReadOnly) {
-    const double w = 320;
-    Widget f(Widget child) => SizedBox(width: w, child: child);
-    Widget wide(Widget child) => SizedBox(width: w * 2 + 20, child: child);
-
     return Column(
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 24),
             child: AbsorbPointer(
               absorbing: isReadOnly,
               child: Opacity(
                 opacity: isReadOnly ? 0.7 : 1.0,
-                child: Wrap(
-                  spacing: 20,
-                  runSpacing: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    f(_buildCampoNumero()),
-                    f(_buildCampoTipoCommittente()),
-                    wide(_buildCampoCommittente()),
-                    f(_buildCampoTesto(controller: _indirizzoCtrl, label: 'Indirizzo')),
-                    f(_buildCampoCapLookup()),
-                    f(_buildCampoTesto(controller: _cittaCtrl, label: 'Città')),
-                    f(_buildCampoProvincia()),
-                    f(_buildCampoTesto(controller: _pivaCtrl, label: 'P.IVA / Codice Fiscale')),
-                    f(_buildCampoAutocomplete(controller: _codiceUnivocoCtrl, label: 'Codice Univoco', suggerimenti: _sugCodiceUnivoco)),
-                    f(_buildCampoAutocomplete(controller: _referenteCtrl, label: 'C/A Referente', suggerimenti: _sugReferente)),
-                    wide(_buildCampoTesto(controller: _indirizzoServizioCtrl, label: 'Indirizzo Servizio')),
-                    // Tre campi separati per CAP/Città/Provincia servizio
-                    SizedBox(width: 140, child: _buildCampoCapServizioLookup()),
-                    f(_buildCampoTesto(controller: _cittaServizioCtrl, label: 'Città servizio')),
-                    SizedBox(width: 120, child: _buildCampoProvinciaServizio()),
-                    f(_buildCampoAutocomplete(controller: _emailCtrl, label: 'Email', suggerimenti: _sugEmail, tastiera: TextInputType.emailAddress, validatore: _validaEmail)),
-                    f(_buildCampoTesto(controller: _telefonoCtrl, label: 'Telefono', tastiera: TextInputType.phone)),
-                    f(_buildCampoTesto(controller: _cellulareCtrl, label: 'Cellulare', tastiera: TextInputType.phone)),
-                    f(_buildCampoAutocomplete(controller: _pecCtrl, label: 'PEC', suggerimenti: _sugPec, tastiera: TextInputType.emailAddress, validatore: _validaEmail)),
-                    // Sezione indirizzi servizio (larghezza intera)
-                    SizedBox(
-                      width: w * 2 + 20,
-                      child: _buildSezioneIndirizzi(isReadOnly),
+                    _buildGruppoCard('Identificazione', [
+                      Row(children: [
+                        SizedBox(width: 150, child: _buildCampoNumero()),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                            width: 200, child: _buildCampoTipoCommittente()),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildCampoCommittente()),
+                      ]),
+                    ]),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildGruppoCard('Indirizzo principale', [
+                            _buildCampoTesto(
+                                controller: _indirizzoCtrl, label: 'Indirizzo'),
+                            const SizedBox(height: 12),
+                            Row(children: [
+                              SizedBox(
+                                  width: 90, child: _buildCampoCapLookup()),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: _buildCampoTesto(
+                                      controller: _cittaCtrl, label: 'Città')),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                  width: 70, child: _buildCampoProvincia()),
+                            ]),
+                          ]),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildGruppoCard('Indirizzo servizio', [
+                            _buildCampoTesto(
+                                controller: _indirizzoServizioCtrl,
+                                label: 'Indirizzo servizio'),
+                            const SizedBox(height: 12),
+                            Row(children: [
+                              SizedBox(
+                                  width: 90,
+                                  child: _buildCampoCapServizioLookup()),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: _buildCampoTesto(
+                                      controller: _cittaServizioCtrl,
+                                      label: 'Città')),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                  width: 70,
+                                  child: _buildCampoProvinciaServizio()),
+                            ]),
+                          ]),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildGruppoCard('Dati fiscali', [
+                            _buildCampoTesto(
+                                controller: _pivaCtrl,
+                                label: 'P.IVA / Codice Fiscale'),
+                            const SizedBox(height: 12),
+                            _buildCampoAutocomplete(
+                                controller: _codiceUnivocoCtrl,
+                                label: 'Codice Univoco',
+                                suggerimenti: _sugCodiceUnivoco),
+                            const SizedBox(height: 12),
+                            _buildCampoAutocomplete(
+                                controller: _referenteCtrl,
+                                label: 'C/A Referente',
+                                suggerimenti: _sugReferente),
+                          ]),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildGruppoCard('Contatti', [
+                            _buildCampoAutocomplete(
+                                controller: _emailCtrl,
+                                label: 'Email',
+                                suggerimenti: _sugEmail,
+                                tastiera: TextInputType.emailAddress,
+                                validatore: _validaEmail),
+                            const SizedBox(height: 12),
+                            Row(children: [
+                              Expanded(
+                                  child: _buildCampoTesto(
+                                      controller: _telefonoCtrl,
+                                      label: 'Telefono',
+                                      tastiera: TextInputType.phone)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: _buildCampoTesto(
+                                      controller: _cellulareCtrl,
+                                      label: 'Cellulare',
+                                      tastiera: TextInputType.phone)),
+                            ]),
+                            const SizedBox(height: 12),
+                            _buildCampoAutocomplete(
+                                controller: _pecCtrl,
+                                label: 'PEC',
+                                suggerimenti: _sugPec,
+                                tastiera: TextInputType.emailAddress,
+                                validatore: _validaEmail),
+                          ]),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSezioneIndirizzi(isReadOnly),
                   ],
                 ),
               ),
@@ -726,95 +770,146 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     );
   }
 
-  // ─── SEZIONE INDIRIZZI SERVIZIO MULTIPLI ──────────────────────────────────
+  // ─── GRUPPO CARD GLASS ────────────────────────────────────────────────────
 
-  Widget _buildSezioneIndirizzi(bool isReadOnly) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Titolo sezione
-        Row(
-          children: [
-            const Icon(Icons.location_on_outlined,
-                color: AppColors.primary, size: 18),
-            const SizedBox(width: 8),
-            const Text(
-              'Indirizzi di servizio',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const Spacer(),
-            // Bottone aggiungi solo per admin in modalità modifica
-            if (!isReadOnly && _clienteIdCorrente != null)
-              TextButton.icon(
-                onPressed: () => _apriDialogIndirizzo(),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Aggiungi indirizzo'),
-                style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-
-        // Lista indirizzi
-        if (_indirizzi.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.inputBackground,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline,
-                    size: 16, color: AppColors.textDisabled),
-                const SizedBox(width: 8),
-                Text(
-                  _clienteIdCorrente == null
-                      ? 'Salva il cliente per aggiungere indirizzi'
-                      : 'Nessun indirizzo di servizio aggiunto',
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColors.textDisabled),
-                ),
-              ],
-            ),
-          )
-        else
-          ...(_indirizzi.map((ind) => _buildCardIndirizzo(ind, isReadOnly))),
-
-        if (!isReadOnly && _clienteIdCorrente == null)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              'Gli indirizzi possono essere aggiunti dopo aver salvato il cliente.',
-              style: TextStyle(
-                  fontSize: 12, color: AppColors.textDisabled),
+  Widget _buildGruppoCard(String titolo, List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorder, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titolo,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.accentGreenDark,
+              letterSpacing: 0.3,
             ),
           ),
-      ],
+          Container(
+            height: 0.5,
+            color: AppColors.glassBorder,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+          ),
+          ...children,
+        ],
+      ),
     );
   }
 
-  Widget _buildCardIndirizzo(
-      IndirizzoServizioModel ind, bool isReadOnly) {
+  // ─── SEZIONE INDIRIZZI ────────────────────────────────────────────────────
+
+  Widget _buildSezioneIndirizzi(bool isReadOnly) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorder, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.location_on_outlined,
+                  color: AppColors.accentGreenDark, size: 16),
+              const SizedBox(width: 6),
+              const Text(
+                'Indirizzi di servizio',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accentGreenDark,
+                    letterSpacing: 0.3),
+              ),
+              const Spacer(),
+              if (!isReadOnly && _clienteIdCorrente != null)
+                GestureDetector(
+                  onTap: () => _apriDialogIndirizzo(),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.20),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.40),
+                          width: 0.5),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add,
+                            size: 14, color: AppColors.accentGreenDark),
+                        SizedBox(width: 4),
+                        Text('Aggiungi',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.accentGreenDark)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          Container(
+              height: 0.5,
+              color: AppColors.glassBorder,
+              margin: const EdgeInsets.symmetric(vertical: 10)),
+          if (_indirizzi.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.glassDark,
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 14, color: AppColors.textOnDarkMuted),
+                  const SizedBox(width: 8),
+                  Text(
+                    _clienteIdCorrente == null
+                        ? 'Salva il cliente per aggiungere indirizzi'
+                        : 'Nessun indirizzo di servizio',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textOnDarkMuted),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...(_indirizzi.map((ind) => _buildCardIndirizzo(ind, isReadOnly))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardIndirizzo(IndirizzoServizioModel ind, bool isReadOnly) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.divider),
+        color: AppColors.glassDark,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.location_pin,
-              size: 16, color: AppColors.primary),
+              size: 14, color: AppColors.accentGreenDark),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -825,7 +920,7 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
                       style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.textOnDark)),
                 if (ind.cap.isNotEmpty ||
                     ind.citta.isNotEmpty ||
                     ind.provincia.isNotEmpty)
@@ -834,34 +929,27 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
                         .where((s) => s.isNotEmpty)
                         .join(' '),
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
+                        fontSize: 11, color: AppColors.textOnDarkSecondary),
                   ),
                 if (ind.referente.isNotEmpty)
                   Text('Ref: ${ind.referente}',
                       style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary)),
-                if (ind.note.isNotEmpty)
-                  Text(ind.note,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textDisabled,
-                          fontStyle: FontStyle.italic)),
+                          fontSize: 11, color: AppColors.textOnDarkSecondary)),
               ],
             ),
           ),
           if (!isReadOnly) ...[
             IconButton(
-              icon: const Icon(Icons.edit_outlined,
-                  size: 16, color: AppColors.textSecondary),
+              icon: Icon(Icons.edit_outlined,
+                  size: 15, color: AppColors.textOnDarkSecondary),
               padding: const EdgeInsets.all(4),
               constraints: const BoxConstraints(),
               onPressed: () => _apriDialogIndirizzo(ind),
             ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Icons.delete_outline,
-                  size: 16, color: AppColors.error),
+              icon: Icon(Icons.delete_outline,
+                  size: 15, color: AppColors.error.withValues(alpha: 0.8)),
               padding: const EdgeInsets.all(4),
               constraints: const BoxConstraints(),
               onPressed: () => _eliminaIndirizzo(ind),
@@ -872,7 +960,43 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     );
   }
 
-  // ─── CAMPI CONDIVISI ─────────────────────────────────────────────────────
+  // ─── BOTTONI AZIONE ───────────────────────────────────────────────────────
+
+  Widget _buildBottoniAzione(bool isReadOnly) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: BoxDecoration(
+        color: AppColors.glassDarkest,
+        border:
+            Border(top: BorderSide(color: AppColors.glassBorder, width: 0.5)),
+      ),
+      child: isReadOnly
+          ? SizedBox(
+              width: double.infinity,
+              child: _glassOutlinedButton('Chiudi', _chiudiPagina),
+            )
+          : Row(
+              children: [
+                _glassOutlinedButton(
+                    'Annulla', _isSaving ? null : _chiudiPagina),
+                const SizedBox(width: 10),
+                Expanded(
+                    child:
+                        _glassOutlinedButton('Esci', _isSaving ? null : _esci)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _glassPrimaryButton(
+                    _isSaving ? '' : 'Salva e resta',
+                    _isSaving ? null : _salva,
+                    isLoading: _isSaving,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // ─── CAMPI ────────────────────────────────────────────────────────────────
 
   Widget _buildCampoTipoCommittente() {
     return CategoriaDropdown(
@@ -892,43 +1016,34 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     );
   }
 
-  // ─── WIDGET DEI SINGOLI CAMPI ────────────────────────────────────────────
-
   Widget _buildCampoNumero() {
-    final isAdmin =
-        ref.read(currentUserProvider).valueOrNull?.isAdmin ?? false;
-
+    final isAdmin = ref.read(currentUserProvider).valueOrNull?.isAdmin ?? false;
     if (isAdmin) {
-      // Admin: campo editabile con hint "Auto" in creazione
       return TextFormField(
         controller: _numeroClienteCtrl,
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: _inputDecoration('Numero cliente').copyWith(
+        style: const TextStyle(color: AppColors.textOnDark),
+        decoration: _inputDec('Numero cliente').copyWith(
           hintText: _clienteOriginale == null ? 'Auto' : null,
           prefixText: _numeroClienteCtrl.text.isNotEmpty ? '#' : null,
         ),
         onChanged: (_) => setState(() {}),
       );
     }
-
-    // Non admin: sola lettura
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Numero cliente',
-          style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500),
-        ),
+        const Text('Numero cliente',
+            style:
+                TextStyle(fontSize: 11, color: AppColors.textOnDarkSecondary)),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.inputBackground,
+            color: AppColors.glassDark,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
           ),
           child: Text(
             _clienteOriginale == null && _numeroCliente == 0
@@ -937,9 +1052,9 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: _clienteOriginale == null && _numeroCliente == 0
-                  ? AppColors.textDisabled
-                  : AppColors.textSecondary,
-              fontSize: 15,
+                  ? AppColors.textOnDarkMuted
+                  : AppColors.textOnDark,
+              fontSize: 14,
             ),
           ),
         ),
@@ -956,34 +1071,35 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     return TextFormField(
       controller: controller,
       keyboardType: tastiera,
-      decoration: _inputDecoration(label),
+      style: const TextStyle(color: AppColors.textOnDark),
+      decoration: _inputDec(label),
       validator: validatore,
     );
   }
 
-  /// Campo CAP dell'indirizzo principale con lookup automatico
   Widget _buildCampoCapLookup() {
     return TextFormField(
       controller: _capCtrl,
-      decoration: _inputDecoration('CAP'),
+      style: const TextStyle(color: AppColors.textOnDark),
+      decoration: _inputDec('CAP'),
       keyboardType: TextInputType.number,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(5),
+        LengthLimitingTextInputFormatter(5)
       ],
       onChanged: _onCapChanged,
     );
   }
 
-  /// Campo CAP servizio con lookup automatico (auto-compila Città e Provincia)
   Widget _buildCampoCapServizioLookup() {
     return TextFormField(
       controller: _capServizioCtrl,
-      decoration: _inputDecoration('CAP servizio'),
+      style: const TextStyle(color: AppColors.textOnDark),
+      decoration: _inputDec('CAP'),
       keyboardType: TextInputType.number,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(5),
+        LengthLimitingTextInputFormatter(5)
       ],
       onChanged: _onCapServizioChanged,
     );
@@ -992,22 +1108,24 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
   Widget _buildCampoProvincia() {
     return TextFormField(
       controller: _provinciaCtrl,
-      decoration: _inputDecoration('Provincia'),
+      style: const TextStyle(color: AppColors.textOnDark),
+      decoration: _inputDec('Prov.'),
       maxLength: 2,
       textCapitalization: TextCapitalization.characters,
-      buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-          null,
+      buildCounter:
+          (_, {required currentLength, required isFocused, maxLength}) => null,
     );
   }
 
   Widget _buildCampoProvinciaServizio() {
     return TextFormField(
       controller: _provinciaServizioCtrl,
-      decoration: _inputDecoration('Prov. servizio'),
+      style: const TextStyle(color: AppColors.textOnDark),
+      decoration: _inputDec('Prov.'),
       maxLength: 2,
       textCapitalization: TextCapitalization.characters,
-      buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-          null,
+      buildCounter:
+          (_, {required currentLength, required isFocused, maxLength}) => null,
     );
   }
 
@@ -1020,23 +1138,21 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
   }) {
     return Autocomplete<String>(
       initialValue: TextEditingValue(text: controller.text),
-      optionsBuilder: (textEditingValue) {
-        if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-        final q = textEditingValue.text.toLowerCase();
+      optionsBuilder: (v) {
+        if (v.text.isEmpty) return const Iterable<String>.empty();
+        final q = v.text.toLowerCase();
         return suggerimenti.where((s) => s.toLowerCase().contains(q));
       },
-      onSelected: (selection) {
-        controller.text = selection;
-      },
+      onSelected: (s) => controller.text = s,
       fieldViewBuilder:
           (context, fieldController, focusNode, onFieldSubmitted) {
-        // Sincronizza il controller esterno con quello interno di Autocomplete
         fieldController.text = controller.text;
         return TextFormField(
           controller: fieldController,
           focusNode: focusNode,
           keyboardType: tastiera,
-          decoration: _inputDecoration(label),
+          style: const TextStyle(color: AppColors.textOnDark),
+          decoration: _inputDec(label),
           validator: validatore != null
               ? (_) => validatore(fieldController.text)
               : null,
@@ -1046,97 +1162,126 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     );
   }
 
-  Widget _buildBottoniAzione(bool isReadOnly) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.divider)),
-        color: AppColors.surface,
+  // ─── HELPER UI ────────────────────────────────────────────────────────────
+
+  InputDecoration _inputDec(String label) => InputDecoration(
+        labelText: label,
+        labelStyle:
+            const TextStyle(color: AppColors.textOnDarkSecondary, fontSize: 13),
+        filled: true,
+        fillColor: const Color(0x0DFFFFFF),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide:
+              const BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide:
+              const BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.error, width: 0.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      );
+
+  Widget _buildDialog({
+    required String titolo,
+    required String contenuto,
+    required List<Widget> azioni,
+  }) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF0A2A1A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.glassBorder, width: 0.5),
       ),
-      child: isReadOnly
-          ? SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _chiudiPagina,
-                child: const Text('Chiudi'),
-              ),
-            )
-          : Row(
-              children: [
-                // Annulla: esce senza salvare
-                OutlinedButton(
-                  onPressed: _isSaving ? null : _chiudiPagina,
-                  child: const Text('Annulla'),
-                ),
-                const SizedBox(width: 12),
-                // Esci: mostra dialog salva / bozza
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isSaving ? null : _esci,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                    ),
-                    child: const Text('Esci'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Salva: salva definitivamente e rimane nel form
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _isSaving ? null : _salva,
-                    style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                color: AppColors.surface, strokeWidth: 2))
-                        : const Text('Salva'),
-                  ),
-                ),
-              ],
-            ),
+      title: Text(titolo,
+          style: const TextStyle(
+              color: AppColors.textOnDark,
+              fontWeight: FontWeight.w600,
+              fontSize: 16)),
+      content: Text(contenuto,
+          style: const TextStyle(
+              color: AppColors.textOnDarkSecondary, fontSize: 14)),
+      actions: azioni,
     );
   }
 
-  // ─── UTILITY ─────────────────────────────────────────────────────────────
-
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+  Widget _glassPrimaryButton(String label, VoidCallback? onTap,
+      {bool isLoading = false}) {
+    return FilledButton(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+        foregroundColor: AppColors.accentGreenDark,
+        side: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                  color: AppColors.accentGreenDark, strokeWidth: 2))
+          : Text(label),
     );
   }
 
-  /// Valida il formato email (ammette stringa vuota)
+  Widget _glassOutlinedButton(String label, VoidCallback? onTap) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.textOnDarkSecondary,
+        side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      child: Text(label),
+    );
+  }
+
+  Widget _glassDangerButton(String label, VoidCallback? onTap) {
+    return FilledButton(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.error.withValues(alpha: 0.25),
+        foregroundColor: const Color(0xFFFF7070),
+        side: BorderSide(
+            color: AppColors.error.withValues(alpha: 0.40), width: 0.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(label),
+    );
+  }
+
   String? _validaEmail(String? valore) {
     if (valore == null || valore.isEmpty) return null;
     final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-    if (!regex.hasMatch(valore)) return 'Indirizzo email non valido';
+    if (!regex.hasMatch(valore)) return 'Email non valida';
     return null;
   }
 }
 
-/// Opzioni del dialog "Esci"
 enum _SceltaEsci { annulla, bozza, salva }
 
-// ─── DIALOG INDIRIZZO DI SERVIZIO ────────────────────────────────────────────
+// ─── DIALOG INDIRIZZO ─────────────────────────────────────────────────────────
 
-/// Dialog per aggiungere/modificare un indirizzo di servizio.
-/// È un StatefulWidget dedicato in modo che i TextEditingController siano
-/// disposti dal framework (nel suo dispose()) solo DOPO che l'animazione di
-/// chiusura è completata — evitando il crash "controller used after disposed".
 class _IndirizzoDialog extends StatefulWidget {
   final IndirizzoServizioModel? esistente;
   final String clienteId;
   final CapService capService;
   final IndirizziServizioService indirizziService;
-  final void Function(List<IndirizzoServizioModel> lista) onSalvato;
+  final void Function(List<IndirizzoServizioModel>) onSalvato;
 
   const _IndirizzoDialog({
     required this.esistente,
@@ -1185,12 +1330,11 @@ class _IndirizzoDialogState extends State<_IndirizzoDialog> {
   Future<void> _onCapChanged(String cap) async {
     if (cap.length == 5) {
       final r = await widget.capService.cercaPerCap(cap);
-      if (r != null && mounted) {
+      if (r != null && mounted)
         setState(() {
           _cittaCtrl.text = r.citta;
           _provinciaCtrl.text = r.provincia;
         });
-      }
     }
   }
 
@@ -1215,24 +1359,48 @@ class _IndirizzoDialogState extends State<_IndirizzoDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Errore: $e'),
-            backgroundColor: AppColors.error,
-          ),
+              content: Text('Errore: $e'), backgroundColor: AppColors.error),
         );
         setState(() => _salvando = false);
       }
     }
   }
 
+  InputDecoration _inputDec(String label) => InputDecoration(
+        labelText: label,
+        labelStyle:
+            const TextStyle(color: AppColors.textOnDarkSecondary, fontSize: 13),
+        filled: true,
+        fillColor: const Color(0x0DFFFFFF),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:
+                const BorderSide(color: AppColors.glassBorder, width: 0.5)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:
+                const BorderSide(color: AppColors.glassBorder, width: 0.5)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      );
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: const Color(0xFF0A2A1A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+      ),
       title: Text(
         widget.esistente == null
             ? 'Nuovo indirizzo di servizio'
             : 'Modifica indirizzo',
         style: const TextStyle(
-            fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            color: AppColors.textOnDark, fontWeight: FontWeight.w600),
       ),
       content: SizedBox(
         width: 480,
@@ -1241,107 +1409,86 @@ class _IndirizzoDialogState extends State<_IndirizzoDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _indirizzoCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Indirizzo',
-                  border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
+                  controller: _indirizzoCtrl,
+                  style: const TextStyle(color: AppColors.textOnDark),
+                  decoration: _inputDec('Indirizzo')),
               const SizedBox(height: 12),
               Row(children: [
                 SizedBox(
-                  width: 110,
-                  child: TextField(
-                    controller: _capCtrl,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(5),
-                    ],
-                    decoration: const InputDecoration(
-                      labelText: 'CAP',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                    onChanged: _onCapChanged,
-                  ),
-                ),
-                const SizedBox(width: 12),
+                    width: 110,
+                    child: TextField(
+                        controller: _capCtrl,
+                        style: const TextStyle(color: AppColors.textOnDark),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(5)
+                        ],
+                        decoration: _inputDec('CAP'),
+                        onChanged: _onCapChanged)),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
-                    controller: _cittaCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Città',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                    child: TextField(
+                        controller: _cittaCtrl,
+                        style: const TextStyle(color: AppColors.textOnDark),
+                        decoration: _inputDec('Città'))),
+                const SizedBox(width: 10),
                 SizedBox(
-                  width: 80,
-                  child: TextField(
-                    controller: _provinciaCtrl,
-                    maxLength: 2,
-                    textCapitalization: TextCapitalization.characters,
-                    buildCounter: (_,
-                            {required currentLength,
-                            required isFocused,
-                            maxLength}) =>
-                        null,
-                    decoration: const InputDecoration(
-                      labelText: 'Prov.',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                  ),
-                ),
+                    width: 80,
+                    child: TextField(
+                        controller: _provinciaCtrl,
+                        style: const TextStyle(color: AppColors.textOnDark),
+                        maxLength: 2,
+                        textCapitalization: TextCapitalization.characters,
+                        buildCounter: (_,
+                                {required currentLength,
+                                required isFocused,
+                                maxLength}) =>
+                            null,
+                        decoration: _inputDec('Prov.'))),
               ]),
               const SizedBox(height: 12),
               TextField(
-                controller: _referenteCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Referente',
-                  border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
+                  controller: _referenteCtrl,
+                  style: const TextStyle(color: AppColors.textOnDark),
+                  decoration: _inputDec('Referente')),
               const SizedBox(height: 12),
               TextField(
-                controller: _noteCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Note',
-                  border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
+                  controller: _noteCtrl,
+                  style: const TextStyle(color: AppColors.textOnDark),
+                  maxLines: 2,
+                  decoration: _inputDec('Note')),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: _salvando ? null : () => Navigator.pop(context),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.textOnDarkSecondary,
+            side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
           child: const Text('Annulla'),
         ),
         FilledButton(
           onPressed: _salvando ? null : _salva,
-          style:
-              FilledButton.styleFrom(backgroundColor: AppColors.primary),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+            foregroundColor: AppColors.accentGreenDark,
+            side: BorderSide(
+                color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
           child: _salvando
               ? const SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                      color: AppColors.surface, strokeWidth: 2))
+                      color: AppColors.accentGreenDark, strokeWidth: 2))
               : const Text('Salva'),
         ),
       ],

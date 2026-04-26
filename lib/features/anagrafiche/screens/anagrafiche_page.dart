@@ -10,9 +10,6 @@ import '../../../widgets/filtri/filtro_anagrafica.dart';
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 final _clientiStreamProvider = StreamProvider<List<ClienteModel>>((ref) {
-  // Dipende dall'auth: quando il token cambia (login/logout) il provider
-  // si ricrea con una connessione Firestore fresca, evitando permission-denied
-  // dovuti alla propagazione ritardata del token dopo il sign-in.
   final authUser = ref.watch(authStateProvider).valueOrNull;
   if (authUser == null) return Stream.value([]);
   return ref.watch(clientiServiceProvider).getClienti();
@@ -20,7 +17,6 @@ final _clientiStreamProvider = StreamProvider<List<ClienteModel>>((ref) {
 
 // ─── Pagina principale ────────────────────────────────────────────────────────
 
-/// Pagina Anagrafiche con lista/tabella clienti, ricerca e filtri avanzati
 class AnagrafichePage extends ConsumerStatefulWidget {
   const AnagrafichePage({super.key});
 
@@ -31,8 +27,6 @@ class AnagrafichePage extends ConsumerStatefulWidget {
 class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
   final TextEditingController _cercaController = TextEditingController();
   String _queryRicerca = '';
-
-  // Stato del pannello filtro
   bool _filtroAperto = false;
   FiltroAnagraficaStato _filtro = const FiltroAnagraficaStato();
 
@@ -42,9 +36,7 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
     super.dispose();
   }
 
-  /// Filtra la lista clienti in base a testo di ricerca e filtri avanzati
   List<ClienteModel> _filtra(List<ClienteModel> clienti) {
-    // Prima applica la ricerca testuale
     List<ClienteModel> risultato = clienti;
     if (_queryRicerca.isNotEmpty) {
       final q = _queryRicerca.toLowerCase();
@@ -54,7 +46,6 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
             c.pivaCodiceFiscale.toLowerCase().contains(q);
       }).toList();
     }
-    // Poi applica i filtri avanzati e l'ordinamento
     return applicaFiltroAnagrafica(risultato, _filtro);
   }
 
@@ -67,8 +58,8 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
         final isDesktop = constraints.maxWidth >= 600;
 
         return clientiAsync.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primary)),
           error: (err, _) => Center(
             child: Text('Errore: $err',
                 style: const TextStyle(color: AppColors.error)),
@@ -90,20 +81,15 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
   // ─── LAYOUT MOBILE ────────────────────────────────────────────────────────
 
   Widget _buildMobileLayout(
-      List<ClienteModel> tutti,
-      List<ClienteModel> filtrati,
-      bool isAdmin) {
+      List<ClienteModel> tutti, List<ClienteModel> filtrati, bool isAdmin) {
     return Stack(
       children: [
         Column(
           children: [
-            // Barra di ricerca con bottone filtri
             Container(
-              color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: _buildBarraRicercaConFiltro(),
             ),
-            // Pannello filtri animato (tra search bar e lista)
             FiltroAnagrafica(
               aperto: _filtroAperto,
               statoFiltro: _filtro,
@@ -115,114 +101,117 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
                 });
               },
             ),
-            // Riga chip filtri attivi
             FiltriAttiviRow(
               stato: _filtro,
-              onRimosso: (nuovoFiltro) =>
-                  setState(() => _filtro = nuovoFiltro),
+              onRimosso: (nuovoFiltro) => setState(() => _filtro = nuovoFiltro),
             ),
-            // Lista clienti
+            // Separatore sottile
+            Container(
+              height: 1,
+              color: AppColors.glassBorder,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+            ),
             Expanded(
               child: filtrati.isEmpty
                   ? _buildStatoVuoto()
                   : ListView.builder(
-                      padding: EdgeInsets.fromLTRB(12, 12, 12, isAdmin ? 80 : 12),
+                      padding:
+                          EdgeInsets.fromLTRB(12, 12, 12, isAdmin ? 80 : 12),
                       itemCount: filtrati.length,
                       itemBuilder: (context, index) =>
-                          _buildCardCliente(filtrati[index]),
+                          _buildCardClienteMobile(filtrati[index]),
                     ),
             ),
           ],
         ),
-        // FAB per aggiungere nuovo cliente (solo admin)
         if (isAdmin)
           Positioned(
             right: 16,
             bottom: 16,
             child: FloatingActionButton(
+              heroTag: 'fab_anagrafiche',
               onPressed: () => context.push('/anagrafiche/nuovo'),
-              backgroundColor: AppColors.fabBackground,
-              child: const Icon(Icons.add, color: AppColors.fabIcon),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.85),
+              child: const Icon(Icons.add, color: Colors.white),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildCardCliente(ClienteModel cliente) {
-    return Card(
+  Widget _buildCardClienteMobile(ClienteModel cliente) {
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.divider),
+        border: Border.all(color: AppColors.glassBorder, width: 0.5),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/anagrafiche/${cliente.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              // Avatar con iniziali
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.primaryLight.withValues(alpha: 0.15),
-                child: Text(
-                  cliente.initials,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColors.glassCardHover,
+          onTap: () => context.push('/anagrafiche/${cliente.id}'),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+                  child: Text(
+                    cliente.initials,
+                    style: const TextStyle(
+                      color: AppColors.accentGreenDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              // Info cliente
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            cliente.numeroFormattato,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textOnDarkMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildBadgeTipo(cliente.tipoCommittente),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        cliente.committente,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: AppColors.textOnDark,
+                        ),
+                      ),
+                      if (cliente.citta.isNotEmpty)
                         Text(
-                          cliente.numeroFormattato,
+                          cliente.citta,
                           style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textDisabled,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                            color: AppColors.textOnDarkSecondary,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        _buildBadgeTipo(cliente.tipoCommittente),
-                        if (cliente.isDraft) ...[
-                          const SizedBox(width: 6),
-                          _buildBadgeBozza(),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      cliente.committente,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    if (cliente.citta.isNotEmpty)
-                      Text(
-                        cliente.citta,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.textDisabled, size: 20),
-            ],
+                const Icon(Icons.chevron_right,
+                    color: AppColors.textOnDarkSecondary, size: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -232,14 +221,11 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
   // ─── LAYOUT DESKTOP ───────────────────────────────────────────────────────
 
   Widget _buildDesktopLayout(
-      List<ClienteModel> tutti,
-      List<ClienteModel> filtrati,
-      bool isAdmin) {
+      List<ClienteModel> tutti, List<ClienteModel> filtrati, bool isAdmin) {
     return Column(
       children: [
-        // Barra azioni: ricerca, filtri e bottone nuovo cliente
-        Container(
-          color: AppColors.surface,
+        // Barra ricerca — trasparente
+        Padding(
           padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
           child: Row(
             children: [
@@ -251,15 +237,23 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Nuovo cliente'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                    foregroundColor: AppColors.accentGreenDark,
+                    side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.50),
+                      width: 0.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
                   ),
                 ),
             ],
           ),
         ),
-        // Pannello filtri animato
+        // Filtro — trasparente
         FiltroAnagrafica(
           aperto: _filtroAperto,
           statoFiltro: _filtro,
@@ -271,96 +265,216 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
             });
           },
         ),
-        // Riga chip filtri attivi
         FiltriAttiviRow(
           stato: _filtro,
-          onRimosso: (nuovoFiltro) =>
-              setState(() => _filtro = nuovoFiltro),
+          onRimosso: (nuovoFiltro) => setState(() => _filtro = nuovoFiltro),
         ),
-        const Divider(height: 1, color: AppColors.divider),
-        // Tabella clienti
+        // Separatore sottile
+        Container(
+          height: 1,
+          color: AppColors.glassBorder,
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+        ),
         Expanded(
           child: filtrati.isEmpty
               ? _buildStatoVuoto()
-              : _buildTabella(filtrati),
+              : _buildListaDesktop(filtrati),
         ),
       ],
     );
   }
 
-  Widget _buildTabella(List<ClienteModel> clienti) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(AppColors.tableHeader),
-          headingTextStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-            color: AppColors.textSecondary,
+  Widget _buildListaDesktop(List<ClienteModel> clienti) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      itemCount: clienti.length,
+      itemBuilder: (_, i) => _buildCardClienteDesktop(clienti[i]),
+    );
+  }
+
+  Widget _buildCardClienteDesktop(ClienteModel cliente) {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 1000),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.glassCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            hoverColor: AppColors.glassCardHover,
+            onTap: () => context.push('/anagrafiche/${cliente.id}'),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+                    child: Text(
+                      cliente.initials,
+                      style: const TextStyle(
+                        color: AppColors.accentGreenDark,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Numero + Nome + Badge
+                  SizedBox(
+                    width: 220,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Text(
+                            cliente.numeroFormattato,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textOnDarkMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          _buildBadgeTipo(cliente.tipoCommittente),
+                        ]),
+                        const SizedBox(height: 3),
+                        Text(
+                          cliente.committente,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: AppColors.textOnDark,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // Indirizzo + Città
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow(
+                            Icons.location_on_outlined,
+                            cliente.indirizzo.isNotEmpty
+                                ? cliente.indirizzo
+                                : '—'),
+                        const SizedBox(height: 4),
+                        _infoRow(
+                          Icons.place_outlined,
+                          '${cliente.citta.isNotEmpty ? cliente.citta : '—'}'
+                          '${cliente.provincia.isNotEmpty ? ' (${cliente.provincia})' : ''}',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // P.IVA + Codice univoco
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow(
+                          Icons.badge_outlined,
+                          cliente.pivaCodiceFiscale.isNotEmpty
+                              ? cliente.pivaCodiceFiscale
+                              : '—',
+                          label: 'P.IVA',
+                        ),
+                        const SizedBox(height: 4),
+                        _infoRow(
+                          Icons.tag_outlined,
+                          cliente.codiceUnivoco.isNotEmpty
+                              ? cliente.codiceUnivoco
+                              : '—',
+                          label: 'CU',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // Telefono + Referente
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow(
+                          Icons.phone_outlined,
+                          cliente.telefono.isNotEmpty ? cliente.telefono : '—',
+                        ),
+                        const SizedBox(height: 4),
+                        _infoRow(
+                          Icons.person_outline,
+                          cliente.referente.isNotEmpty
+                              ? cliente.referente
+                              : '—',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textOnDarkMuted, size: 20),
+                ],
+              ),
+            ),
           ),
-          dataRowMinHeight: 52,
-          dataRowMaxHeight: 52,
-          columnSpacing: 20,
-          columns: const [
-            DataColumn(label: Text('N°')),
-            DataColumn(label: Text('Committente')),
-            DataColumn(label: Text('Tipo')),
-            DataColumn(label: Text('Indirizzo')),
-            DataColumn(label: Text('Città')),
-            DataColumn(label: Text('Prov.')),
-            DataColumn(label: Text('P.IVA / C.F.')),
-            DataColumn(label: Text('Telefono')),
-            DataColumn(label: Text('')),
-          ],
-          rows: clienti.map((c) => _buildRigaTabella(c)).toList(),
         ),
       ),
     );
   }
 
-  DataRow _buildRigaTabella(ClienteModel cliente) {
-    void apri() => context.push('/anagrafiche/${cliente.id}');
-    return DataRow(
-      cells: [
-        DataCell(Text(cliente.numeroFormattato,
+  Widget _separatoreV() {
+    return Container(
+      width: 0.5,
+      height: 40,
+      color: AppColors.glassBorder,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String testo, {String? label}) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: AppColors.textOnDarkMuted),
+        const SizedBox(width: 5),
+        if (label != null)
+          Text(
+            '$label: ',
             style: const TextStyle(
-                color: AppColors.textDisabled, fontWeight: FontWeight.w500)),
-            onTap: apri),
-        DataCell(Text(cliente.committente,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-            onTap: apri),
-        DataCell(
-          Row(children: [
-            _buildBadgeTipo(cliente.tipoCommittente),
-            if (cliente.isDraft) ...[
-              const SizedBox(width: 6),
-              _buildBadgeBozza(),
-            ],
-          ]),
-          onTap: apri,
-        ),
-        DataCell(Text(cliente.indirizzo,
+              fontSize: 10,
+              color: AppColors.textOnDarkMuted,
+            ),
+          ),
+        Expanded(
+          child: Text(
+            testo,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textOnDarkSecondary,
+            ),
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.textSecondary)),
-            onTap: apri),
-        DataCell(Text(cliente.citta,
-            style: const TextStyle(color: AppColors.textSecondary)),
-            onTap: apri),
-        DataCell(Text(cliente.provincia,
-            style: const TextStyle(color: AppColors.textSecondary)),
-            onTap: apri),
-        DataCell(Text(cliente.pivaCodiceFiscale,
-            style: const TextStyle(color: AppColors.textSecondary)),
-            onTap: apri),
-        DataCell(Text(cliente.telefono,
-            style: const TextStyle(color: AppColors.textSecondary)),
-            onTap: apri),
-        DataCell(
-          TextButton(
-            onPressed: apri,
-            child: const Text('Apri'),
           ),
         ),
       ],
@@ -369,7 +483,6 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
 
   // ─── WIDGET CONDIVISI ─────────────────────────────────────────────────────
 
-  /// Campo ricerca con bottone "Filtri" e badge filtri attivi
   Widget _buildBarraRicercaConFiltro() {
     final filtriAttivi = _filtro.filtriAttivi;
     return Row(
@@ -377,14 +490,17 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
         Expanded(
           child: TextField(
             controller: _cercaController,
+            style: const TextStyle(color: AppColors.textOnDark),
             onChanged: (v) => setState(() => _queryRicerca = v.trim()),
             decoration: InputDecoration(
               hintText: 'Cerca per nome, città, P.IVA...',
+              hintStyle: const TextStyle(color: AppColors.textOnDarkMuted),
               prefixIcon: const Icon(Icons.search,
-                  size: 20, color: AppColors.textDisabled),
+                  size: 20, color: AppColors.textOnDarkSecondary),
               suffixIcon: _queryRicerca.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
+                      icon: const Icon(Icons.clear,
+                          size: 18, color: AppColors.textOnDarkSecondary),
                       onPressed: () {
                         _cercaController.clear();
                         setState(() => _queryRicerca = '');
@@ -392,10 +508,21 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.inputBackground,
+              fillColor: const Color(0x1A000000),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+                borderSide:
+                    const BorderSide(color: AppColors.glassBorder, width: 0.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppColors.glassBorder, width: 0.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1),
               ),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -403,20 +530,16 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
           ),
         ),
         const SizedBox(width: 8),
-        // Bottone filtri con badge
         Stack(
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              onPressed: () =>
-                  setState(() => _filtroAperto = !_filtroAperto),
+              onPressed: () => setState(() => _filtroAperto = !_filtroAperto),
               icon: Icon(
-                _filtroAperto
-                    ? Icons.filter_list_off
-                    : Icons.filter_list,
+                _filtroAperto ? Icons.filter_list_off : Icons.filter_list,
                 color: _filtroAperto || filtriAttivi > 0
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                    ? AppColors.accentGreenDark
+                    : AppColors.textOnDarkSecondary,
               ),
               tooltip: 'Filtri',
             ),
@@ -448,38 +571,24 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
     );
   }
 
-  Widget _buildBadgeBozza() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade100,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        'Bozza',
-        style: TextStyle(
-          fontSize: 10,
-          color: Colors.orange.shade800,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
   Widget _buildBadgeTipo(String tipo) {
     if (tipo.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.badgeGreenBackground,
+        color: const Color(0xFF00A843).withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF00A843).withValues(alpha: 0.35),
+          width: 0.5,
+        ),
       ),
       child: Text(
         tipo,
         style: const TextStyle(
           fontSize: 10,
-          color: AppColors.badgeGreenText,
-          fontWeight: FontWeight.w600,
+          color: AppColors.accentGreenDark,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -490,9 +599,8 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.people_outline,
-              size: 64,
-              color: AppColors.textDisabled.withValues(alpha: 0.5)),
+          const Icon(Icons.people_outline,
+              size: 64, color: AppColors.textOnDarkMuted),
           const SizedBox(height: 16),
           Text(
             _queryRicerca.isEmpty && !_filtro.hasFiltri
@@ -500,7 +608,7 @@ class _AnagrafichePageState extends ConsumerState<AnagrafichePage> {
                 : 'Nessun risultato trovato',
             style: const TextStyle(
                 fontSize: 15,
-                color: AppColors.textDisabled,
+                color: AppColors.textOnDarkSecondary,
                 fontWeight: FontWeight.w500),
           ),
         ],

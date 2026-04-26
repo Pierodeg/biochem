@@ -16,52 +16,53 @@ class AppTheme {
         error: AppColors.error,
         brightness: Brightness.light,
       ),
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: Colors.transparent,
 
       // --- AppBar ---
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.appBarBackground,
-        foregroundColor: AppColors.appBarForeground,
+        backgroundColor: Color(0x4D000000), // glassDarkest
+        foregroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: AppColors.appBarForeground,
+          color: Colors.white,
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           letterSpacing: 0.3,
         ),
-        iconTheme: IconThemeData(color: AppColors.appBarForeground),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
 
       // --- Campi di testo ---
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.inputBackground,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        fillColor: const Color(0x0DFFFFFF),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.inputBorder),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0x26FFFFFF), width: 0.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.inputBorder),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0x26FFFFFF), width: 0.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.inputBorderFocus, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF00A843), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.inputBorderError),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFD32F2F), width: 0.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.inputBorderError, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFD32F2F), width: 1.5),
         ),
-        labelStyle: const TextStyle(color: AppColors.inputLabel),
-        hintStyle: const TextStyle(color: AppColors.textDisabled),
-        prefixIconColor: AppColors.inputLabel,
+        labelStyle: const TextStyle(color: Color(0x99FFFFFF)),
+        hintStyle: const TextStyle(color: Color(0x66FFFFFF)),
+        prefixIconColor: const Color(0x99FFFFFF),
       ),
 
       // --- Pulsante elevato ---
@@ -93,11 +94,14 @@ class AppTheme {
 
       // --- Card ---
       cardTheme: CardThemeData(
-        color: AppColors.surface,
-        elevation: 2,
-        shadowColor: AppColors.primary.withValues(alpha: 0.1),
+        color: const Color(0x12FFFFFF), // glassCard
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(
+            color: Color(0x26FFFFFF), // glassBorder
+            width: 0.5,
+          ),
         ),
       ),
 

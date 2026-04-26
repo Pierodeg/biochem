@@ -211,6 +211,56 @@ class AppColors {
   static const Color textOnPrimary = Color(0xFFFFFFFF);
   static const Color textOnBlue = Color(0xFFFFFFFF);
 
+  // ─── Glass / Sfondo scuro ─────────────────────────────────────────────────
+
+  /// Sfondo gradiente — colore 1 (top-left)
+  static const Color gradientStart = Color(0xFF003D1E);
+
+  /// Sfondo gradiente — colore 2
+  static const Color gradientMid1 = Color(0xFF005C2A);
+
+  /// Sfondo gradiente — colore 3
+  static const Color gradientMid2 = Color(0xFF0C447C);
+
+  /// Sfondo gradiente — colore 4 (bottom-right)
+  static const Color gradientEnd = Color(0xFF042C53);
+
+  /// Sfondo glass card — bianco molto trasparente
+  static const Color glassCard = Color(0x12FFFFFF);
+
+  /// Sfondo glass card hover
+  static const Color glassCardHover = Color(0x1AFFFFFF);
+
+  /// Sfondo glass scuro — per form e tabelle
+  static const Color glassDark = Color(0x33000000);
+
+  /// Sfondo glass molto scuro — header tabelle, navbar
+  static const Color glassDarkest = Color(0x4D000000);
+
+  /// Bordo glass chiaro — bordi card e elementi glass
+  static const Color glassBorder = Color(0x26FFFFFF);
+
+  /// Bordo glass sottile — separatori interni
+  static const Color glassBorderSubtle = Color(0x0FFFFFFF);
+
+  /// Testo su sfondo scuro — primario
+  static const Color textOnDark = Color(0xFFFFFFFF);
+
+  /// Testo su sfondo scuro — secondario
+  static const Color textOnDarkSecondary = Color(0x99FFFFFF);
+
+  /// Testo su sfondo scuro — disabilitato/muted
+  static const Color textOnDarkMuted = Color(0x66FFFFFF);
+
+  /// Verde accent su sfondo scuro — testi evidenziati, badge attivi
+  static const Color accentGreenDark = Color(0xFF4AE883);
+
+  /// Blu accent su sfondo scuro — info, link
+  static const Color accentBlueDark = Color(0xFF7DB8F4);
+
+  /// Amber accent su sfondo scuro — warning, bozze
+  static const Color accentAmberDark = Color(0xFFF4C875);
+
   // ─── MaterialColor per ThemeData ──────────────────────────────────────────
 
   static const MaterialColor primarySwatch = MaterialColor(

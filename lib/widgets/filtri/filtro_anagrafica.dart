@@ -4,7 +4,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/providers/service_providers.dart';
 import '../../models/cliente_model.dart';
 
-/// Opzioni di ordinamento per la lista clienti
 enum OrdinamentoAnagrafica {
   numeroCliente('↑ N° cliente'),
   nomeAZ('A→Z Nome'),
@@ -15,7 +14,6 @@ enum OrdinamentoAnagrafica {
   const OrdinamentoAnagrafica(this.etichetta);
 }
 
-/// Stato immutabile del filtro anagrafica
 class FiltroAnagraficaStato {
   final List<String> tipiSelezionati;
   final List<String> cittaSelezionate;
@@ -29,7 +27,6 @@ class FiltroAnagraficaStato {
     this.ordinamento = OrdinamentoAnagrafica.numeroCliente,
   });
 
-  /// Numero totale di filtri attivi (esclude ordinamento default)
   int get filtriAttivi =>
       tipiSelezionati.length +
       cittaSelezionate.length +
@@ -55,34 +52,12 @@ class FiltroAnagraficaStato {
   FiltroAnagraficaStato reset() => const FiltroAnagraficaStato();
 }
 
-/// Province sarde disponibili come filtro
 const _provinceSarde = ['SS', 'CA', 'NU', 'OR', 'SU', 'OT', 'OG', 'VS'];
 
-/// Widget filtro per la pagina Anagrafiche.
-///
-/// Si apre/chiude con animazione verticale (altezza 0 → altezza contenuto).
-/// Posizionato tra la search bar e la lista clienti come AnimatedContainer
-/// nel layout Column — non usa overlay.
-///
-/// Uso:
-/// ```dart
-/// FiltroAnagrafica(
-///   statoFiltro: _filtro,
-///   clienti: clienti,
-///   onFiltroApplicato: (nuovoStato) => setState(() => _filtro = nuovoStato),
-/// )
-/// ```
 class FiltroAnagrafica extends ConsumerStatefulWidget {
-  /// Stato corrente del filtro (controllato dall'esterno)
   final FiltroAnagraficaStato statoFiltro;
-
-  /// Lista completa dei clienti (per estrarre le città distinte)
   final List<ClienteModel> clienti;
-
-  /// Callback chiamato quando l'utente preme "Applica"
   final ValueChanged<FiltroAnagraficaStato> onFiltroApplicato;
-
-  /// Se true il pannello è aperto
   final bool aperto;
 
   const FiltroAnagrafica({
@@ -99,16 +74,31 @@ class FiltroAnagrafica extends ConsumerStatefulWidget {
 
 class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
     with SingleTickerProviderStateMixin {
-  // Stato locale (bozza) — viene applicato solo al pressione di "Applica"
-  late FiltroAnagraficaStato _bozza;
+  AnimationController? _animController;
+  Animation<double>? _animazione;
 
-  // Se le città sono espanse (oltre le prime 6)
+  late FiltroAnagraficaStato _bozza;
   bool _cittaEspanse = false;
 
   @override
   void initState() {
     super.initState();
     _bozza = widget.statoFiltro;
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 350),
+      vsync: this,
+    );
+    _animazione = CurvedAnimation(
+      parent: _animController!,
+      curve: Curves.easeInOut,
+    );
+    if (widget.aperto) _animController!.value = 1.0;
+  }
+
+  @override
+  void dispose() {
+    _animController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -117,18 +107,22 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
     if (oldWidget.statoFiltro != widget.statoFiltro) {
       _bozza = widget.statoFiltro;
     }
+    // Anima apertura/chiusura
+    if (widget.aperto != oldWidget.aperto) {
+      if (widget.aperto) {
+        _animController?.forward();
+      } else {
+        _animController?.reverse();
+      }
+    }
   }
 
-  // ─── Calcoli derivati ──────────────────────────────────────────────────────
-
-  /// Lista dei tipi committente distinti caricati da Firestore
   Future<List<String>> _getTipiCommittente() async {
     final service = ref.read(impostazioniServiceProvider);
     final items = await service.getItems('tipi_committente').first;
     return items;
   }
 
-  /// Città distinte presenti nei clienti, ordinate A→Z
   List<String> get _cittaDisponibili {
     final citta = widget.clienti
         .map((c) => c.citta.trim())
@@ -138,8 +132,6 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
       ..sort();
     return citta;
   }
-
-  // ─── Toggle chip ──────────────────────────────────────────────────────────
 
   void _toggleTipo(String tipo) {
     final lista = List<String>.from(_bozza.tipiSelezionati);
@@ -169,22 +161,28 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
 
   void _applica() => widget.onFiltroApplicato(_bozza);
 
-  // ─── Build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      height: widget.aperto ? null : 0,
-      clipBehavior: Clip.hardEdge,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(color: AppColors.divider),
+    final anim = _animazione;
+    if (anim == null) return const SizedBox.shrink();
+
+    return SizeTransition(
+      sizeFactor: anim,
+      axisAlignment: -1.0,
+      child: ClipRect(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                color: AppColors.primary.withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+          ),
+          child: _buildContenuto(),
         ),
       ),
-      child: widget.aperto ? _buildContenuto() : const SizedBox.shrink(),
     );
   }
 
@@ -195,8 +193,7 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Tipi committente
-          _buildSezioneTitolo('Tipo committente'),
+          _buildSezioneTitolo('TIPO COMMITTENTE'),
           const SizedBox(height: 6),
           FutureBuilder<List<String>>(
             future: _getTipiCommittente(),
@@ -216,15 +213,11 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
             },
           ),
           const SizedBox(height: 12),
-
-          // Città
-          _buildSezioneTitolo('Città'),
+          _buildSezioneTitolo('CITTÀ'),
           const SizedBox(height: 6),
           _buildChipCitta(),
           const SizedBox(height: 12),
-
-          // Province
-          _buildSezioneTitolo('Provincia'),
+          _buildSezioneTitolo('PROVINCIA'),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -238,9 +231,7 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
                 .toList(),
           ),
           const SizedBox(height: 12),
-
-          // Ordina per
-          _buildSezioneTitolo('Ordina per'),
+          _buildSezioneTitolo('ORDINA PER'),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -256,11 +247,8 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
                 .toList(),
           ),
           const SizedBox(height: 16),
-
-          // Riga bottoni
           Row(
             children: [
-              // Azzera
               TextButton.icon(
                 onPressed: _azzera,
                 icon: const Icon(Icons.clear_all, size: 16),
@@ -270,22 +258,29 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
                 ),
               ),
               const Spacer(),
-              // Contatore filtri attivi
               if (_bozza.filtriAttivi > 0)
                 Text(
                   '${_bozza.filtriAttivi} ${_bozza.filtriAttivi == 1 ? 'filtro attivo' : 'filtri attivi'}',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textOnDarkSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               const SizedBox(width: 12),
-              // Applica
               FilledButton(
                 onPressed: _applica,
                 style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.success),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                  foregroundColor: AppColors.accentGreenDark,
+                  side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.50),
+                    width: 0.5,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
                 child: const Text('Applica'),
               ),
             ],
@@ -298,9 +293,8 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
 
   Widget _buildChipCitta() {
     final tutte = _cittaDisponibili;
-    final visibili = _cittaEspanse || tutte.length <= 6
-        ? tutte
-        : tutte.take(6).toList();
+    final visibili =
+        _cittaEspanse || tutte.length <= 6 ? tutte : tutte.take(6).toList();
     final rimanenti = tutte.length - 6;
 
     return Wrap(
@@ -313,11 +307,26 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
               onTap: () => _toggleCitta(c),
             )),
         if (!_cittaEspanse && rimanenti > 0)
-          ActionChip(
-            label: Text('+ altre $rimanenti',
-                style: const TextStyle(fontSize: 12)),
-            backgroundColor: AppColors.inputBackground,
-            onPressed: () => setState(() => _cittaEspanse = true),
+          GestureDetector(
+            onTap: () => setState(() => _cittaEspanse = true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0x1AFFFFFF),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0x33FFFFFF),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                '+ altre $rimanenti',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textOnDark,
+                ),
+              ),
+            ),
           ),
       ],
     );
@@ -327,10 +336,10 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
     return Text(
       titolo,
       style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textSecondary,
-        letterSpacing: 0.5,
+        fontSize: 9,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textOnDarkMuted,
+        letterSpacing: 0.05,
       ),
     );
   }
@@ -348,21 +357,23 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selezionato
-              ? AppColors.primary
-              : AppColors.inputBackground,
+              ? AppColors.primary.withValues(alpha: 0.35)
+              : const Color(0x1AFFFFFF),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selezionato ? AppColors.primary : AppColors.divider,
+            color: selezionato
+                ? AppColors.primary.withValues(alpha: 0.60)
+                : const Color(0x33FFFFFF),
+            width: 0.5,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: selezionato
-                ? AppColors.textOnPrimary
-                : AppColors.textSecondary,
+            color:
+                selezionato ? AppColors.accentGreenDark : AppColors.textOnDark,
           ),
         ),
       ),
@@ -370,10 +381,8 @@ class _FiltroAnagraficaState extends ConsumerState<FiltroAnagrafica>
   }
 }
 
-// ─── Riga chip filtri attivi ───────────────────────────────────────────────────
+// ─── Riga chip filtri attivi ──────────────────────────────────────────────────
 
-/// Riga di chip verdi che mostra i filtri attivi con bottone di rimozione.
-/// Visibile solo quando ci sono filtri attivi.
 class FiltriAttiviRow extends StatelessWidget {
   final FiltroAnagraficaStato stato;
   final ValueChanged<FiltroAnagraficaStato> onRimosso;
@@ -394,46 +403,38 @@ class FiltriAttiviRow extends StatelessWidget {
       chips.add(_ChipAttivo(
         label: tipo,
         onRimovi: () => onRimosso(stato.copyWith(
-            tipiSelezionati: stato.tipiSelezionati
-                .where((t) => t != tipo)
-                .toList())),
+            tipiSelezionati:
+                stato.tipiSelezionati.where((t) => t != tipo).toList())),
       ));
     }
     for (final citta in stato.cittaSelezionate) {
       chips.add(_ChipAttivo(
         label: citta,
         onRimovi: () => onRimosso(stato.copyWith(
-            cittaSelezionate: stato.cittaSelezionate
-                .where((c) => c != citta)
-                .toList())),
+            cittaSelezionate:
+                stato.cittaSelezionate.where((c) => c != citta).toList())),
       ));
     }
     for (final prov in stato.provinceSelezionate) {
       chips.add(_ChipAttivo(
         label: prov,
         onRimovi: () => onRimosso(stato.copyWith(
-            provinceSelezionate: stato.provinceSelezionate
-                .where((p) => p != prov)
-                .toList())),
+            provinceSelezionate:
+                stato.provinceSelezionate.where((p) => p != prov).toList())),
       ));
     }
     if (stato.ordinamento != OrdinamentoAnagrafica.numeroCliente) {
       chips.add(_ChipAttivo(
         label: stato.ordinamento.etichetta,
-        onRimovi: () =>
-            onRimosso(stato.copyWith(
-                ordinamento: OrdinamentoAnagrafica.numeroCliente)),
+        onRimovi: () => onRimosso(
+            stato.copyWith(ordinamento: OrdinamentoAnagrafica.numeroCliente)),
       ));
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: AppColors.successLight,
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        children: chips,
-      ),
+      color: Colors.transparent,
+      child: Wrap(spacing: 6, runSpacing: 4, children: chips),
     );
   }
 }
@@ -447,15 +448,21 @@ class _ChipAttivo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Chip(
-      label: Text(label,
-          style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.badgeGreenText,
-              fontWeight: FontWeight.w500)),
-      backgroundColor: AppColors.badgeGreenBackground,
-      side: const BorderSide(color: AppColors.success),
+      label: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          color: AppColors.accentGreenDark,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+      side: BorderSide(
+        color: AppColors.primary.withValues(alpha: 0.40),
+        width: 0.5,
+      ),
       deleteIcon:
-          const Icon(Icons.close, size: 14, color: AppColors.badgeGreenText),
+          const Icon(Icons.close, size: 14, color: AppColors.accentGreenDark),
       onDeleted: onRimovi,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -463,31 +470,21 @@ class _ChipAttivo extends StatelessWidget {
   }
 }
 
-// ─── Utility: applica filtro e ordinamento a una lista clienti ────────────────
+// ─── Utility ──────────────────────────────────────────────────────────────────
 
-/// Applica [filtro] a [clienti] e restituisce la lista ordinata.
 List<ClienteModel> applicaFiltroAnagrafica(
     List<ClienteModel> clienti, FiltroAnagraficaStato filtro) {
   var risultato = clienti.where((c) {
-    // Filtro tipo committente
     if (filtro.tipiSelezionati.isNotEmpty &&
-        !filtro.tipiSelezionati.contains(c.tipoCommittente)) {
-      return false;
-    }
-    // Filtro città
+        !filtro.tipiSelezionati.contains(c.tipoCommittente)) return false;
     if (filtro.cittaSelezionate.isNotEmpty &&
-        !filtro.cittaSelezionate.contains(c.citta.trim())) {
-      return false;
-    }
-    // Filtro provincia
+        !filtro.cittaSelezionate.contains(c.citta.trim())) return false;
     if (filtro.provinceSelezionate.isNotEmpty &&
-        !filtro.provinceSelezionate.contains(c.provincia.trim().toUpperCase())) {
+        !filtro.provinceSelezionate.contains(c.provincia.trim().toUpperCase()))
       return false;
-    }
     return true;
   }).toList();
 
-  // Ordinamento
   switch (filtro.ordinamento) {
     case OrdinamentoAnagrafica.numeroCliente:
       risultato.sort((a, b) => a.numeroCliente.compareTo(b.numeroCliente));

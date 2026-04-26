@@ -8,25 +8,8 @@ import '../../auth/providers/auth_provider.dart';
 import '../../notifiche/widgets/notifiche_panel.dart';
 import '../../profile/widgets/profile_panel.dart';
 
-/// Schermata principale con layout responsive.
-///
-/// Riceve il [StatefulNavigationShell] da go_router: la navigazione tra tab
-/// è gestita dal router (URL aggiornato, stato branch preservato).
-///
-/// MOBILE (< 600px):
-///   - AppBar globale con titolo + avatar profilo (apre endDrawer)
-///   - Body: navigationShell (go_router gestisce lo stato per branch)
-///   - BottomNavigationBar con 5 voci
-///   - EndDrawer: [ProfilePanel]
-///
-/// DESKTOP (>= 600px):
-///   - Sidebar fissa 220px con logo, nav e avatar utente
-///   - Header con titolo pagina corrente
-///   - Body: navigationShell
-///   - EndDrawer: [ProfilePanel]
 class MainScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
-
   const MainScreen({super.key, required this.navigationShell});
 
   @override
@@ -34,10 +17,7 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  /// Chiave globale per aprire l'endDrawer da widget annidati (sidebar/avatar)
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  // ─── Configurazione statica ────────────────────────────────────────────────
 
   static const List<_NavItem> _navItems = [
     _NavItem(icon: Icons.people_outline, label: 'Anagrafiche'),
@@ -57,22 +37,17 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     'Calendario',
   ];
 
-  /// Cambia tab tramite go_router: aggiorna URL e preserva lo stato del branch
   void _onTabSelected(int index) {
     widget.navigationShell.goBranch(
       index,
-      // initialLocation: true riporta alla root del branch se già selezionato
       initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
   int get _currentIndex => widget.navigationShell.currentIndex;
 
-  // ─── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    // Mostra notifiche pendenti inviate dal redirect del router
     ref.listen<String?>(pendingNotificationProvider, (_, message) {
       if (message == null) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,13 +64,65 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       });
     });
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= 600) {
-          return _buildDesktopLayout();
-        }
-        return _buildMobileLayout();
-      },
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.gradientStart,
+            AppColors.gradientMid1,
+            AppColors.gradientMid2,
+            AppColors.gradientEnd,
+          ],
+          stops: [0.0, 0.3, 0.7, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Luce verde in alto a destra
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  const Color(0xFF00A843).withValues(alpha: 0.12),
+                  Colors.transparent,
+                ]),
+              ),
+            ),
+          ),
+          // Luce blu in basso a sinistra
+          Positioned(
+            bottom: -80,
+            left: -80,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  const Color(0xFF1565C0).withValues(alpha: 0.15),
+                  Colors.transparent,
+                ]),
+              ),
+            ),
+          ),
+          // Contenuto principale
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 600) {
+                return _buildDesktopLayout();
+              }
+              return _buildMobileLayout();
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -104,7 +131,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   Widget _buildMobileLayout() {
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: AppColors.glassDarkest,
         title: Image.asset(
           'assets/images/logo.png',
           height: 50,
@@ -112,37 +141,42 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         ),
         automaticallyImplyLeading: false,
         actions: [
-          // Badge notifiche campanella — bianca su AppBar mobile
-          _NotificaBadgeButton(scaffoldKey: _scaffoldKey, iconColor: AppColors.surface),
+          _NotificaBadgeButton(
+              scaffoldKey: _scaffoldKey, iconColor: AppColors.textOnDark),
           _AppBarAvatarButton(scaffoldKey: _scaffoldKey),
         ],
       ),
-
-      // navigationShell gestisce lo stato di ogni branch separatamente
       body: widget.navigationShell,
-
-      // Drawer start: pannello notifiche
       drawer: const NotifichePanel(),
-      // Drawer end: profilo utente
       endDrawer: const ProfilePanel(),
-
-      // Bottom nav mobile: solo le prime 5 voci (Calendario è nel pannello profilo)
-      bottomNavigationBar: BottomNavigationBar(
-        // Quando si è sul tab Calendario (index 5) nessuna voce risulta attiva
-        currentIndex: _currentIndex < 5 ? _currentIndex : 0,
-        onTap: _onTabSelected,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.navSelected,
-        unselectedItemColor: AppColors.navUnselected,
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
-        items: _navItems
-            .take(5) // esclude Calendario dalla bottom nav
-            .map((item) => BottomNavigationBarItem(
-                  icon: Icon(item.icon),
-                  label: item.label,
-                ))
-            .toList(),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.glassDarkest,
+          border: Border(
+            top: BorderSide(
+              color: AppColors.glassBorder,
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex < 5 ? _currentIndex : 0,
+          onTap: _onTabSelected,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          selectedItemColor: AppColors.accentGreenDark,
+          unselectedItemColor: AppColors.textOnDarkSecondary,
+          selectedFontSize: 10,
+          unselectedFontSize: 10,
+          elevation: 0,
+          items: _navItems
+              .take(5)
+              .map((item) => BottomNavigationBarItem(
+                    icon: Icon(item.icon),
+                    label: item.label,
+                  ))
+              .toList(),
+        ),
       ),
     );
   }
@@ -152,6 +186,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   Widget _buildDesktopLayout() {
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: Colors.transparent,
       drawer: const NotifichePanel(),
       endDrawer: const ProfilePanel(),
       body: Row(
@@ -173,35 +208,48 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   Widget _buildSidebar() {
     return Container(
       width: 220,
-      color: AppColors.sidebarBackground,
+      decoration: const BoxDecoration(
+        color: AppColors.glassDarkest,
+        border: Border(
+          right: BorderSide(
+            color: AppColors.glassBorder,
+            width: 0.5,
+          ),
+        ),
+      ),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Logo aziendale nella sidebar desktop
+            // Logo
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Image.asset(
                 'assets/images/logo.png',
-                height: 60,
+                height: 52,
                 fit: BoxFit.contain,
               ),
             ),
-
-            const Divider(
-                color: Colors.white24, height: 1, indent: 20, endIndent: 20),
+            Container(
+              height: 0.5,
+              color: AppColors.glassBorder,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+            ),
             const SizedBox(height: 8),
-
+            // Voci nav
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 itemCount: _navItems.length,
                 itemBuilder: (context, index) => _buildSidebarItem(index),
               ),
             ),
-
-            const Divider(
-                color: Colors.white24, height: 1, indent: 12, endIndent: 12),
+            Container(
+              height: 0.5,
+              color: AppColors.glassBorder,
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+            ),
             _SidebarUserFooter(scaffoldKey: _scaffoldKey),
           ],
         ),
@@ -217,67 +265,70 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.sidebarItemActive
+            ? AppColors.primary.withValues(alpha: 0.25)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
+        border: isSelected
+            ? Border.all(
+                color: AppColors.primary.withValues(alpha: 0.40),
+                width: 0.5,
+              )
+            : null,
       ),
       child: ListTile(
         leading: Icon(
           item.icon,
           color: isSelected
-              ? AppColors.sidebarTextActive
-              : AppColors.sidebarTextInactive,
+              ? AppColors.accentGreenDark
+              : AppColors.textOnDarkSecondary,
           size: 20,
         ),
         title: Text(
           item.label,
           style: TextStyle(
             color: isSelected
-                ? AppColors.sidebarTextActive
-                : AppColors.sidebarTextInactive,
+                ? AppColors.accentGreenDark
+                : AppColors.textOnDarkSecondary,
             fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
         onTap: () => _onTabSelected(index),
         dense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        hoverColor: AppColors.glassCard,
       ),
     );
   }
 
   Widget _buildDesktopHeader() {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.divider)),
-      ),
       child: Row(
         children: [
           Text(
             _titles[_currentIndex],
             style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textOnDark,
+              letterSpacing: 0.3,
             ),
           ),
           const Spacer(),
-          // Badge notifiche campanella — blu su sidebar desktop
-          _NotificaBadgeButton(scaffoldKey: _scaffoldKey, iconColor: AppColors.blue),
+          _NotificaBadgeButton(
+            scaffoldKey: _scaffoldKey,
+            iconColor: AppColors.textOnDark,
+          ),
         ],
       ),
     );
   }
 }
 
-// ─── Badge notifiche campanella (ConsumerWidget isolato) ─────────────────────
+// ─── Badge notifiche ──────────────────────────────────────────────────────────
 
-/// Icona campanella con badge rosso che mostra il numero di notifiche non lette.
-/// Tap → apre il pannello notifiche (drawer start).
 class _NotificaBadgeButton extends ConsumerWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final Color iconColor;
@@ -292,16 +343,13 @@ class _NotificaBadgeButton extends ConsumerWidget {
     final uid = ref.watch(currentUserProvider).valueOrNull?.uid;
     if (uid == null) return const SizedBox.shrink();
 
-    // Conta notifiche non lette in real-time
-    final conteggio = ref.watch(
-      _nonLetteCountProvider(uid),
-    );
+    final conteggio = ref.watch(_nonLetteCountProvider(uid));
 
     return IconButton(
       onPressed: () => scaffoldKey.currentState?.openDrawer(),
       icon: Badge(
-        isLabelVisible: conteggio.valueOrNull != null &&
-            conteggio.valueOrNull! > 0,
+        isLabelVisible:
+            conteggio.valueOrNull != null && conteggio.valueOrNull! > 0,
         label: Text(
           '${conteggio.valueOrNull ?? 0}',
           style: const TextStyle(fontSize: 10),
@@ -315,13 +363,9 @@ class _NotificaBadgeButton extends ConsumerWidget {
   }
 }
 
-/// Provider per il conteggio notifiche non lette (ottimizzato per il badge)
-final _nonLetteCountProvider =
-    StreamProvider.family<int, String>((ref, uid) {
+final _nonLetteCountProvider = StreamProvider.family<int, String>((ref, uid) {
   return ref.watch(notificheServiceProvider).getNotificheNonLette(uid);
 });
-
-// ─── Dati di una voce della nav ───────────────────────────────────────────────
 
 class _NavItem {
   final IconData icon;
@@ -329,10 +373,8 @@ class _NavItem {
   const _NavItem({required this.icon, required this.label});
 }
 
-// ─── Avatar AppBar mobile (ConsumerWidget isolato) ───────────────────────────
+// ─── Avatar AppBar mobile ─────────────────────────────────────────────────────
 
-/// Avatar circolare nell'AppBar mobile che apre il profilo.
-/// ConsumerWidget isolato: si ricostruisce solo quando cambia [currentUserProvider].
 class _AppBarAvatarButton extends ConsumerWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   const _AppBarAvatarButton({required this.scaffoldKey});
@@ -347,11 +389,11 @@ class _AppBarAvatarButton extends ConsumerWidget {
         child: userAsync.when(
           data: (user) => CircleAvatar(
             radius: 18,
-            backgroundColor: AppColors.appBarForeground.withValues(alpha: 0.22),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.25),
             child: Text(
               user?.initials ?? '?',
               style: const TextStyle(
-                color: AppColors.appBarForeground,
+                color: AppColors.accentGreenDark,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -365,7 +407,7 @@ class _AppBarAvatarButton extends ConsumerWidget {
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.appBarForeground),
+                    strokeWidth: 2, color: AppColors.textOnDark),
               ),
             ),
           ),
@@ -379,10 +421,8 @@ class _AppBarAvatarButton extends ConsumerWidget {
   }
 }
 
-// ─── Avatar footer sidebar desktop (ConsumerWidget isolato) ──────────────────
+// ─── Footer sidebar desktop ───────────────────────────────────────────────────
 
-/// Sezione in fondo alla sidebar desktop con avatar, nome e ruolo.
-/// ConsumerWidget isolato: si ricostruisce solo quando cambia [currentUserProvider].
 class _SidebarUserFooter extends ConsumerWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   const _SidebarUserFooter({required this.scaffoldKey});
@@ -391,28 +431,37 @@ class _SidebarUserFooter extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
+        hoverColor: AppColors.glassCard,
         onTap: () => scaffoldKey.currentState?.openEndDrawer(),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.glassCard,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.glassBorder,
+              width: 0.5,
+            ),
+          ),
           child: userAsync.when(
             data: (user) => Row(
               children: [
                 CircleAvatar(
-                  radius: 17,
-                  backgroundColor: AppColors.sidebarLogoText.withValues(alpha: 0.22),
+                  radius: 16,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.25),
                   child: Text(
                     user?.initials ?? '?',
                     style: const TextStyle(
-                      color: AppColors.sidebarLogoText,
-                      fontSize: 12,
+                      color: AppColors.accentGreenDark,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,7 +470,7 @@ class _SidebarUserFooter extends ConsumerWidget {
                       Text(
                         user?.displayName ?? '',
                         style: const TextStyle(
-                          color: AppColors.sidebarLogoText,
+                          color: AppColors.textOnDark,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -430,34 +479,33 @@ class _SidebarUserFooter extends ConsumerWidget {
                       Text(
                         user?.roleLabel ?? '',
                         style: const TextStyle(
-                          color: AppColors.sidebarTextInactive,
+                          color: AppColors.textOnDarkSecondary,
                           fontSize: 10,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.settings_outlined,
-                  color: AppColors.sidebarLogoText.withValues(alpha: 0.5),
-                  size: 16,
+                  color: AppColors.textOnDarkMuted,
+                  size: 15,
                 ),
               ],
             ),
             loading: () => const SizedBox(
-              width: 36,
               height: 36,
               child: Center(
                 child: SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.sidebarLogoText),
+                      strokeWidth: 2, color: AppColors.textOnDark),
                 ),
               ),
             ),
             error: (_, __) =>
-                const Icon(Icons.person, color: AppColors.sidebarLogoText, size: 24),
+                const Icon(Icons.person, color: AppColors.textOnDark, size: 24),
           ),
         ),
       ),
