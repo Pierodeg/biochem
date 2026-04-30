@@ -95,11 +95,11 @@ const _macroSezioni = [
     icona: Icons.description_outlined,
     colore: AppColors.info,
     categorieId: [
-      'preventivo_listino',  // Listino a cascata (tipologie → sotto-tipi → servizi)
-      'preventivo_giornata',    // Giornata/esecuzione (FERIALE, FESTIVO, NOTTURNO)
-      'preventivo_pagamento',   // Modalità di pagamento
-      'preventivo_validita',    // Validità del preventivo
-      'preventivo_rinnovo',     // Rinnovo automatico
+      'preventivo_listino', // Listino a cascata (tipologie → sotto-tipi → servizi)
+      'preventivo_giornata', // Giornata/esecuzione (FERIALE, FESTIVO, NOTTURNO)
+      'preventivo_pagamento', // Modalità di pagamento
+      'preventivo_validita', // Validità del preventivo
+      'preventivo_rinnovo', // Rinnovo automatico
     ],
   ),
   _MacroSezione(
@@ -128,7 +128,8 @@ class AdminSettingsPage extends ConsumerWidget {
 
     if (userAsync.isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body:
+            Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
@@ -200,8 +201,7 @@ class AdminSettingsPage extends ConsumerWidget {
   /// Mostra le categorie non incluse in nessuna macro (create dall'utente)
   Widget _buildCategorieLibere(
       BuildContext context, List<CategoriaModel> categorie, WidgetRef ref) {
-    final tuttiGliId =
-        _macroSezioni.expand((m) => m.categorieId).toSet();
+    final tuttiGliId = _macroSezioni.expand((m) => m.categorieId).toSet();
     final libere = categorie.where((c) => !tuttiGliId.contains(c.id)).toList();
     if (libere.isEmpty) return const SizedBox.shrink();
 
@@ -341,8 +341,8 @@ class AdminSettingsPage extends ConsumerWidget {
                           }
                         }
                       },
-                style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary),
+                style:
+                    FilledButton.styleFrom(backgroundColor: AppColors.primary),
                 child: isSaving
                     ? const SizedBox(
                         width: 16,
@@ -414,10 +414,10 @@ class _MacroExpansionTileState extends State<_MacroExpansionTile> {
         color: AppColors.surface,
         child: ExpansionTile(
           onExpansionChanged: (v) => setState(() => _isExpanded = v),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-          collapsedShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          collapsedShape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           // Icona colorata per macro
           leading: Container(
             width: 36,
@@ -444,8 +444,8 @@ class _MacroExpansionTileState extends State<_MacroExpansionTile> {
               // Contatore categorie
               if (numCategorie > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.badgeGreyBackground,
                     borderRadius: BorderRadius.circular(10),
@@ -544,8 +544,7 @@ class _MacroExpansionTileState extends State<_MacroExpansionTile> {
             ),
             TextButton(
               onPressed: () => _creaCategoria(id),
-              style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               child: const Text('Crea'),
             ),
           ],
@@ -559,9 +558,8 @@ class _MacroExpansionTileState extends State<_MacroExpansionTile> {
     // Converte l'ID in un nome leggibile (es. "pest_tecnici" → "Pest Tecnici")
     final nome = id
         .split('_')
-        .map((p) => p.isNotEmpty
-            ? '${p[0].toUpperCase()}${p.substring(1)}'
-            : '')
+        .map(
+            (p) => p.isNotEmpty ? '${p[0].toUpperCase()}${p.substring(1)}' : '')
         .join(' ');
     try {
       await widget.service.creaCategoria(id, nome, false);
@@ -675,8 +673,7 @@ class _CategoriaTileState extends ConsumerState<_CategoriaTile> {
       color: AppColors.background,
       child: ExpansionTile(
         onExpansionChanged: (v) => setState(() => _isExpanded = v),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         collapsedShape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         leading: Icon(
@@ -739,12 +736,13 @@ class _CategoriaTileState extends ConsumerState<_CategoriaTile> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: categoria.id == 'preventivo_listino'
-                ? _ContenutoListinoV2(listinoService: ref.read(listinoServiceProvider))
+                ? _ContenutoListinoV2(
+                    listinoService: ref.read(listinoServiceProvider))
                 : categoria.hasSottocategorie
-                        ? _ContenutoConSottocategorie(
-                            categoriaId: categoria.id, service: _service)
-                        : _ContenutoListaSemplice(
-                            categoriaId: categoria.id, service: _service),
+                    ? _ContenutoConSottocategorie(
+                        categoriaId: categoria.id, service: _service)
+                    : _ContenutoListaSemplice(
+                        categoriaId: categoria.id, service: _service),
           ),
         ],
       ),
@@ -825,8 +823,8 @@ class _ContenutoListaSempliceState extends State<_ContenutoListaSemplice> {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Text('Nessuna voce presente',
-                    style: TextStyle(
-                        color: AppColors.textDisabled, fontSize: 13)),
+                    style:
+                        TextStyle(color: AppColors.textDisabled, fontSize: 13)),
               );
             }
             return Wrap(
@@ -852,8 +850,8 @@ class _ContenutoListaSempliceState extends State<_ContenutoListaSemplice> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 ),
                 onSubmitted: (_) => _aggiungi(),
               ),
@@ -861,8 +859,7 @@ class _ContenutoListaSempliceState extends State<_ContenutoListaSemplice> {
             const SizedBox(width: 10),
             FilledButton(
               onPressed: _salvando ? null : _aggiungi,
-              style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               child: _salvando
                   ? const SizedBox(
                       width: 16,
@@ -954,13 +951,11 @@ class _ContenutoConSottocategorieState
                   elementi: sottocategorie[nomeSotto] ?? [],
                   service: widget.service,
                 )),
-
             if (chiavi.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Divider(color: AppColors.divider),
               const SizedBox(height: 12),
             ],
-
             Row(
               children: [
                 Expanded(
@@ -982,8 +977,7 @@ class _ContenutoConSottocategorieState
                 ),
                 const SizedBox(width: 10),
                 FilledButton(
-                  onPressed:
-                      _aggiungendoSotto ? null : _aggiungiSottocategoria,
+                  onPressed: _aggiungendoSotto ? null : _aggiungiSottocategoria,
                   style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary),
                   child: _aggiungendoSotto
@@ -1037,8 +1031,8 @@ class _SottocategoriaTileState extends State<_SottocategoriaTile> {
     if (el.isEmpty) return;
     setState(() => _aggiungendo = true);
     try {
-      await widget.service.aggiungiElemento(
-          widget.categoriaId, widget.nomeSottocategoria, el);
+      await widget.service
+          .aggiungiElemento(widget.categoriaId, widget.nomeSottocategoria, el);
       _elementoCtrl.clear();
     } catch (e) {
       if (mounted) {
@@ -1053,8 +1047,8 @@ class _SottocategoriaTileState extends State<_SottocategoriaTile> {
   }
 
   Future<void> _eliminaElemento(String el) async {
-    await widget.service.eliminaElemento(
-        widget.categoriaId, widget.nomeSottocategoria, el);
+    await widget.service
+        .eliminaElemento(widget.categoriaId, widget.nomeSottocategoria, el);
   }
 
   Future<void> _eliminaSottocategoria() async {
@@ -1078,8 +1072,8 @@ class _SottocategoriaTileState extends State<_SottocategoriaTile> {
     );
     if (ok != true) return;
     try {
-      await widget.service.eliminaSottocategoria(
-          widget.categoriaId, widget.nomeSottocategoria);
+      await widget.service
+          .eliminaSottocategoria(widget.categoriaId, widget.nomeSottocategoria);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1118,8 +1112,8 @@ class _SottocategoriaTileState extends State<_SottocategoriaTile> {
             ),
             Text(
               '${widget.elementi.length} ${widget.elementi.length == 1 ? 'elemento' : 'elementi'}',
-              style: const TextStyle(
-                  fontSize: 11, color: AppColors.textSecondary),
+              style:
+                  const TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 4),
             IconButton(
@@ -1154,19 +1148,16 @@ class _SottocategoriaTileState extends State<_SottocategoriaTile> {
                               label: Text(el,
                                   style: const TextStyle(fontSize: 13)),
                               backgroundColor: AppColors.inputBackground,
-                              side:
-                                  const BorderSide(color: AppColors.divider),
+                              side: const BorderSide(color: AppColors.divider),
                               deleteIcon: const Icon(Icons.close,
                                   size: 16, color: AppColors.error),
                               onDeleted: () => _eliminaElemento(el),
                             ))
                         .toList(),
                   ),
-
                 const SizedBox(height: 12),
                 const Divider(color: AppColors.divider),
                 const SizedBox(height: 10),
-
                 Row(
                   children: [
                     Expanded(
@@ -1307,8 +1298,8 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.primary));
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary));
                 }
                 final voci = snap.data ?? [];
                 if (voci.isEmpty) {
@@ -1365,8 +1356,8 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
                     child: TextField(
                       controller: _prezzoCtrl,
                       decoration: _dec('Prezzo unit. (€)'),
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
                       ],
@@ -1405,8 +1396,8 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
                   TextField(
                     controller: _prezzoCtrl,
                     decoration: _dec('Prezzo unitario (€)'),
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
                     ],
@@ -1474,8 +1465,8 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
               ),
             )),
             DataCell(Text(
-              _moneyFmt.format(
-                  (v['prezzoUnitario'] as num?)?.toDouble() ?? 0.0),
+              _moneyFmt
+                  .format((v['prezzoUnitario'] as num?)?.toDouble() ?? 0.0),
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
@@ -1514,8 +1505,7 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
             children: [
               // Badge codice colorato in verde chiaro
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(6),
@@ -1576,8 +1566,7 @@ class _ContenutoListinoState extends State<_ContenutoListino> {
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     );
   }
 }
@@ -1608,9 +1597,17 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
     if (mounted) setState(() => _loading = true);
     try {
       final t = await widget.listinoService.getTipologie();
-      if (mounted) setState(() { _tipologie = t; _loading = false; });
+      if (mounted)
+        setState(() {
+          _tipologie = t;
+          _loading = false;
+        });
     } catch (_) {
-      if (mounted) setState(() { _tipologie = []; _loading = false; });
+      if (mounted)
+        setState(() {
+          _tipologie = [];
+          _loading = false;
+        });
     }
   }
 
@@ -1619,9 +1616,9 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
     if (_loading) {
       return const Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(color: AppColors.primary),
-          ));
+        padding: EdgeInsets.all(24),
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ));
     }
     final tipologie = _tipologie ?? [];
     if (tipologie.isEmpty) {
@@ -1655,11 +1652,14 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
                     fontWeight: FontWeight.w800, fontSize: 11, color: colore)),
           ),
           title: Text(tipologia.nome,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
           trailing: Text('${tipologia.tuttiServizi.length} servizi',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-          children:
-              tipologia.sottotipi.map((st) => _buildSottotipoTile(tipologia, st)).toList(),
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary)),
+          children: tipologia.sottotipi
+              .map((st) => _buildSottotipoTile(tipologia, st))
+              .toList(),
         );
       },
     );
@@ -1724,7 +1724,8 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
           child: OutlinedButton.icon(
             onPressed: () => _dialogAggiungiServizio(tipologia, st),
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Aggiungi servizio', style: TextStyle(fontSize: 12)),
+            label:
+                const Text('Aggiungi servizio', style: TextStyle(fontSize: 12)),
             style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary)),
@@ -1820,9 +1821,9 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
                   : () async {
                       setDialog(() => salvando = true);
                       final nome = nomeCtrl.text.trim();
-                      final prezzo =
-                          double.tryParse(prezzoCtrl.text.replaceAll(',', '.')) ??
-                              0.0;
+                      final prezzo = double.tryParse(
+                              prezzoCtrl.text.replaceAll(',', '.')) ??
+                          0.0;
                       try {
                         await widget.listinoService.aggiornaServizio(
                           _tipologie!,
@@ -1844,8 +1845,7 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
                         if (ctx.mounted) setDialog(() => salvando = false);
                       }
                     },
-              style:
-                  FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               child: salvando
                   ? const SizedBox(
                       width: 16,
@@ -1869,8 +1869,8 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Elimina "${servizio.codiceUnivoco}"?'),
-        content: Text(
-            'Eliminare "${servizio.descrizione}"? Azione irreversibile.'),
+        content:
+            Text('Eliminare "${servizio.descrizione}"? Azione irreversibile.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -1885,8 +1885,8 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
     );
     if (ok != true) return;
     try {
-      await widget.listinoService
-          .eliminaServizio(_tipologie!, tipologia.id, sottotipo.id, servizio.codiceUnivoco);
+      await widget.listinoService.eliminaServizio(
+          _tipologie!, tipologia.id, sottotipo.id, servizio.codiceUnivoco);
       await _caricaListino();
     } catch (e) {
       if (mounted) {
@@ -1903,7 +1903,8 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
     // Numero suggerito: max numero esistente + 1
     int maxNum = 0;
     for (final s in sottotipo.servizi) {
-      final n = int.tryParse(s.codiceUnivoco.replaceAll(RegExp('[^0-9]'), '')) ?? 0;
+      final n =
+          int.tryParse(s.codiceUnivoco.replaceAll(RegExp('[^0-9]'), '')) ?? 0;
       if (n > maxNum) maxNum = n;
     }
     final suggerito = (maxNum + 1).toString();
@@ -2016,8 +2017,7 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
                         if (ctx.mounted) setDialog(() => aggiungendo = false);
                       }
                     },
-              style:
-                  FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               child: aggiungendo
                   ? const SizedBox(
                       width: 16,
@@ -2032,4 +2032,3 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
     );
   }
 }
-

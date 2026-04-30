@@ -4,13 +4,8 @@ import '../../models/preventivo_model.dart';
 
 // ─── Stato del filtro ─────────────────────────────────────────────────────────
 
-/// Stato immutabile del filtro preventivi.
-/// Supporta: stato bozza/confermato + intervallo di date.
 class FiltroPreventiviStato {
-  /// null = tutti; true = solo bozze; false = solo confermati
   final bool? isDraft;
-
-  /// Intervallo date basato sul campo 'data' del preventivo
   final DateTimeRange? periodo;
 
   const FiltroPreventiviStato({this.isDraft, this.periodo});
@@ -20,8 +15,6 @@ class FiltroPreventiviStato {
 
   bool get hasFiltri => filtriAttivi > 0;
 
-  /// Crea una copia modificando solo i campi specificati.
-  /// Passare `() => null` per azzerare un campo nullable.
   FiltroPreventiviStato copyWith({
     bool? Function()? isDraft,
     DateTimeRange? Function()? periodo,
@@ -34,7 +27,6 @@ class FiltroPreventiviStato {
 
 // ─── Funzione di filtraggio ───────────────────────────────────────────────────
 
-/// Applica lo stato filtro alla lista di preventivi (funzione pura)
 List<PreventivoModel> applicaFiltroPreventivi(
     List<PreventivoModel> lista, FiltroPreventiviStato filtro) {
   var risultato = lista;
@@ -45,7 +37,6 @@ List<PreventivoModel> applicaFiltroPreventivi(
   }
   if (filtro.periodo != null) {
     final start = filtro.periodo!.start;
-    // Fine giorno dell'ultima data inclusa
     final end = DateTime(
       filtro.periodo!.end.year,
       filtro.periodo!.end.month,
@@ -63,8 +54,6 @@ List<PreventivoModel> applicaFiltroPreventivi(
 
 // ─── Pannello filtri ──────────────────────────────────────────────────────────
 
-/// Pannello filtri espandibile per la pagina preventivi.
-/// Si anima in altezza tramite [AnimatedCrossFade].
 class FiltroPreventivi extends StatefulWidget {
   final bool aperto;
   final FiltroPreventiviStato statoFiltro;
@@ -81,23 +70,42 @@ class FiltroPreventivi extends StatefulWidget {
   State<FiltroPreventivi> createState() => _FiltroPreventiviState();
 }
 
-class _FiltroPreventiviState extends State<FiltroPreventivi> {
+class _FiltroPreventiviState extends State<FiltroPreventivi>
+    with SingleTickerProviderStateMixin {
   late FiltroPreventiviStato _bozza;
+  AnimationController? _animController;
+  Animation<double>? _animazione;
 
   @override
   void initState() {
     super.initState();
     _bozza = widget.statoFiltro;
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 350),
+      vsync: this,
+    );
+    _animazione =
+        CurvedAnimation(parent: _animController!, curve: Curves.easeInOut);
+    if (widget.aperto) _animController!.value = 1.0;
   }
 
   @override
   void didUpdateWidget(FiltroPreventivi old) {
     super.didUpdateWidget(old);
-    // Reimposta la bozza locale quando il pannello viene chiuso
+    if (widget.aperto != old.aperto) {
+      widget.aperto
+          ? _animController?.forward()
+          : _animController?.reverse();
+    }
     if (!widget.aperto) _bozza = widget.statoFiltro;
   }
 
-  /// Apre il date range picker per il periodo
+  @override
+  void dispose() {
+    _animController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _selezionaPeriodo() async {
     final now = DateTime.now();
     final range = await showDateRangePicker(
@@ -113,6 +121,17 @@ class _FiltroPreventiviState extends State<FiltroPreventivi> {
       helpText: 'Seleziona periodo',
       cancelText: 'Annulla',
       confirmText: 'Conferma',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            surface: const Color(0xFF0A2A1A),
+            onSurface: AppColors.textOnDark,
+          ),
+        ),
+        child: child!,
+      ),
     );
     if (range != null && mounted) {
       setState(() => _bozza = _bozza.copyWith(periodo: () => range));
@@ -121,13 +140,23 @@ class _FiltroPreventiviState extends State<FiltroPreventivi> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
-      firstChild: const SizedBox(width: double.infinity, height: 0),
-      secondChild: _buildContenuto(),
-      crossFadeState:
-          widget.aperto ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-      duration: const Duration(milliseconds: 200),
-      sizeCurve: Curves.easeInOut,
+    final anim = _animazione;
+    if (anim == null) return const SizedBox.shrink();
+    return SizeTransition(
+      sizeFactor: anim,
+      axisAlignment: -1.0,
+      child: ClipRect(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.5), width: 1),
+            ),
+          ),
+          child: _buildContenuto(),
+        ),
+      ),
     );
   }
 
@@ -137,115 +166,140 @@ class _FiltroPreventiviState extends State<FiltroPreventivi> {
         '${d.day.toString().padLeft(2, '0')}/'
         '${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(color: AppColors.divider.withValues(alpha: 0.5)),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'FILTRI',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDisabled,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              // Filtro stato (tutti / bozze / confermati)
-              SizedBox(
-                width: 180,
-                child: DropdownButtonFormField<bool?>(
-                  initialValue: _bozza.isDraft,
-                  decoration: InputDecoration(
-                    labelText: 'Stato',
-                    filled: true,
-                    fillColor: AppColors.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: null, child: Text('Tutti gli stati')),
-                    DropdownMenuItem(value: true, child: Text('Solo bozze')),
-                    DropdownMenuItem(
-                        value: false, child: Text('Solo confermati')),
-                  ],
-                  onChanged: (v) =>
-                      setState(() => _bozza = _bozza.copyWith(isDraft: () => v)),
+          _buildTitolo('STATO'),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 200,
+            child: DropdownButtonFormField<bool?>(
+              initialValue: _bozza.isDraft,
+              dropdownColor: const Color(0xFF0A2A1A),
+              style: const TextStyle(color: AppColors.textOnDark, fontSize: 13),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0x1A000000),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                      color: AppColors.glassBorder, width: 0.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                      color: AppColors.glassBorder, width: 0.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      BorderSide(color: AppColors.primary, width: 1),
                 ),
               ),
-
-              // Filtro periodo con date picker
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _selezionaPeriodo,
-                    icon: const Icon(Icons.calendar_today_outlined, size: 14),
-                    label: Text(
-                      hasPeriodo
-                          ? '${fmt(_bozza.periodo!.start)} – ${fmt(_bozza.periodo!.end)}'
-                          : 'Seleziona periodo',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: hasPeriodo
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                      side: BorderSide(
-                        color:
-                            hasPeriodo ? AppColors.primary : AppColors.divider,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                    ),
+              items: const [
+                DropdownMenuItem(
+                    value: null,
+                    child: Text('Tutti gli stati')),
+                DropdownMenuItem(
+                    value: true, child: Text('Solo bozze')),
+                DropdownMenuItem(
+                    value: false, child: Text('Solo confermati')),
+              ],
+              onChanged: (v) =>
+                  setState(() => _bozza = _bozza.copyWith(isDraft: () => v)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildTitolo('PERIODO'),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _selezionaPeriodo,
+                icon: Icon(Icons.calendar_today_outlined,
+                    size: 14,
+                    color: hasPeriodo
+                        ? AppColors.accentGreenDark
+                        : AppColors.textOnDarkSecondary),
+                label: Text(
+                  hasPeriodo
+                      ? '${fmt(_bozza.periodo!.start)} – ${fmt(_bozza.periodo!.end)}'
+                      : 'Seleziona periodo',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: hasPeriodo
+                        ? AppColors.accentGreenDark
+                        : AppColors.textOnDarkSecondary,
                   ),
-                  if (hasPeriodo) ...[
-                    const SizedBox(width: 4),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => setState(
-                          () => _bozza = _bozza.copyWith(periodo: () => null)),
-                      child: const Icon(Icons.close,
-                          size: 16, color: AppColors.error),
-                    ),
-                  ],
-                ],
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: hasPeriodo
+                      ? AppColors.accentGreenDark
+                      : AppColors.textOnDarkSecondary,
+                  side: BorderSide(
+                    color: hasPeriodo
+                        ? AppColors.primary.withValues(alpha: 0.50)
+                        : AppColors.glassBorder,
+                    width: 0.5,
+                  ),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
               ),
+              if (hasPeriodo) ...[
+                const SizedBox(width: 6),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => setState(
+                      () => _bozza = _bozza.copyWith(periodo: () => null)),
+                  child: Icon(Icons.close,
+                      size: 16,
+                      color: AppColors.error.withValues(alpha: 0.80)),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 12),
-          // Bottoni azione
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(
+              FilledButton(
                 onPressed: () =>
                     setState(() => _bozza = const FiltroPreventiviStato()),
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      AppColors.error.withValues(alpha: 0.25),
+                  foregroundColor: const Color(0xFFFF7070),
+                  side: BorderSide(
+                      color: AppColors.error.withValues(alpha: 0.40),
+                      width: 0.5),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
                 child: const Text('Azzera'),
               ),
               const SizedBox(width: 8),
               FilledButton(
                 onPressed: () => widget.onFiltroApplicato(_bozza),
                 style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary),
+                  backgroundColor:
+                      AppColors.primary.withValues(alpha: 0.30),
+                  foregroundColor: AppColors.accentGreenDark,
+                  side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.50),
+                      width: 0.5),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
                 child: const Text('Applica'),
               ),
             ],
@@ -254,11 +308,22 @@ class _FiltroPreventiviState extends State<FiltroPreventivi> {
       ),
     );
   }
+
+  Widget _buildTitolo(String titolo) {
+    return Text(
+      titolo,
+      style: const TextStyle(
+        fontSize: 9,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textOnDarkMuted,
+        letterSpacing: 0.05,
+      ),
+    );
+  }
 }
 
 // ─── Riga chip filtri attivi ──────────────────────────────────────────────────
 
-/// Mostra i filtri attivi come chip removibili sotto la barra di ricerca.
 class FiltriAttiviRowPreventivi extends StatelessWidget {
   final FiltroPreventiviStato stato;
   final void Function(FiltroPreventiviStato) onRimosso;
@@ -286,13 +351,13 @@ class FiltriAttiviRowPreventivi extends StatelessWidget {
     }
     if (stato.periodo != null) {
       chips.add(_chip(
-        label:
-            '${fmt(stato.periodo!.start)} – ${fmt(stato.periodo!.end)}',
+        label: '${fmt(stato.periodo!.start)} – ${fmt(stato.periodo!.end)}',
         onDelete: () => onRimosso(stato.copyWith(periodo: () => null)),
       ));
     }
 
-    return Padding(
+    return Container(
+      color: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Wrap(spacing: 6, runSpacing: 4, children: chips),
     );
@@ -301,11 +366,15 @@ class FiltriAttiviRowPreventivi extends StatelessWidget {
   Widget _chip({required String label, required VoidCallback onDelete}) {
     return Chip(
       label: Text(label,
-          style: const TextStyle(fontSize: 11, color: AppColors.primary)),
-      backgroundColor: AppColors.primaryLight,
-      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
-      deleteIcon:
-          const Icon(Icons.close, size: 14, color: AppColors.primary),
+          style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.accentGreenDark,
+              fontWeight: FontWeight.w500)),
+      backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+      side: BorderSide(
+          color: AppColors.primary.withValues(alpha: 0.40), width: 0.5),
+      deleteIcon: const Icon(Icons.close,
+          size: 14, color: AppColors.accentGreenDark),
       onDeleted: onDelete,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

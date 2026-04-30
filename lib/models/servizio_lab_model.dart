@@ -7,20 +7,85 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 //   impostazioni/modalita_prelievo      → items: []
 //   impostazioni/rif_normativa          → items: []
 
+/// Singolo parametro del report analitico — copia locale dal Registro
+class ParametroReport {
+  final String parametro;
+  final String um;
+  final String vl;
+  final String loq;
+  final String i;
+  final String metodoRif;
+  final String categoria;
+  final String risultato; // compilato dal tecnico nel report
+
+  const ParametroReport({
+    required this.parametro,
+    required this.um,
+    required this.vl,
+    required this.loq,
+    required this.i,
+    required this.metodoRif,
+    required this.categoria,
+    this.risultato = '',
+  });
+
+  factory ParametroReport.fromMap(Map<String, dynamic> data) {
+    return ParametroReport(
+      parametro: data['parametro'] as String? ?? '',
+      um: data['um'] as String? ?? '',
+      vl: data['vl'] as String? ?? '',
+      loq: data['loq'] as String? ?? '',
+      i: data['i'] as String? ?? '',
+      metodoRif: data['metodoRif'] as String? ?? '',
+      categoria: data['categoria'] as String? ?? '',
+      risultato: data['risultato'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'parametro': parametro,
+        'um': um,
+        'vl': vl,
+        'loq': loq,
+        'i': i,
+        'metodoRif': metodoRif,
+        'categoria': categoria,
+        'risultato': risultato,
+      };
+
+  ParametroReport copyWith({
+    String? parametro,
+    String? um,
+    String? vl,
+    String? loq,
+    String? i,
+    String? metodoRif,
+    String? categoria,
+    String? risultato,
+  }) {
+    return ParametroReport(
+      parametro: parametro ?? this.parametro,
+      um: um ?? this.um,
+      vl: vl ?? this.vl,
+      loq: loq ?? this.loq,
+      i: i ?? this.i,
+      metodoRif: metodoRif ?? this.metodoRif,
+      categoria: categoria ?? this.categoria,
+      risultato: risultato ?? this.risultato,
+    );
+  }
+}
+
 /// Modello per un servizio di analisi di laboratorio
 /// Corrisponde al documento `servizi_lab/{id}` in Firestore
 class ServizioLabModel {
   final String id;
 
-  // ── Gruppo 1 — Identificazione e analisi ───────────────────────────────────
-  /// ID Firestore del cliente (snapshot al momento del salvataggio)
+  // ── Gruppo 1 — Identificazione e analisi ──────────────────────────────────
   final String codiceCliente;
   final String tipoAnalisi;
-  /// Formato "AA/NNN" es. "26/001"
   final String certificazioneNumerica;
-  /// Formato AAMMGG es. "260330"
   final String codiceA;
-  /// Formato HH:mm
   final String ora;
 
   // ── Gruppo 2 — Date e tempistiche ─────────────────────────────────────────
@@ -28,7 +93,7 @@ class ServizioLabModel {
   final DateTime? fineProveGenerali;
   final DateTime? dataEmissione;
 
-  // ── Gruppo 3 — Dati cliente (snapshot da anagrafica) ──────────────────────
+  // ── Gruppo 3 — Dati cliente ───────────────────────────────────────────────
   final String tipoCommittente;
   final String committente;
   final String indirizzo;
@@ -47,13 +112,15 @@ class ServizioLabModel {
   final String modalitaPrelievo;
   final String rifNormativa;
 
-  // ── Gruppo 5 — Contatti cliente (snapshot da anagrafica) ──────────────────
+  // ── Gruppo Report — Parametri analitici (copia locale dal Registro) ───────
+  final List<ParametroReport> parametriReport;
+
+  // ── Gruppo 5 — Contatti cliente ───────────────────────────────────────────
   final String email;
   final String telefono;
   final String pec;
 
   // ── Gruppo 6 — Amministrativo ─────────────────────────────────────────────
-  /// Tecnico responsabile dell'analisi (da categoria 'lab_tecnici')
   final String tecnico;
   final String notePrezzo;
   final bool ft;
@@ -88,6 +155,7 @@ class ServizioLabModel {
     required this.puntoPresa,
     required this.modalitaPrelievo,
     required this.rifNormativa,
+    this.parametriReport = const [],
     required this.email,
     required this.telefono,
     required this.pec,
@@ -100,22 +168,30 @@ class ServizioLabModel {
     required this.createdAt,
   });
 
-  /// Crea un [ServizioLabModel] da un documento Firestore
   factory ServizioLabModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+
+    // Deserializza parametriReport
+    final parametriRaw =
+        (data['parametriReport'] as List<dynamic>? ?? []);
+    final parametriReport = parametriRaw
+        .map((e) => ParametroReport.fromMap(e as Map<String, dynamic>))
+        .toList();
+
     return ServizioLabModel(
       id: doc.id,
       codiceCliente: data['codiceCliente'] as String? ?? '',
       tipoAnalisi: data['tipoAnalisi'] as String? ?? '',
-      certificazioneNumerica: data['certificazioneNumerica'] as String? ?? '',
+      certificazioneNumerica:
+          data['certificazioneNumerica'] as String? ?? '',
       codiceA: data['codiceA'] as String? ?? '',
       ora: data['ora'] as String? ?? '',
       inizioProveGenerali:
-          (data['inizioProveGenerali'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          (data['inizioProveGenerali'] as Timestamp?)?.toDate() ??
+              DateTime.now(),
       fineProveGenerali:
           (data['fineProveGenerali'] as Timestamp?)?.toDate(),
-      dataEmissione:
-          (data['dataEmissione'] as Timestamp?)?.toDate(),
+      dataEmissione: (data['dataEmissione'] as Timestamp?)?.toDate(),
       tipoCommittente: data['tipoCommittente'] as String? ?? '',
       committente: data['committente'] as String? ?? '',
       indirizzo: data['indirizzo'] as String? ?? '',
@@ -131,6 +207,7 @@ class ServizioLabModel {
       puntoPresa: data['puntoPresa'] as String? ?? '',
       modalitaPrelievo: data['modalitaPrelievo'] as String? ?? '',
       rifNormativa: data['rifNormativa'] as String? ?? '',
+      parametriReport: parametriReport,
       email: data['email'] as String? ?? '',
       telefono: data['telefono'] as String? ?? '',
       pec: data['pec'] as String? ?? '',
@@ -145,7 +222,6 @@ class ServizioLabModel {
     );
   }
 
-  /// Converte il modello in una mappa per Firestore
   Map<String, dynamic> toMap() {
     return {
       'codiceCliente': codiceCliente,
@@ -154,10 +230,12 @@ class ServizioLabModel {
       'codiceA': codiceA,
       'ora': ora,
       'inizioProveGenerali': Timestamp.fromDate(inizioProveGenerali),
-      'fineProveGenerali':
-          fineProveGenerali != null ? Timestamp.fromDate(fineProveGenerali!) : null,
-      'dataEmissione':
-          dataEmissione != null ? Timestamp.fromDate(dataEmissione!) : null,
+      'fineProveGenerali': fineProveGenerali != null
+          ? Timestamp.fromDate(fineProveGenerali!)
+          : null,
+      'dataEmissione': dataEmissione != null
+          ? Timestamp.fromDate(dataEmissione!)
+          : null,
       'tipoCommittente': tipoCommittente,
       'committente': committente,
       'indirizzo': indirizzo,
@@ -173,6 +251,7 @@ class ServizioLabModel {
       'puntoPresa': puntoPresa,
       'modalitaPrelievo': modalitaPrelievo,
       'rifNormativa': rifNormativa,
+      'parametriReport': parametriReport.map((p) => p.toMap()).toList(),
       'email': email,
       'telefono': telefono,
       'pec': pec,

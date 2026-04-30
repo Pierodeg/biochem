@@ -4,7 +4,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/providers/service_providers.dart';
 import '../../models/servizio_pest_model.dart';
 
-/// Opzioni di ordinamento per la lista Servizi Pest
 enum OrdinamentoPest {
   dataRecente('↓ Data recente'),
   dataMenoRecente('↑ Data meno recente'),
@@ -16,12 +15,11 @@ enum OrdinamentoPest {
   const OrdinamentoPest(this.etichetta);
 }
 
-/// Stato immutabile del filtro Servizi Pest
 class FiltroServiziPestStato {
   final List<String> tipiInterventoSelezionati;
   final List<String> tecniciSelezionati;
-  final List<String> statiFatturazione; // 'fatturato','non_fatturato','pagato','non_pagato'
-  final List<String> ulterioriInterventi; // 'da_fare','completati','nessuno'
+  final List<String> statiFatturazione;
+  final List<String> ulterioriInterventi;
   final OrdinamentoPest ordinamento;
 
   const FiltroServiziPestStato({
@@ -61,9 +59,6 @@ class FiltroServiziPestStato {
   FiltroServiziPestStato reset() => const FiltroServiziPestStato();
 }
 
-/// Widget filtro per la pagina Servizi Pest.
-///
-/// Si apre/chiude con animazione verticale 300ms.
 class FiltroServiziPest extends ConsumerStatefulWidget {
   final FiltroServiziPestStato statoFiltro;
   final List<ServizioPestModel> servizi;
@@ -79,28 +74,46 @@ class FiltroServiziPest extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FiltroServiziPest> createState() =>
-      _FiltroServiziPestState();
+  ConsumerState<FiltroServiziPest> createState() => _FiltroServiziPestState();
 }
 
-class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
+class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest>
+    with SingleTickerProviderStateMixin {
   late FiltroServiziPestStato _bozza;
+  AnimationController? _animController;
+  Animation<double>? _animazione;
 
   @override
   void initState() {
     super.initState();
     _bozza = widget.statoFiltro;
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 350),
+      vsync: this,
+    );
+    _animazione =
+        CurvedAnimation(parent: _animController!, curve: Curves.easeInOut);
+    if (widget.aperto) _animController!.value = 1.0;
   }
 
   @override
   void didUpdateWidget(FiltroServiziPest oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.aperto != oldWidget.aperto) {
+      widget.aperto
+          ? _animController?.forward()
+          : _animController?.reverse();
+    }
     if (oldWidget.statoFiltro != widget.statoFiltro) {
       _bozza = widget.statoFiltro;
     }
   }
 
-  // ─── Dati dinamici ────────────────────────────────────────────────────────
+  @override
+  void dispose() {
+    _animController?.dispose();
+    super.dispose();
+  }
 
   Future<List<String>> _getTipiIntervento() async {
     return ref
@@ -116,8 +129,6 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
         .first;
   }
 
-  // ─── Toggle ───────────────────────────────────────────────────────────────
-
   void _toggle(
       List<String> lista, String valore, void Function(List<String>) update) {
     final nuova = List<String>.from(lista);
@@ -132,34 +143,36 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
 
   void _applica() => widget.onFiltroApplicato(_bozza);
 
-  // ─── Build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      height: widget.aperto ? null : 0,
-      clipBehavior: Clip.hardEdge,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(color: AppColors.divider),
+    final anim = _animazione;
+    if (anim == null) return const SizedBox.shrink();
+    return SizeTransition(
+      sizeFactor: anim,
+      axisAlignment: -1.0,
+      child: ClipRect(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.5), width: 1),
+            ),
+          ),
+          child: _buildContenuto(),
         ),
       ),
-      child: widget.aperto ? _buildContenuto() : const SizedBox.shrink(),
     );
   }
 
   Widget _buildContenuto() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Tipo intervento
-          _buildTitolo('Tipo intervento'),
+          _buildTitolo('TIPO INTERVENTO'),
           const SizedBox(height: 6),
           FutureBuilder<List<String>>(
             future: _getTipiIntervento(),
@@ -171,8 +184,8 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
                 children: tipi
                     .map((t) => _buildChip(
                           label: t,
-                          selezionato: _bozza.tipiInterventoSelezionati
-                              .contains(t),
+                          selezionato:
+                              _bozza.tipiInterventoSelezionati.contains(t),
                           onTap: () => _toggle(
                               _bozza.tipiInterventoSelezionati,
                               t,
@@ -183,10 +196,9 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // Tecnico
-          _buildTitolo('Tecnico'),
+          _buildTitolo('TECNICO'),
           const SizedBox(height: 6),
           FutureBuilder<List<String>>(
             future: _getTecnici(),
@@ -198,8 +210,7 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
                 children: tecnici
                     .map((t) => _buildChip(
                           label: t,
-                          selezionato:
-                              _bozza.tecniciSelezionati.contains(t),
+                          selezionato: _bozza.tecniciSelezionati.contains(t),
                           onTap: () => _toggle(
                               _bozza.tecniciSelezionati,
                               t,
@@ -210,10 +221,9 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // Stato fatturazione
-          _buildTitolo('Stato fatturazione'),
+          _buildTitolo('STATO FATTURAZIONE'),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -221,13 +231,11 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
             children: [
               _buildChip(
                 label: 'Fatturato',
-                selezionato:
-                    _bozza.statiFatturazione.contains('fatturato'),
+                selezionato: _bozza.statiFatturazione.contains('fatturato'),
                 onTap: () => _toggle(
                     _bozza.statiFatturazione,
                     'fatturato',
-                    (l) =>
-                        _bozza = _bozza.copyWith(statiFatturazione: l)),
+                    (l) => _bozza = _bozza.copyWith(statiFatturazione: l)),
               ),
               _buildChip(
                 label: 'Non fatturato',
@@ -236,35 +244,29 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
                 onTap: () => _toggle(
                     _bozza.statiFatturazione,
                     'non_fatturato',
-                    (l) =>
-                        _bozza = _bozza.copyWith(statiFatturazione: l)),
+                    (l) => _bozza = _bozza.copyWith(statiFatturazione: l)),
               ),
               _buildChip(
                 label: 'Pagato',
-                selezionato:
-                    _bozza.statiFatturazione.contains('pagato'),
+                selezionato: _bozza.statiFatturazione.contains('pagato'),
                 onTap: () => _toggle(
                     _bozza.statiFatturazione,
                     'pagato',
-                    (l) =>
-                        _bozza = _bozza.copyWith(statiFatturazione: l)),
+                    (l) => _bozza = _bozza.copyWith(statiFatturazione: l)),
               ),
               _buildChip(
                 label: 'Non pagato',
-                selezionato:
-                    _bozza.statiFatturazione.contains('non_pagato'),
+                selezionato: _bozza.statiFatturazione.contains('non_pagato'),
                 onTap: () => _toggle(
                     _bozza.statiFatturazione,
                     'non_pagato',
-                    (l) =>
-                        _bozza = _bozza.copyWith(statiFatturazione: l)),
+                    (l) => _bozza = _bozza.copyWith(statiFatturazione: l)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // Ulteriori interventi
-          _buildTitolo('Ulteriori interventi'),
+          _buildTitolo('ULTERIORI INTERVENTI'),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -272,13 +274,11 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
             children: [
               _buildChip(
                 label: 'Da fare',
-                selezionato:
-                    _bozza.ulterioriInterventi.contains('da_fare'),
+                selezionato: _bozza.ulterioriInterventi.contains('da_fare'),
                 onTap: () => _toggle(
                     _bozza.ulterioriInterventi,
                     'da_fare',
-                    (l) => _bozza =
-                        _bozza.copyWith(ulterioriInterventi: l)),
+                    (l) => _bozza = _bozza.copyWith(ulterioriInterventi: l)),
               ),
               _buildChip(
                 label: 'Completati',
@@ -287,25 +287,21 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
                 onTap: () => _toggle(
                     _bozza.ulterioriInterventi,
                     'completati',
-                    (l) => _bozza =
-                        _bozza.copyWith(ulterioriInterventi: l)),
+                    (l) => _bozza = _bozza.copyWith(ulterioriInterventi: l)),
               ),
               _buildChip(
                 label: 'Nessuno',
-                selezionato:
-                    _bozza.ulterioriInterventi.contains('nessuno'),
+                selezionato: _bozza.ulterioriInterventi.contains('nessuno'),
                 onTap: () => _toggle(
                     _bozza.ulterioriInterventi,
                     'nessuno',
-                    (l) => _bozza =
-                        _bozza.copyWith(ulterioriInterventi: l)),
+                    (l) => _bozza = _bozza.copyWith(ulterioriInterventi: l)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // Ordina per
-          _buildTitolo('Ordina per'),
+          _buildTitolo('ORDINA PER'),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -322,36 +318,37 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
           ),
           const SizedBox(height: 16),
 
-          // Bottoni
           Row(
             children: [
-              TextButton.icon(
+              FilledButton(
                 onPressed: _azzera,
-                icon: const Icon(Icons.clear_all, size: 16),
-                label: const Text('✕ Azzera tutto'),
-                style: TextButton.styleFrom(
-                    foregroundColor: AppColors.error),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.error.withValues(alpha: 0.25),
+                  foregroundColor: const Color(0xFFFF7070),
+                  side: BorderSide(
+                      color: AppColors.error.withValues(alpha: 0.40),
+                      width: 0.5),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Azzera'),
               ),
               const Spacer(),
-              if (_bozza.filtriAttivi > 0)
-                Text(
-                  '${_bozza.filtriAttivi} ${_bozza.filtriAttivi == 1 ? 'filtro attivo' : 'filtri attivi'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              const SizedBox(width: 12),
               FilledButton(
                 onPressed: _applica,
                 style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.success),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                  foregroundColor: AppColors.accentGreenDark,
+                  side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.50),
+                      width: 0.5),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
                 child: const Text('Applica'),
               ),
             ],
           ),
-          const SizedBox(height: 12),
         ],
       ),
     );
@@ -361,10 +358,10 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
     return Text(
       titolo,
       style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textSecondary,
-        letterSpacing: 0.5,
+        fontSize: 9,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textOnDarkMuted,
+        letterSpacing: 0.05,
       ),
     );
   }
@@ -381,10 +378,15 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selezionato ? AppColors.primary : AppColors.inputBackground,
+          color: selezionato
+              ? AppColors.primary.withValues(alpha: 0.35)
+              : const Color(0x1AFFFFFF),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selezionato ? AppColors.primary : AppColors.divider,
+            color: selezionato
+                ? AppColors.primary.withValues(alpha: 0.60)
+                : const Color(0x33FFFFFF),
+            width: 0.8,
           ),
         ),
         child: Text(
@@ -393,8 +395,8 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: selezionato
-                ? AppColors.textOnPrimary
-                : AppColors.textSecondary,
+                ? AppColors.accentGreenDark
+                : AppColors.textOnDark,
           ),
         ),
       ),
@@ -404,7 +406,6 @@ class _FiltroServiziPestState extends ConsumerState<FiltroServiziPest> {
 
 // ─── Riga chip filtri attivi ───────────────────────────────────────────────────
 
-/// Riga chip verdi per i filtri attivi Servizi Pest
 class FiltriAttiviRowPest extends StatelessWidget {
   final FiltroServiziPestStato stato;
   final ValueChanged<FiltroServiziPestStato> onRimosso;
@@ -422,15 +423,19 @@ class FiltriAttiviRowPest extends StatelessWidget {
     final chips = <Widget>[];
 
     for (final t in stato.tipiInterventoSelezionati) {
-      chips.add(_chipAttivo(t, () => onRimosso(stato.copyWith(
-          tipiInterventoSelezionati: stato.tipiInterventoSelezionati
-              .where((x) => x != t)
-              .toList()))));
+      chips.add(_chipAttivo(
+          t,
+          () => onRimosso(stato.copyWith(
+              tipiInterventoSelezionati: stato.tipiInterventoSelezionati
+                  .where((x) => x != t)
+                  .toList()))));
     }
     for (final t in stato.tecniciSelezionati) {
-      chips.add(_chipAttivo(t, () => onRimosso(stato.copyWith(
-          tecniciSelezionati:
-              stato.tecniciSelezionati.where((x) => x != t).toList()))));
+      chips.add(_chipAttivo(
+          t,
+          () => onRimosso(stato.copyWith(
+              tecniciSelezionati:
+                  stato.tecniciSelezionati.where((x) => x != t).toList()))));
     }
     for (final sf in stato.statiFatturazione) {
       chips.add(_chipAttivo(
@@ -450,8 +455,8 @@ class FiltriAttiviRowPest extends StatelessWidget {
     }
 
     return Container(
+      color: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: AppColors.successLight,
       child: Wrap(spacing: 6, runSpacing: 4, children: chips),
     );
   }
@@ -460,13 +465,14 @@ class FiltriAttiviRowPest extends StatelessWidget {
     return Chip(
       label: Text(label,
           style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.badgeGreenText,
+              fontSize: 11,
+              color: AppColors.accentGreenDark,
               fontWeight: FontWeight.w500)),
-      backgroundColor: AppColors.badgeGreenBackground,
-      side: const BorderSide(color: AppColors.success),
-      deleteIcon:
-          const Icon(Icons.close, size: 14, color: AppColors.badgeGreenText),
+      backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+      side: BorderSide(
+          color: AppColors.primary.withValues(alpha: 0.40), width: 0.5),
+      deleteIcon: const Icon(Icons.close,
+          size: 14, color: AppColors.accentGreenDark),
       onDeleted: onDelete,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -476,32 +482,25 @@ class FiltriAttiviRowPest extends StatelessWidget {
 
 // ─── Utility: applica filtro ──────────────────────────────────────────────────
 
-/// Applica [filtro] a [servizi] e restituisce la lista ordinata.
 List<ServizioPestModel> applicaFiltroServiziPest(
     List<ServizioPestModel> servizi, FiltroServiziPestStato filtro) {
   var risultato = servizi.where((s) {
-    // Tipo intervento
     if (filtro.tipiInterventoSelezionati.isNotEmpty &&
         !filtro.tipiInterventoSelezionati.contains(s.tipoIntervento)) {
       return false;
     }
-    // Tecnico
     if (filtro.tecniciSelezionati.isNotEmpty &&
         !filtro.tecniciSelezionati.contains(s.tecnico)) {
       return false;
     }
-    // Stato fatturazione — almeno uno dei selezionati deve essere vero
     if (filtro.statiFatturazione.isNotEmpty) {
       bool ok = false;
       for (final sf in filtro.statiFatturazione) {
         if (sf == 'fatturato' && s.totaleDovuto > 0) ok = true;
         if (sf == 'non_fatturato' && s.totaleDovuto <= 0) ok = true;
-        // 'pagato'/'non_pagato' non hanno campo diretto nel modello
-        // (il modello Pest non ha ft/pagata come lab): skip per ora
       }
       if (!ok) return false;
     }
-    // Ulteriori interventi
     if (filtro.ulterioriInterventi.isNotEmpty) {
       bool ok = false;
       final haUlteriori = s.ulterioriInterventi.isNotEmpty;
@@ -515,16 +514,14 @@ List<ServizioPestModel> applicaFiltroServiziPest(
     return true;
   }).toList();
 
-  // Ordinamento
   switch (filtro.ordinamento) {
     case OrdinamentoPest.dataRecente:
       risultato.sort((a, b) => b.codiceData.compareTo(a.codiceData));
     case OrdinamentoPest.dataMenoRecente:
       risultato.sort((a, b) => a.codiceData.compareTo(b.codiceData));
     case OrdinamentoPest.committenteAZ:
-      risultato.sort((a, b) => a.committente
-          .toLowerCase()
-          .compareTo(b.committente.toLowerCase()));
+      risultato.sort((a, b) =>
+          a.committente.toLowerCase().compareTo(b.committente.toLowerCase()));
     case OrdinamentoPest.tipoIntervento:
       risultato.sort((a, b) => a.tipoIntervento
           .toLowerCase()

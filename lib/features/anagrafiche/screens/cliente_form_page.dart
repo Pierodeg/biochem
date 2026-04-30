@@ -52,6 +52,11 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
   final _telefonoCtrl = TextEditingController();
   final _cellulareCtrl = TextEditingController();
   final _pecCtrl = TextEditingController();
+  bool _identificazioneAperta = true;
+  bool _indirizzoAperta = true;
+  bool _datiFiscaliAperta = true;
+  bool _indirizzoServizioAperta = true;
+  bool _contattiAperta = true;
 
   String? _tipoCommittente;
   List<String> _sugCodiceUnivoco = [];
@@ -90,6 +95,488 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
     _cellulareCtrl.dispose();
     _pecCtrl.dispose();
     super.dispose();
+  }
+
+  Widget _buildCardIdentificazione() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0x21FFFFFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x38FFFFFF), width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──────────────────────────────────────────────────
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(
+                () => _identificazioneAperta = !_identificazioneAperta),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  // Icona
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: const Icon(Icons.person_outline,
+                        color: AppColors.accentGreenDark, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  // Titolo — larghezza fissa così non sposta la freccia
+                  const Text(
+                    'Identificazione',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accentGreenDark,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Anteprima — Expanded così occupa lo spazio centrale
+                  // senza spostare la freccia
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: _identificazioneAperta ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(
+                        _committenteCtrl.text,
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0x80FFFFFF)),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Freccia — sempre in posizione fissa a destra
+                  AnimatedRotation(
+                    turns: _identificazioneAperta ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0x14FFFFFF),
+                        border: Border.all(
+                            color: const Color(0x26FFFFFF), width: 0.5),
+                      ),
+                      child: const Icon(Icons.keyboard_arrow_up,
+                          color: Color(0x80FFFFFF), size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Contenuto animato ────────────────────────────────────────
+          ClipRect(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              sizeCurve: Curves.easeInOut,
+              firstCurve: Curves.easeInOut,
+              secondCurve: Curves.easeInOut,
+              crossFadeState: _identificazioneAperta
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              firstChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 0.5,
+                    color: const Color(0x26FFFFFF),
+                    margin: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCampoNumero(),
+                        const SizedBox(height: 12),
+                        _buildCampoTipoCommittente(),
+                        const SizedBox(height: 12),
+                        _buildCampoCommittente(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox(width: double.infinity, height: 0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardIndirizzoForm() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.glassCardMedium,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _indirizzoAperta = !_indirizzoAperta),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24, height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 0.5),
+                    ),
+                    child: const Icon(Icons.home_outlined, color: AppColors.accentGreenDark, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Indirizzo principale', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accentGreenDark, letterSpacing: 0.3)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: _indirizzoAperta ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(_cittaCtrl.text, style: const TextStyle(fontSize: 11, color: Color(0x80FFFFFF)), overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.end),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _indirizzoAperta ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x14FFFFFF), border: Border.all(color: const Color(0x26FFFFFF), width: 0.5)),
+                      child: const Icon(Icons.keyboard_arrow_up, color: Color(0x80FFFFFF), size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              sizeCurve: Curves.easeInOut,
+              firstCurve: Curves.easeInOut,
+              secondCurve: Curves.easeInOut,
+              crossFadeState: _indirizzoAperta ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+              firstChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 0.5, color: const Color(0x26FFFFFF), margin: const EdgeInsets.symmetric(horizontal: 14)),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCampoTesto(controller: _indirizzoCtrl, label: 'Indirizzo'),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          SizedBox(width: 90, child: _buildCampoCapLookup()),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildCampoTesto(controller: _cittaCtrl, label: 'Città')),
+                          const SizedBox(width: 8),
+                          SizedBox(width: 70, child: _buildCampoProvincia()),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox(width: double.infinity, height: 0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardDatiFiscali() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.glassCardMedium,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _datiFiscaliAperta = !_datiFiscaliAperta),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24, height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 0.5),
+                    ),
+                    child: const Icon(Icons.receipt_outlined, color: AppColors.accentGreenDark, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Dati fiscali', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accentGreenDark, letterSpacing: 0.3)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: _datiFiscaliAperta ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(_pivaCtrl.text, style: const TextStyle(fontSize: 11, color: Color(0x80FFFFFF)), overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.end),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _datiFiscaliAperta ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x14FFFFFF), border: Border.all(color: const Color(0x26FFFFFF), width: 0.5)),
+                      child: const Icon(Icons.keyboard_arrow_up, color: Color(0x80FFFFFF), size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              sizeCurve: Curves.easeInOut,
+              firstCurve: Curves.easeInOut,
+              secondCurve: Curves.easeInOut,
+              crossFadeState: _datiFiscaliAperta ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+              firstChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 0.5, color: const Color(0x26FFFFFF), margin: const EdgeInsets.symmetric(horizontal: 14)),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCampoTesto(controller: _pivaCtrl, label: 'P.IVA / Codice Fiscale'),
+                        const SizedBox(height: 12),
+                        _buildCampoAutocomplete(controller: _codiceUnivocoCtrl, label: 'Codice Univoco', suggerimenti: _sugCodiceUnivoco),
+                        const SizedBox(height: 12),
+                        _buildCampoAutocomplete(controller: _referenteCtrl, label: 'C/A Referente', suggerimenti: _sugReferente),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox(width: double.infinity, height: 0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardIndirizzoServizio() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.glassCardMedium,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _indirizzoServizioAperta = !_indirizzoServizioAperta),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24, height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 0.5),
+                    ),
+                    child: const Icon(Icons.location_on_outlined, color: AppColors.accentGreenDark, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Indirizzo servizio', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accentGreenDark, letterSpacing: 0.3)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: _indirizzoServizioAperta ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(_cittaServizioCtrl.text, style: const TextStyle(fontSize: 11, color: Color(0x80FFFFFF)), overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.end),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _indirizzoServizioAperta ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x14FFFFFF), border: Border.all(color: const Color(0x26FFFFFF), width: 0.5)),
+                      child: const Icon(Icons.keyboard_arrow_up, color: Color(0x80FFFFFF), size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              sizeCurve: Curves.easeInOut,
+              firstCurve: Curves.easeInOut,
+              secondCurve: Curves.easeInOut,
+              crossFadeState: _indirizzoServizioAperta ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+              firstChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 0.5, color: const Color(0x26FFFFFF), margin: const EdgeInsets.symmetric(horizontal: 14)),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCampoTesto(controller: _indirizzoServizioCtrl, label: 'Indirizzo servizio'),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          SizedBox(width: 90, child: _buildCampoCapServizioLookup()),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildCampoTesto(controller: _cittaServizioCtrl, label: 'Città')),
+                          const SizedBox(width: 8),
+                          SizedBox(width: 70, child: _buildCampoProvinciaServizio()),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox(width: double.infinity, height: 0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardContatti() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.glassCardMedium,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _contattiAperta = !_contattiAperta),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24, height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 0.5),
+                    ),
+                    child: const Icon(Icons.contact_phone_outlined, color: AppColors.accentGreenDark, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Contatti', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accentGreenDark, letterSpacing: 0.3)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: _contattiAperta ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(_emailCtrl.text, style: const TextStyle(fontSize: 11, color: Color(0x80FFFFFF)), overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.end),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _contattiAperta ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x14FFFFFF), border: Border.all(color: const Color(0x26FFFFFF), width: 0.5)),
+                      child: const Icon(Icons.keyboard_arrow_up, color: Color(0x80FFFFFF), size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              sizeCurve: Curves.easeInOut,
+              firstCurve: Curves.easeInOut,
+              secondCurve: Curves.easeInOut,
+              crossFadeState: _contattiAperta ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+              firstChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 0.5, color: const Color(0x26FFFFFF), margin: const EdgeInsets.symmetric(horizontal: 14)),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCampoAutocomplete(controller: _emailCtrl, label: 'Email', suggerimenti: _sugEmail, tastiera: TextInputType.emailAddress, validatore: _validaEmail),
+                        const SizedBox(height: 12),
+                        _buildCampoTesto(controller: _telefonoCtrl, label: 'Telefono', tastiera: TextInputType.phone),
+                        const SizedBox(height: 12),
+                        _buildCampoTesto(controller: _cellulareCtrl, label: 'Cellulare', tastiera: TextInputType.phone),
+                        const SizedBox(height: 12),
+                        _buildCampoAutocomplete(controller: _pecCtrl, label: 'PEC', suggerimenti: _sugPec, tastiera: TextInputType.emailAddress, validatore: _validaEmail),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox(width: double.infinity, height: 0),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _inizializza() async {
@@ -534,89 +1021,15 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildGruppoCard('Identificazione', [
-                      _buildCampoNumero(),
-                      const SizedBox(height: 12),
-                      _buildCampoTipoCommittente(),
-                      const SizedBox(height: 12),
-                      _buildCampoCommittente(),
-                    ]),
+                    _buildCardIdentificazione(),
                     const SizedBox(height: 12),
-                    _buildGruppoCard('Indirizzo principale', [
-                      _buildCampoTesto(
-                          controller: _indirizzoCtrl, label: 'Indirizzo'),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        SizedBox(width: 90, child: _buildCampoCapLookup()),
-                        const SizedBox(width: 8),
-                        Expanded(
-                            child: _buildCampoTesto(
-                                controller: _cittaCtrl, label: 'Città')),
-                        const SizedBox(width: 8),
-                        SizedBox(width: 70, child: _buildCampoProvincia()),
-                      ]),
-                    ]),
+                    _buildCardIndirizzoForm(),
                     const SizedBox(height: 12),
-                    _buildGruppoCard('Dati fiscali', [
-                      _buildCampoTesto(
-                          controller: _pivaCtrl,
-                          label: 'P.IVA / Codice Fiscale'),
-                      const SizedBox(height: 12),
-                      _buildCampoAutocomplete(
-                          controller: _codiceUnivocoCtrl,
-                          label: 'Codice Univoco',
-                          suggerimenti: _sugCodiceUnivoco),
-                      const SizedBox(height: 12),
-                      _buildCampoAutocomplete(
-                          controller: _referenteCtrl,
-                          label: 'C/A Referente',
-                          suggerimenti: _sugReferente),
-                    ]),
+                    _buildCardDatiFiscali(),
                     const SizedBox(height: 12),
-                    _buildGruppoCard('Indirizzo servizio', [
-                      _buildCampoTesto(
-                          controller: _indirizzoServizioCtrl,
-                          label: 'Indirizzo servizio'),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        SizedBox(
-                            width: 90, child: _buildCampoCapServizioLookup()),
-                        const SizedBox(width: 8),
-                        Expanded(
-                            child: _buildCampoTesto(
-                                controller: _cittaServizioCtrl,
-                                label: 'Città')),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                            width: 70, child: _buildCampoProvinciaServizio()),
-                      ]),
-                    ]),
+                    _buildCardIndirizzoServizio(),
                     const SizedBox(height: 12),
-                    _buildGruppoCard('Contatti', [
-                      _buildCampoAutocomplete(
-                          controller: _emailCtrl,
-                          label: 'Email',
-                          suggerimenti: _sugEmail,
-                          tastiera: TextInputType.emailAddress,
-                          validatore: _validaEmail),
-                      const SizedBox(height: 12),
-                      _buildCampoTesto(
-                          controller: _telefonoCtrl,
-                          label: 'Telefono',
-                          tastiera: TextInputType.phone),
-                      const SizedBox(height: 12),
-                      _buildCampoTesto(
-                          controller: _cellulareCtrl,
-                          label: 'Cellulare',
-                          tastiera: TextInputType.phone),
-                      const SizedBox(height: 12),
-                      _buildCampoAutocomplete(
-                          controller: _pecCtrl,
-                          label: 'PEC',
-                          suggerimenti: _sugPec,
-                          tastiera: TextInputType.emailAddress,
-                          validatore: _validaEmail),
-                    ]),
+                    _buildCardContatti(),
                     const SizedBox(height: 12),
                     _buildSezioneIndirizzi(isReadOnly),
                   ],
@@ -777,9 +1190,9 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.glassCard,
+        color: AppColors.glassCardMedium,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.glassBorder, width: 0.5),
+        border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1166,8 +1579,10 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
 
   InputDecoration _inputDec(String label) => InputDecoration(
         labelText: label,
-        labelStyle:
-            const TextStyle(color: AppColors.textOnDarkSecondary, fontSize: 13),
+        labelStyle: const TextStyle(
+          color: AppColors.glassFieldLabelDim,
+          fontSize: 13,
+        ),
         filled: true,
         fillColor: const Color(0x0DFFFFFF),
         border: OutlineInputBorder(

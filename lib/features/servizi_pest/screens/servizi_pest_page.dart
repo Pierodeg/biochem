@@ -20,10 +20,6 @@ final _serviziPestStreamProvider =
 
 // ─── Pagina lista servizi pest ────────────────────────────────────────────────
 
-/// Pagina Servizi Pest — lista con ricerca, filtri avanzati e form (solo admin)
-///
-/// Questa pagina è incorporata nell'IndexedStack di [MainScreen] (tab 3)
-/// e NON ha un proprio Scaffold.
 class ServiziPestPage extends ConsumerStatefulWidget {
   const ServiziPestPage({super.key});
 
@@ -35,7 +31,6 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
   final _cercaController = TextEditingController();
   String _queryRicerca = '';
 
-  // Stato filtro
   bool _filtroAperto = false;
   FiltroServiziPestStato _filtro = const FiltroServiziPestStato();
 
@@ -45,7 +40,6 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
     super.dispose();
   }
 
-  /// Applica ricerca testuale + filtri avanzati + ordinamento
   List<ServizioPestModel> _filtra(List<ServizioPestModel> lista) {
     List<ServizioPestModel> risultato = lista;
     if (_queryRicerca.isNotEmpty) {
@@ -59,7 +53,6 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
     return applicaFiltroServiziPest(risultato, _filtro);
   }
 
-  /// Formatta il codice data AAMMGG in GG/MM/AA per la visualizzazione
   String _formatCodiceData(String codice) {
     if (codice.length != 6) return codice;
     return '${codice.substring(4, 6)}/${codice.substring(2, 4)}/${codice.substring(0, 2)}';
@@ -104,13 +97,10 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
       children: [
         Column(
           children: [
-            // Barra di ricerca con bottone filtri
             Container(
-              color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: _buildBarraRicercaConFiltro(),
             ),
-            // Pannello filtri animato
             FiltroServiziPest(
               aperto: _filtroAperto,
               statoFiltro: _filtro,
@@ -122,12 +112,15 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
                 });
               },
             ),
-            // Riga chip filtri attivi
             FiltriAttiviRowPest(
               stato: _filtro,
               onRimosso: (f) => setState(() => _filtro = f),
             ),
-            // Lista servizi
+            Container(
+              height: 0.5,
+              color: AppColors.glassBorder,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+            ),
             Expanded(
               child: filtrati.isEmpty
                   ? _buildStatoVuoto()
@@ -141,7 +134,6 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
             ),
           ],
         ),
-        // FAB visibile solo agli admin
         if (isAdmin)
           Positioned(
             right: 16,
@@ -149,8 +141,9 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
             child: FloatingActionButton(
               heroTag: 'fab_servizi_pest',
               onPressed: () => context.push('/servizi-pest/nuovo'),
-              backgroundColor: AppColors.fabBackground,
-              child: const Icon(Icons.add, color: AppColors.fabIcon),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.85),
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.add),
             ),
           ),
       ],
@@ -161,95 +154,100 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
     final moneyFmt =
         NumberFormat.currency(locale: 'it_IT', symbol: '€', decimalDigits: 2);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.divider),
+        border: Border.all(color: AppColors.glassBorder, width: 0.5),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: isAdmin
-            ? () => context.push('/servizi-pest/${s.id}')
-            : null,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Prima riga: tipo intervento + n° intervento
-              Row(
-                children: [
-                  if (s.isDraft) ...[
-                    _buildBadgeBozza(),
-                    const SizedBox(width: 8),
-                  ],
-                  if (s.tipoIntervento.isNotEmpty)
-                    _buildBadgeTipo(s.tipoIntervento),
-                  if (s.tipoIntervento.isNotEmpty &&
-                      s.numeroIntervento.isNotEmpty)
-                    const SizedBox(width: 8),
-                  if (s.numeroIntervento.isNotEmpty)
-                    Text(
-                      s.numeroIntervento,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  const Spacer(),
-                  if (isAdmin)
-                    const Icon(Icons.chevron_right,
-                        color: AppColors.textDisabled, size: 18),
-                ],
-              ),
-              const SizedBox(height: 6),
-              // Committente
-              Text(
-                s.committente,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Data + totale
-              Row(
-                children: [
-                  if (s.codiceData.isNotEmpty) ...[
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 12, color: AppColors.textDisabled),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatCodiceData(s.codiceData),
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  if (s.totaleDovuto > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        moneyFmt.format(s.totaleDovuto),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColors.glassCardHover,
+          onTap: isAdmin ? () => context.push('/servizi-pest/${s.id}') : null,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (s.isDraft) ...[
+                      _buildBadgeBozza(),
+                      const SizedBox(width: 8),
+                    ],
+                    if (s.tipoIntervento.isNotEmpty)
+                      _buildBadgeTipo(s.tipoIntervento),
+                    if (s.tipoIntervento.isNotEmpty &&
+                        s.numeroIntervento.isNotEmpty)
+                      const SizedBox(width: 8),
+                    if (s.numeroIntervento.isNotEmpty)
+                      Text(
+                        s.numeroIntervento,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: AppColors.primaryDark,
-                          fontWeight: FontWeight.w700,
+                          color: AppColors.textOnDarkSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ],
+                    const Spacer(),
+                    if (isAdmin)
+                      const Icon(Icons.chevron_right,
+                          color: AppColors.textOnDarkMuted, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  s.committente,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    if (s.codiceData.isNotEmpty) ...[
+                      const Icon(Icons.calendar_today_outlined,
+                          size: 12, color: AppColors.textOnDarkSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatCodiceData(s.codiceData),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textOnDarkSecondary),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    if (s.totaleDovuto > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF00A843).withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: const Color(0xFF00A843)
+                                  .withValues(alpha: 0.35),
+                              width: 0.5),
+                        ),
+                        child: Text(
+                          moneyFmt.format(s.totaleDovuto),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.accentGreenDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -264,9 +262,7 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
       bool isAdmin) {
     return Column(
       children: [
-        // Barra azioni
-        Container(
-          color: AppColors.surface,
+        Padding(
           padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
           child: Row(
             children: [
@@ -278,7 +274,13 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Nuovo'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                    foregroundColor: AppColors.accentGreenDark,
+                    side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.50),
+                        width: 0.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
                   ),
@@ -286,7 +288,6 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
             ],
           ),
         ),
-        // Pannello filtri
         FiltroServiziPest(
           aperto: _filtroAperto,
           statoFiltro: _filtro,
@@ -298,120 +299,208 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
             });
           },
         ),
-        // Riga chip filtri attivi
         FiltriAttiviRowPest(
           stato: _filtro,
           onRimosso: (f) => setState(() => _filtro = f),
         ),
-        const Divider(height: 1, color: AppColors.divider),
-        // Tabella
+        const Divider(height: 1, color: AppColors.glassBorderSubtle),
         Expanded(
           child: filtrati.isEmpty
               ? _buildStatoVuoto()
-              : _buildTabella(filtrati, isAdmin),
+              : _buildListaDesktop(filtrati, isAdmin),
         ),
       ],
     );
   }
 
-  Widget _buildTabella(List<ServizioPestModel> servizi, bool isAdmin) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor:
-              WidgetStateProperty.all(AppColors.tableHeader),
-          headingTextStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-            color: AppColors.textSecondary,
+  Widget _buildListaDesktop(List<ServizioPestModel> lista, bool isAdmin) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      itemCount: lista.length,
+      itemBuilder: (_, i) => _buildCardPestDesktop(lista[i], isAdmin),
+    );
+  }
+
+  Widget _buildCardPestDesktop(ServizioPestModel s, bool isAdmin) {
+    final moneyFmt =
+        NumberFormat.currency(locale: 'it_IT', symbol: '€', decimalDigits: 2);
+    return Center(
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 1000),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.glassCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            hoverColor: AppColors.glassCardHover,
+            onTap: isAdmin ? () => context.push('/servizi-pest/${s.id}') : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+                    child: Text(
+                      _initials(s.committente),
+                      style: const TextStyle(
+                        color: AppColors.accentGreenDark,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Tipo + bozza badge + Committente
+                  SizedBox(
+                    width: 200,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          if (s.isDraft) ...[
+                            _buildBadgeBozza(),
+                            const SizedBox(width: 6),
+                          ],
+                          if (s.tipoIntervento.isNotEmpty)
+                            Flexible(child: _buildBadgeTipo(s.tipoIntervento)),
+                        ]),
+                        const SizedBox(height: 3),
+                        Text(
+                          s.committente,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: AppColors.textOnDark,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // Data + Tecnico
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow(Icons.calendar_today_outlined,
+                            _formatCodiceData(s.codiceData)),
+                        const SizedBox(height: 4),
+                        _infoRow(Icons.person_outline,
+                            s.tecnico.isNotEmpty ? s.tecnico : '—'),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // N° intervento + Totale
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (s.numeroIntervento.isNotEmpty)
+                          _infoRow(Icons.tag_outlined, s.numeroIntervento,
+                              label: 'N°'),
+                        if (s.totaleDovuto > 0) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00A843)
+                                  .withValues(alpha: 0.20),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: const Color(0xFF00A843)
+                                      .withValues(alpha: 0.35),
+                                  width: 0.5),
+                            ),
+                            child: Text(
+                              moneyFmt.format(s.totaleDovuto),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.accentGreenDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ] else
+                          const Text('—',
+                              style: TextStyle(
+                                  color: AppColors.textOnDarkMuted,
+                                  fontSize: 12)),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textOnDarkMuted, size: 20),
+                ],
+              ),
+            ),
           ),
-          dataRowMinHeight: 52,
-          dataRowMaxHeight: 52,
-          columnSpacing: 20,
-          columns: [
-            const DataColumn(label: Text('Tipo')),
-            const DataColumn(label: Text('N° interv.')),
-            const DataColumn(label: Text('Committente')),
-            const DataColumn(label: Text('Data')),
-            const DataColumn(label: Text('Tecnico')),
-            const DataColumn(label: Text('Totale dovuto')),
-            if (isAdmin) const DataColumn(label: Text('')),
-          ],
-          rows: servizi.map((s) => _buildRigaTabella(s, isAdmin)).toList(),
         ),
       ),
     );
   }
 
-  DataRow _buildRigaTabella(ServizioPestModel s, bool isAdmin) {
-    void apri() => context.push('/servizi-pest/${s.id}');
-    final moneyFmt =
-        NumberFormat.currency(locale: 'it_IT', symbol: '€', decimalDigits: 2);
+  Widget _separatoreV() {
+    return Container(
+      width: 0.5,
+      height: 40,
+      color: AppColors.glassBorder,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+    );
+  }
 
-    return DataRow(
-      cells: [
-        DataCell(
-          Row(
-            children: [
-              if (s.isDraft) ...[
-                _buildBadgeBozza(),
-                const SizedBox(width: 6),
-              ],
-              if (s.tipoIntervento.isNotEmpty) _buildBadgeTipo(s.tipoIntervento),
-            ],
-          ),
-          onTap: isAdmin ? apri : null,
-        ),
-        DataCell(
-          Text(s.numeroIntervento,
-              style: const TextStyle(color: AppColors.textSecondary)),
-          onTap: isAdmin ? apri : null,
-        ),
-        DataCell(
-          Text(s.committente,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis),
-          onTap: isAdmin ? apri : null,
-        ),
-        DataCell(
+  Widget _infoRow(IconData icon, String testo, {String? label}) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: AppColors.textOnDarkMuted),
+        const SizedBox(width: 5),
+        if (label != null)
           Text(
-            _formatCodiceData(s.codiceData),
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-          onTap: isAdmin ? apri : null,
-        ),
-        DataCell(
-          Text(s.tecnico,
-              style: const TextStyle(color: AppColors.textSecondary),
-              overflow: TextOverflow.ellipsis),
-          onTap: isAdmin ? apri : null,
-        ),
-        DataCell(
-          Text(
-            s.totaleDovuto > 0 ? moneyFmt.format(s.totaleDovuto) : '—',
+            '$label: ',
             style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
+                fontSize: 10, color: AppColors.textOnDarkMuted),
           ),
-          onTap: isAdmin ? apri : null,
+        Expanded(
+          child: Text(
+            testo,
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.textOnDarkSecondary),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        if (isAdmin)
-          DataCell(
-            TextButton(
-              onPressed: apri,
-              child: const Text('Apri'),
-            ),
-          ),
       ],
     );
   }
 
+  String _initials(String nome) {
+    final parts =
+        nome.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
   // ─── WIDGET CONDIVISI ─────────────────────────────────────────────────────
 
-  /// Campo ricerca con bottone filtri e badge contatore
   Widget _buildBarraRicercaConFiltro() {
     final filtriAttivi = _filtro.filtriAttivi;
     return Row(
@@ -419,14 +508,17 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
         Expanded(
           child: TextField(
             controller: _cercaController,
+            style: const TextStyle(color: AppColors.textOnDark),
             onChanged: (v) => setState(() => _queryRicerca = v.trim()),
             decoration: InputDecoration(
               hintText: 'Cerca per committente, tipo, tecnico...',
-              prefixIcon:
-                  const Icon(Icons.search, size: 20, color: AppColors.textDisabled),
+              hintStyle: const TextStyle(color: AppColors.textOnDarkMuted),
+              prefixIcon: const Icon(Icons.search,
+                  size: 20, color: AppColors.textOnDarkSecondary),
               suffixIcon: _queryRicerca.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
+                      icon: const Icon(Icons.clear,
+                          size: 18, color: AppColors.textOnDarkSecondary),
                       onPressed: () {
                         _cercaController.clear();
                         setState(() => _queryRicerca = '');
@@ -434,10 +526,21 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.inputBackground,
+              fillColor: const Color(0x1A000000),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+                borderSide:
+                    const BorderSide(color: AppColors.glassBorder, width: 0.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppColors.glassBorder, width: 0.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1),
               ),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -454,8 +557,8 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
               icon: Icon(
                 _filtroAperto ? Icons.filter_list_off : Icons.filter_list,
                 color: _filtroAperto || filtriAttivi > 0
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                    ? AppColors.accentGreenDark
+                    : AppColors.textOnDarkSecondary,
               ),
               tooltip: 'Filtri',
             ),
@@ -491,14 +594,16 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
+        color: const Color(0xFF00A843).withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: const Color(0xFF00A843).withValues(alpha: 0.35), width: 0.5),
       ),
       child: Text(
         tipo,
         style: const TextStyle(
           fontSize: 11,
-          color: AppColors.primary,
+          color: AppColors.accentGreenDark,
           fontWeight: FontWeight.w600,
         ),
         overflow: TextOverflow.ellipsis,
@@ -510,18 +615,17 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.textSecondary.withValues(alpha: 0.12),
+        color: const Color(0xFFBA7517).withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.textSecondary.withValues(alpha: 0.35),
-        ),
+            color: const Color(0xFFBA7517).withValues(alpha: 0.40), width: 0.5),
       ),
       child: const Text(
         'Bozza',
         style: TextStyle(
-          fontSize: 11,
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w700,
+          fontSize: 10,
+          color: AppColors.accentAmberDark,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -532,9 +636,8 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pest_control_outlined,
-              size: 64,
-              color: AppColors.textDisabled.withValues(alpha: 0.5)),
+          const Icon(Icons.pest_control_outlined,
+              size: 64, color: AppColors.textOnDarkMuted),
           const SizedBox(height: 16),
           Text(
             _queryRicerca.isEmpty && !_filtro.hasFiltri
@@ -542,7 +645,7 @@ class _ServiziPestPageState extends ConsumerState<ServiziPestPage> {
                 : 'Nessun risultato trovato',
             style: const TextStyle(
                 fontSize: 15,
-                color: AppColors.textDisabled,
+                color: AppColors.textOnDarkSecondary,
                 fontWeight: FontWeight.w500),
           ),
         ],

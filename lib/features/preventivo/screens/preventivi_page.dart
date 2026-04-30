@@ -24,9 +24,6 @@ final _preventiviStreamProvider = StreamProvider<List<PreventivoModel>>((ref) {
 
 // ─── Pagina lista preventivi ──────────────────────────────────────────────────
 
-/// Pagina Preventivi — lista con ricerca, filtri e form (solo admin).
-///
-/// Incorporata nell'IndexedStack di [MainScreen] (tab 1), NON ha un proprio Scaffold.
 class PreventiviPage extends ConsumerStatefulWidget {
   const PreventiviPage({super.key});
 
@@ -39,7 +36,6 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
   String _queryRicerca = '';
   bool _filtroAperto = false;
   FiltroPreventiviStato _filtro = const FiltroPreventiviStato();
-  // Traccia quale preventivo sta generando il PDF (per mostrare il loader)
   String? _pdfInGenerazione;
 
   final _moneyFmt =
@@ -56,13 +52,40 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
     final conferma = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A2A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        titleTextStyle: const TextStyle(
+          color: AppColors.textOnDark,
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+        contentTextStyle: const TextStyle(
+          color: AppColors.textOnDarkSecondary,
+          fontSize: 14,
+        ),
         title: const Text('Elimina preventivo'),
-        content: Text('Eliminare il preventivo di ${p.committente}? Azione irreversibile.'),
+        content: Text(
+            'Eliminare il preventivo di ${p.committente}? Azione irreversibile.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+                foregroundColor: AppColors.textOnDarkSecondary),
+            child: const Text('Annulla'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error.withValues(alpha: 0.25),
+              foregroundColor: const Color(0xFFFF7070),
+              side: BorderSide(
+                  color: AppColors.error.withValues(alpha: 0.40), width: 0.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Elimina'),
           ),
         ],
@@ -73,19 +96,38 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
       await ref.read(preventiviServiceProvider).eliminaPreventivo(p.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Preventivo eliminato')),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.success.withValues(alpha: 0.90),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
+            content:
+                const Text('Preventivo eliminato', style: TextStyle(color: Colors.white)),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error.withValues(alpha: 0.90),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
+            content: Text('Errore: $e',
+                style: const TextStyle(color: Colors.white)),
+          ),
         );
       }
     }
   }
 
-  /// Mostra un'anteprima del PDF prima di scaricare/condividere
   Future<void> _mostraAnteprima(PreventivoModel p) async {
     setState(() => _pdfInGenerazione = p.id);
     try {
@@ -106,15 +148,21 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
         setState(() => _pdfInGenerazione = null);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Errore generazione PDF: $e'),
-            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error.withValues(alpha: 0.90),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
+            content: Text('Errore generazione PDF: $e',
+                style: const TextStyle(color: Colors.white)),
           ),
         );
       }
     }
   }
 
-  /// Applica ricerca testuale + filtri avanzati
   List<PreventivoModel> _filtra(List<PreventivoModel> lista) {
     List<PreventivoModel> risultato = lista;
     if (_queryRicerca.isNotEmpty) {
@@ -167,25 +215,25 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
       children: [
         Column(
           children: [
-            // Barra ricerca + bottone filtri
             Container(
-              color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: _buildBarraRicercaConFiltro(),
             ),
-            // Pannello filtri animato
             FiltroPreventivi(
               aperto: _filtroAperto,
               statoFiltro: _filtro,
               onFiltroApplicato: (f) =>
                   setState(() { _filtro = f; _filtroAperto = false; }),
             ),
-            // Riga chip filtri attivi
             FiltriAttiviRowPreventivi(
               stato: _filtro,
               onRimosso: (f) => setState(() => _filtro = f),
             ),
-            // Lista preventivi
+            Container(
+              height: 0.5,
+              color: AppColors.glassBorder,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+            ),
             Expanded(
               child: filtrati.isEmpty
                   ? _buildStatoVuoto()
@@ -193,13 +241,11 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                       padding: EdgeInsets.fromLTRB(
                           12, 12, 12, isAdmin ? 80 : 16),
                       itemCount: filtrati.length,
-                      itemBuilder: (_, i) =>
-                          _buildCard(filtrati[i], isAdmin),
+                      itemBuilder: (_, i) => _buildCard(filtrati[i], isAdmin),
                     ),
             ),
           ],
         ),
-        // FAB visibile solo agli admin
         if (isAdmin)
           Positioned(
             right: 16,
@@ -207,8 +253,9 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
             child: FloatingActionButton(
               heroTag: 'fab_preventivi',
               onPressed: () => context.push('/preventivo/nuovo'),
-              backgroundColor: AppColors.fabBackground,
-              child: const Icon(Icons.add, color: AppColors.fabIcon),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.85),
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.add),
             ),
           ),
       ],
@@ -216,104 +263,110 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
   }
 
   Widget _buildCard(PreventivoModel p, bool isAdmin) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.divider),
+        border: Border.all(color: AppColors.glassBorder, width: 0.5),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: isAdmin ? () => context.push('/preventivo/${p.id}') : null,
-        onLongPress: () => _mostraAnteprima(p),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Prima riga: numero + data + freccia
-              Row(
-                children: [
-                  if (p.isDraft) ...[
-                    _buildBadgeBozza(),
-                    const SizedBox(width: 8),
-                  ],
-                  _buildBadgeNumero(p),
-                  const Spacer(),
-                  Text(
-                    _dateFmt.format(p.data),
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(width: 4),
-                  // Icona PDF (o spinner se in generazione)
-                  _pdfInGenerazione == p.id
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              color: AppColors.primary, strokeWidth: 2))
-                      : GestureDetector(
-                          onTap: () => _mostraAnteprima(p),
-                          child: const Icon(Icons.picture_as_pdf_outlined,
-                              color: AppColors.primary, size: 18),
-                        ),
-                  if (isAdmin) ...[
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => _eliminaPreventivo(p),
-                      child: const Icon(Icons.delete_outline,
-                          color: AppColors.error, size: 18),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.chevron_right,
-                        color: AppColors.textDisabled, size: 18),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 6),
-              // Committente
-              Text(
-                p.committente,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Totale + righe
-              Row(
-                children: [
-                  if (p.totale > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _moneyFmt.format(p.totale),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryDark,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  if (p.righe.isNotEmpty) ...[
-                    const SizedBox(width: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColors.glassCardHover,
+          onTap: isAdmin ? () => context.push('/preventivo/${p.id}') : null,
+          onLongPress: () => _mostraAnteprima(p),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (p.isDraft) ...[
+                      _buildBadgeBozza(),
+                      const SizedBox(width: 8),
+                    ],
+                    _buildBadgeNumero(p),
+                    const Spacer(),
                     Text(
-                      '${p.righe.length} ${p.righe.length == 1 ? 'servizio' : 'servizi'}',
+                      _dateFmt.format(p.data),
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary),
+                          fontSize: 12,
+                          color: AppColors.textOnDarkSecondary),
                     ),
+                    const SizedBox(width: 4),
+                    _pdfInGenerazione == p.id
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                color: AppColors.primary, strokeWidth: 2))
+                        : GestureDetector(
+                            onTap: () => _mostraAnteprima(p),
+                            child: const Icon(Icons.picture_as_pdf_outlined,
+                                color: AppColors.textOnDarkSecondary, size: 18),
+                          ),
+                    if (isAdmin) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => _eliminaPreventivo(p),
+                        child: const Icon(Icons.delete_outline,
+                            color: AppColors.error, size: 18),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right,
+                          color: AppColors.textOnDarkMuted, size: 18),
+                    ],
                   ],
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  p.committente,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    if (p.totale > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00A843).withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: const Color(0xFF00A843)
+                                  .withValues(alpha: 0.35),
+                              width: 0.5),
+                        ),
+                        child: Text(
+                          _moneyFmt.format(p.totale),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.accentGreenDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    if (p.righe.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '${p.righe.length} ${p.righe.length == 1 ? 'servizio' : 'servizi'}',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textOnDarkSecondary),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -329,15 +382,11 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
   ) {
     return Column(
       children: [
-        // Barra azioni
-        Container(
-          color: AppColors.surface,
+        Padding(
           padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
           child: Row(
             children: [
-              SizedBox(
-                  width: 340,
-                  child: _buildBarraRicercaConFiltro()),
+              SizedBox(width: 340, child: _buildBarraRicercaConFiltro()),
               const Spacer(),
               if (isAdmin)
                 FilledButton.icon(
@@ -345,7 +394,13 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Nuovo'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                    foregroundColor: AppColors.accentGreenDark,
+                    side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.50),
+                        width: 0.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
                   ),
@@ -353,134 +408,231 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
             ],
           ),
         ),
-        // Pannello filtri
         FiltroPreventivi(
           aperto: _filtroAperto,
           statoFiltro: _filtro,
           onFiltroApplicato: (f) =>
               setState(() { _filtro = f; _filtroAperto = false; }),
         ),
-        // Chip filtri attivi
         FiltriAttiviRowPreventivi(
           stato: _filtro,
           onRimosso: (f) => setState(() => _filtro = f),
         ),
-        const Divider(height: 1, color: AppColors.divider),
-        // Tabella
+        const Divider(height: 1, color: AppColors.glassBorderSubtle),
         Expanded(
           child: filtrati.isEmpty
               ? _buildStatoVuoto()
-              : _buildTabella(filtrati, isAdmin),
+              : _buildListaDesktop(filtrati, isAdmin),
         ),
       ],
     );
   }
 
-  Widget _buildTabella(List<PreventivoModel> lista, bool isAdmin) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(AppColors.tableHeader),
-          headingTextStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-            color: AppColors.textSecondary,
+  Widget _buildListaDesktop(List<PreventivoModel> lista, bool isAdmin) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      itemCount: lista.length,
+      itemBuilder: (_, i) => _buildCardPreventivoDesktop(lista[i], isAdmin),
+    );
+  }
+
+  Widget _buildCardPreventivoDesktop(PreventivoModel p, bool isAdmin) {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 1000),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.glassCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            hoverColor: AppColors.glassCardHover,
+            onTap: isAdmin ? () => context.push('/preventivo/${p.id}') : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.20),
+                    child: Text(
+                      _initials(p.committente),
+                      style: const TextStyle(
+                        color: AppColors.accentGreenDark,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Numero + Badge bozza + Committente
+                  SizedBox(
+                    width: 200,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          _buildBadgeNumero(p),
+                          if (p.isDraft) ...[
+                            const SizedBox(width: 6),
+                            _buildBadgeBozza(),
+                          ],
+                        ]),
+                        const SizedBox(height: 3),
+                        Text(
+                          p.committente,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: AppColors.textOnDark,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // Data + servizi
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow(Icons.calendar_today_outlined,
+                            _dateFmt.format(p.data)),
+                        const SizedBox(height: 4),
+                        _infoRow(
+                          Icons.list_outlined,
+                          '${p.righe.length} ${p.righe.length == 1 ? 'servizio' : 'servizi'}',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _separatoreV(),
+
+                  // Totale
+                  Expanded(
+                    flex: 2,
+                    child: p.totale > 0
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00A843)
+                                  .withValues(alpha: 0.20),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: const Color(0xFF00A843)
+                                      .withValues(alpha: 0.35),
+                                  width: 0.5),
+                            ),
+                            child: Text(
+                              _moneyFmt.format(p.totale),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.accentGreenDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          )
+                        : const Text('—',
+                            style:
+                                TextStyle(color: AppColors.textOnDarkMuted)),
+                  ),
+
+                  if (isAdmin) ...[
+                    _separatoreV(),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _pdfInGenerazione == p.id
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    color: AppColors.primary, strokeWidth: 2))
+                            : IconButton(
+                                icon: const Icon(
+                                    Icons.picture_as_pdf_outlined,
+                                    color: AppColors.textOnDarkSecondary,
+                                    size: 18),
+                                tooltip: 'Anteprima PDF',
+                                onPressed: () => _mostraAnteprima(p),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              color: AppColors.error, size: 18),
+                          tooltip: 'Elimina',
+                          onPressed: () => _eliminaPreventivo(p),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(width: 12),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textOnDarkMuted, size: 20),
+                ],
+              ),
+            ),
           ),
-          dataRowMinHeight: 52,
-          dataRowMaxHeight: 52,
-          columnSpacing: 20,
-          columns: [
-            const DataColumn(label: Text('N° preventivo')),
-            const DataColumn(label: Text('Data')),
-            const DataColumn(label: Text('Committente')),
-            const DataColumn(label: Text('Servizi')),
-            const DataColumn(label: Text('Totale')),
-            if (isAdmin) const DataColumn(label: Text('')),
-          ],
-          rows: lista
-              .map((p) => _buildRigaTabella(p, isAdmin))
-              .toList(),
         ),
       ),
     );
   }
 
-  DataRow _buildRigaTabella(PreventivoModel p, bool isAdmin) {
-    void apri() => context.push('/preventivo/${p.id}');
-    return DataRow(cells: [
-      DataCell(
-        Row(children: [
-          if (p.isDraft) ...[
-            _buildBadgeBozza(),
-            const SizedBox(width: 6),
-          ],
-          _buildBadgeNumero(p),
-        ]),
-        onTap: isAdmin ? apri : null,
-      ),
-      DataCell(
-        Text(_dateFmt.format(p.data),
-            style: const TextStyle(color: AppColors.textSecondary)),
-        onTap: isAdmin ? apri : null,
-      ),
-      DataCell(
-        Text(p.committente,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-            overflow: TextOverflow.ellipsis),
-        onTap: isAdmin ? apri : null,
-      ),
-      DataCell(
-        Text('${p.righe.length}',
-            style: const TextStyle(color: AppColors.textSecondary)),
-        onTap: isAdmin ? apri : null,
-      ),
-      DataCell(
-        Text(
-          p.totale > 0 ? _moneyFmt.format(p.totale) : '—',
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
+  Widget _separatoreV() {
+    return Container(
+      width: 0.5,
+      height: 40,
+      color: AppColors.glassBorder,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String testo, {String? label}) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: AppColors.textOnDarkMuted),
+        const SizedBox(width: 5),
+        if (label != null)
+          Text(
+            '$label: ',
+            style: const TextStyle(
+                fontSize: 10, color: AppColors.textOnDarkMuted),
+          ),
+        Expanded(
+          child: Text(
+            testo,
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.textOnDarkSecondary),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        onTap: isAdmin ? apri : null,
-      ),
-      if (isAdmin)
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextButton(
-              onPressed: apri,
-              child: const Text('Apri'),
-            ),
-            const SizedBox(width: 4),
-            _pdfInGenerazione == p.id
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        color: AppColors.primary, strokeWidth: 2))
-                : IconButton(
-                    icon: const Icon(Icons.picture_as_pdf_outlined,
-                        color: AppColors.primary, size: 18),
-                    tooltip: 'Anteprima PDF',
-                    onPressed: () => _mostraAnteprima(p),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.delete_outline,
-                  color: AppColors.error, size: 18),
-              tooltip: 'Elimina',
-              onPressed: () => _eliminaPreventivo(p),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        )),
-    ]);
+      ],
+    );
+  }
+
+  String _initials(String nome) {
+    final parts =
+        nome.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 
   // ─── Widget condivisi ─────────────────────────────────────────────────────
@@ -492,15 +644,17 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
         Expanded(
           child: TextField(
             controller: _cercaController,
-            onChanged: (v) =>
-                setState(() => _queryRicerca = v.trim()),
+            style: const TextStyle(color: AppColors.textOnDark),
+            onChanged: (v) => setState(() => _queryRicerca = v.trim()),
             decoration: InputDecoration(
               hintText: 'Cerca per committente o numero...',
+              hintStyle: const TextStyle(color: AppColors.textOnDarkMuted),
               prefixIcon: const Icon(Icons.search,
-                  size: 20, color: AppColors.textDisabled),
+                  size: 20, color: AppColors.textOnDarkSecondary),
               suffixIcon: _queryRicerca.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
+                      icon: const Icon(Icons.clear,
+                          size: 18, color: AppColors.textOnDarkSecondary),
                       onPressed: () {
                         _cercaController.clear();
                         setState(() => _queryRicerca = '');
@@ -508,10 +662,21 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.inputBackground,
+              fillColor: const Color(0x1A000000),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+                borderSide:
+                    const BorderSide(color: AppColors.glassBorder, width: 0.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppColors.glassBorder, width: 0.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1),
               ),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -530,8 +695,8 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                     ? Icons.filter_list_off
                     : Icons.filter_list,
                 color: _filtroAperto || filtriAttivi > 0
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                    ? AppColors.accentGreenDark
+                    : AppColors.textOnDarkSecondary,
               ),
               tooltip: 'Filtri',
             ),
@@ -567,14 +732,16 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.1),
+        color: const Color(0xFF1565C0).withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: const Color(0xFF1565C0).withValues(alpha: 0.40), width: 0.5),
       ),
       child: Text(
         p.numeroFormattato,
         style: const TextStyle(
           fontSize: 11,
-          color: AppColors.info,
+          color: AppColors.accentBlueDark,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -585,17 +752,17 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.textSecondary.withValues(alpha: 0.12),
+        color: const Color(0xFFBA7517).withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: AppColors.textSecondary.withValues(alpha: 0.35)),
+            color: const Color(0xFFBA7517).withValues(alpha: 0.40), width: 0.5),
       ),
       child: const Text(
         'Bozza',
         style: TextStyle(
-          fontSize: 11,
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w700,
+          fontSize: 10,
+          color: AppColors.accentAmberDark,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -606,9 +773,8 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.description_outlined,
-              size: 64,
-              color: AppColors.textDisabled.withValues(alpha: 0.5)),
+          const Icon(Icons.description_outlined,
+              size: 64, color: AppColors.textOnDarkMuted),
           const SizedBox(height: 16),
           Text(
             _queryRicerca.isEmpty && !_filtro.hasFiltri
@@ -616,7 +782,7 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                 : 'Nessun risultato trovato',
             style: const TextStyle(
               fontSize: 15,
-              color: AppColors.textDisabled,
+              color: AppColors.textOnDarkSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -653,19 +819,23 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: const Color(0xFF0A2A1A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.glassBorder, width: 0.5),
+      ),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: double.maxFinite,
         height: MediaQuery.of(context).size.height * 0.85,
         child: Column(
           children: [
-            // Barra titolo
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
               decoration: const BoxDecoration(
-                color: AppColors.primaryDark,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                color: AppColors.glassDarkest,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(
                 children: [
@@ -683,14 +853,14 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                    icon: const Icon(Icons.close,
+                        color: Colors.white, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                     tooltip: 'Chiudi',
                   ),
                 ],
               ),
             ),
-            // Anteprima
             Expanded(
               child: ClipRRect(
                 borderRadius:

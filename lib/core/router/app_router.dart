@@ -16,54 +16,24 @@ import '../../features/anagrafiche/screens/cliente_form_page.dart';
 import '../../features/admin/screens/admin_settings_page.dart';
 import '../../features/servizi_lab/screens/servizi_lab_page.dart';
 import '../../features/servizi_lab/screens/servizio_lab_form_page.dart';
+import '../../features/registro/screens/registro_page.dart';
 
-/// Messaggio di notifica in attesa di essere mostrato dalla pagina di destinazione.
-/// Usato per comunicare dal redirect del router alla UI con Scaffold.
 final pendingNotificationProvider = StateProvider<String?>((ref) => null);
 
-/// Provider del router principale dell'applicazione.
-///
-/// Struttura:
-/// - /               → SplashScreen (attesa auth, nessuna query Firestore)
-/// - /login          → LoginScreen (standalone)
-/// - StatefulShellRoute  → MainScreen (sidebar/bottom nav)
-///     branch 0: /anagrafiche   → AnagrafichePage
-///     branch 1: /preventivo    → PreventivoPage
-///     branch 2: /servizi-lab   → ServiziLabPage
-///     branch 3: /servizi-pest  → ServiziPestPage
-///     branch 4: /fatture       → FatturePage
-///     branch 5: /calendario    → CalendarioPage
-/// - /anagrafiche/nuovo  → ClienteFormPage (fuori dalla shell, full-screen)
-/// - /anagrafiche/:id    → ClienteFormPage
-/// - /servizi-lab/nuovo  → ServizioLabFormPage (admin only)
-/// - /servizi-lab/:id    → ServizioLabFormPage (admin only)
-/// - /calendario/nuovo   → AppuntamentoFormPage (admin only)
-/// - /calendario/:id     → AppuntamentoFormPage (admin only)
-/// - /admin/impostazioni → AdminSettingsPage (admin only)
 final routerProvider = Provider<GoRouter>((ref) {
-  // Notifier che forza il router a rivalutare il redirect
-  // ogni volta che cambia lo stato auth o il profilo utente Firestore
   final notifier = ValueNotifier<int>(0);
 
   ref.listen(authStateProvider, (_, __) => notifier.value++);
   ref.listen(currentUserProvider, (_, __) => notifier.value++);
 
   final router = GoRouter(
-    // Parte dallo splash: nessuna pagina Firestore viene buildata
-    // prima che l'autenticazione sia confermata
     initialLocation: '/',
     refreshListenable: notifier,
 
-    /// Logica di redirect:
-    /// - Auth in caricamento                    → /  (splash, aspetta)
-    /// - Non autenticato                        → /login
-    /// - Autenticato su / o /login              → /anagrafiche
-    /// - Route admin senza ruolo admin          → tab di origine + notifica
     redirect: (context, state) {
       final authState = ref.read(authStateProvider);
       final isOnSplash = state.matchedLocation == '/';
 
-      // Auth ancora in caricamento: resta sullo splash, non buildare pagine Firestore
       if (authState.isLoading) return isOnSplash ? null : '/';
 
       final isAuthenticated = authState.valueOrNull != null;
@@ -72,9 +42,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isAuthenticated && !isOnLogin) return '/login';
       if (isAuthenticated && (isOnLogin || isOnSplash)) return '/anagrafiche';
 
-      // Protezione route admin: solo utenti con role == 'admin'
       const routeProtetteEsatte = [
         '/admin/impostazioni',
+        '/registro',
         '/servizi-lab/nuovo',
         '/servizi-pest/nuovo',
         '/anagrafiche/nuovo',
@@ -102,14 +72,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isRouteProtettaAdmin) {
         final userAsync = ref.read(currentUserProvider);
-
-        // Profilo Firestore ancora in caricamento: aspetta rivalutazione
         if (userAsync.isLoading) return null;
-
         final user = userAsync.valueOrNull;
-
-        // Auth autenticato ma profilo Firestore non ancora arrivato (transizione)
-        // → non ancora pronti per valutare il ruolo, aspetta il prossimo ciclo
         if (user == null && isAuthenticated) return null;
 
         if (user == null || !user.isAdmin) {
@@ -126,7 +90,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                                   ? '/preventivo'
                                   : '/anagrafiche';
 
-          // Notifica la pagina di destinazione tramite provider
           ref.read(pendingNotificationProvider.notifier).state =
               'Accesso non autorizzato';
           return redirectPath;
@@ -137,14 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
 
     routes: [
-      // ─── Splash (attesa autenticazione Firebase) ──────────────────────────
-      // Nessuna query Firestore qui: evita permission-denied durante l'init.
+      // ─── Splash ───────────────────────────────────────────────────────────
       GoRoute(
         path: '/',
         builder: (context, state) => const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
+          body: Center(child: CircularProgressIndicator()),
         ),
       ),
 
@@ -159,42 +119,36 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             MainScreen(navigationShell: navigationShell),
         branches: [
-          // Branch 0 — Anagrafiche
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/anagrafiche',
               builder: (context, state) => const AnagrafichePage(),
             ),
           ]),
-          // Branch 1 — Preventivo
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/preventivo',
               builder: (context, state) => const PreventiviPage(),
             ),
           ]),
-          // Branch 2 — Servizi Lab
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/servizi-lab',
               builder: (context, state) => const ServiziLabPage(),
             ),
           ]),
-          // Branch 3 — Servizi Pest
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/servizi-pest',
               builder: (context, state) => const ServiziPestPage(),
             ),
           ]),
-          // Branch 4 — Fatture
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/fatture',
               builder: (context, state) => const FatturePage(),
             ),
           ]),
-          // Branch 5 — Calendario
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/calendario',
@@ -204,16 +158,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // ─── Form clienti (full-screen, fuori dalla shell) ────────────────────
-      // /anagrafiche/nuovo → admin only (protetta sopra in routeProtetteEsatte)
+      // ─── Anagrafiche ──────────────────────────────────────────────────────
       GoRoute(
         path: '/anagrafiche/nuovo',
         builder: (context, state) => const ClienteFormPage(),
       ),
-      // /anagrafiche/:id  → accessibile a tutti gli utenti autenticati.
-      // I dipendenti vedono il form in modalità read-only (ClienteFormPage
-      // legge il ruolo e imposta isReadOnly = !isAdmin). La guardia in
-      // _salva() impedisce scritture anche in caso di accesso diretto via URL.
       GoRoute(
         path: '/anagrafiche/:id',
         builder: (context, state) {
@@ -222,7 +171,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // ─── Form servizi lab (admin only, fuori dalla shell) ─────────────────
+      // ─── Servizi Lab ──────────────────────────────────────────────────────
       GoRoute(
         path: '/servizi-lab/nuovo',
         builder: (context, state) => const ServizioLabFormPage(),
@@ -235,7 +184,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // ─── Form servizi pest (admin only, fuori dalla shell) ───────────────
+      // ─── Servizi Pest ─────────────────────────────────────────────────────
       GoRoute(
         path: '/servizi-pest/nuovo',
         builder: (context, state) => const ServizioPestFormPage(),
@@ -248,7 +197,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // ─── Calendario (admin only per nuovo/modifica, fuori dalla shell) ──────
+      // ─── Calendario ───────────────────────────────────────────────────────
       GoRoute(
         path: '/calendario/nuovo',
         builder: (context, state) => const AppuntamentoFormPage(),
@@ -261,7 +210,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // ─── Form preventivi (admin only, fuori dalla shell) ─────────────────────
+      // ─── Preventivi ───────────────────────────────────────────────────────
       GoRoute(
         path: '/preventivo/nuovo',
         builder: (context, state) => const PreventivoFormPage(),
@@ -274,10 +223,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // ─── Admin (admin only, fuori dalla shell) ─────────────────────────────
+      // ─── Admin ────────────────────────────────────────────────────────────
       GoRoute(
         path: '/admin/impostazioni',
         builder: (context, state) => const AdminSettingsPage(),
+      ),
+
+      // ─── Registro (admin only) ────────────────────────────────────────────
+      GoRoute(
+        path: '/registro',
+        builder: (context, state) => const RegistroPage(),
       ),
     ],
   );

@@ -1,3 +1,4 @@
+import 'package:biochem/services/registro_service.dart' show RegistroService;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/appuntamenti_service.dart';
 import '../../services/cap_service.dart';
@@ -58,3 +59,7 @@ final preventivoPdfServiceProvider =
 /// Singleton del servizio listino a cascata v2 (impostazioni/preventivo_listino_v2)
 final listinoServiceProvider =
     Provider<ListinoService>((ref) => ListinoService());
+
+    /// Singleton del servizio registro preset (Firestore collection 'registro_preset')
+final registroServiceProvider =
+    Provider<RegistroService>((ref) => RegistroService());

@@ -41,6 +41,12 @@ class _ServizioPestFormPageState
   String? _erroreCaricamento;
   String? _servizioIdCorrente;
   bool _allowDirectPop = false;
+  bool _gruppo1Aperta = true;
+  bool _gruppo2Aperta = true;
+  bool _gruppo3Aperta = true;
+  bool _gruppo4Aperta = true;
+  bool _gruppo5Aperta = true;
+  bool _gruppo6Aperta = true;
   Map<String, Object?>? _snapshotIniziale;
 
   // Servizio originale (null = modalità creazione)
@@ -534,9 +540,14 @@ class _ServizioPestFormPageState
           SnackBar(
             content: Text(isDraft
                 ? 'Intervento Pest salvato come bozza'
-                : 'Intervento Pest salvato'),
-            backgroundColor:
-                isDraft ? AppColors.textSecondary : AppColors.success,
+                : 'Intervento Pest salvato',
+                style: const TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.90),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
           ),
         );
         if (closeAfterSave) {
@@ -549,8 +560,13 @@ class _ServizioPestFormPageState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Errore durante il salvataggio: $e'),
-            backgroundColor: AppColors.error,
+            content: Text('Errore durante il salvataggio: $e', style: const TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.error.withValues(alpha: 0.90),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
           ),
         );
       }
@@ -575,32 +591,43 @@ class _ServizioPestFormPageState
     final scelta = await showDialog<_SceltaEsci>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A2A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
         title: const Text(
           'Uscire dal form',
-          style: TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(color: AppColors.textOnDark, fontWeight: FontWeight.w700),
         ),
         content: Text(
           _canSaveAsDraft
               ? 'Vuoi salvare le modifiche prima di uscire o impostare l\'intervento come bozza?'
               : 'Vuoi salvare le modifiche prima di uscire?',
+          style: const TextStyle(color: AppColors.textOnDarkSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, _SceltaEsci.annulla),
-            child: const Text('Rimani'),
+            child: const Text('Rimani', style: TextStyle(color: AppColors.textOnDarkSecondary)),
           ),
           if (_canSaveAsDraft)
             OutlinedButton(
               onPressed: () => Navigator.pop(ctx, _SceltaEsci.bozza),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
+                foregroundColor: AppColors.textOnDarkSecondary,
+                side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: const Text('Salva come bozza'),
             ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, _SceltaEsci.salva),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+              foregroundColor: AppColors.accentGreenDark,
+              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Salva'),
           ),
@@ -628,18 +655,30 @@ class _ServizioPestFormPageState
     final conferma = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Elimina intervento'),
+        backgroundColor: const Color(0xFF0A2A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        title: const Text('Elimina intervento',
+            style: TextStyle(color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
         content: Text(
           'Eliminare l\'intervento ${_committenteCtrl.text.trim()}? L\'azione è irreversibile.',
+          style: const TextStyle(color: AppColors.textOnDarkSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annulla'),
+            child: const Text('Annulla', style: TextStyle(color: AppColors.textOnDarkSecondary)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error.withValues(alpha: 0.25),
+              foregroundColor: const Color(0xFFFF7070),
+              side: BorderSide(color: AppColors.error.withValues(alpha: 0.40), width: 0.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Elimina'),
           ),
         ],
@@ -652,7 +691,15 @@ class _ServizioPestFormPageState
       await _serviziPestService.eliminaServizioPest(_servizioIdCorrente!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Intervento eliminato')),
+          SnackBar(
+            content: const Text('Intervento eliminato', style: TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.90),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
+          ),
         );
         await _chiudiPagina();
       }
@@ -660,8 +707,13 @@ class _ServizioPestFormPageState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Errore eliminazione: $e'),
-            backgroundColor: AppColors.error,
+            content: Text('Errore eliminazione: $e', style: const TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.error.withValues(alpha: 0.90),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+            ),
           ),
         );
       }
@@ -678,22 +730,20 @@ class _ServizioPestFormPageState
 
     final userAsync = ref.watch(currentUserProvider);
     if (userAsync.isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text(titolo)),
-        body: const Center(
-            child: CircularProgressIndicator(color: AppColors.primary)),
+      return _buildGlassScaffold(
+        titolo: titolo,
+        isModifica: false,
+        body: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
     final user = userAsync.valueOrNull;
     if (user == null || !user.isAdmin) {
-      return Scaffold(
-        appBar: AppBar(title: Text(titolo)),
+      return _buildGlassScaffold(
+        titolo: titolo,
+        isModifica: false,
         body: const Center(
-          child: Text(
-            'Accesso non autorizzato',
-            style: TextStyle(color: AppColors.error),
-          ),
+          child: Text('Accesso non autorizzato', style: TextStyle(color: AppColors.error)),
         ),
       );
     }
@@ -704,23 +754,9 @@ class _ServizioPestFormPageState
         if (didPop) return;
         await _gestisciBackNavigation();
       },
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text(titolo),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _gestisciBackNavigation,
-          ),
-          actions: [
-            if (!_isLoading && _servizioIdCorrente != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                tooltip: 'Elimina intervento',
-                onPressed: _isSaving ? null : _elimina,
-              ),
-          ],
-        ),
+      child: _buildGlassScaffold(
+        titolo: titolo,
+        isModifica: !_isLoading && _servizioIdCorrente != null,
         body: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: AppColors.primary))
@@ -766,12 +802,60 @@ class _ServizioPestFormPageState
     );
   }
 
+  Widget _buildGlassScaffold({
+    required String titolo,
+    required bool isModifica,
+    required Widget body,
+  }) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.gradientStart,
+            AppColors.gradientMid1,
+            AppColors.gradientMid2,
+            AppColors.gradientEnd,
+          ],
+          stops: [0.0, 0.3, 0.7, 1.0],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: AppColors.glassDarkest,
+          title: Text(titolo,
+              style: const TextStyle(
+                  color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textOnDark),
+            onPressed: _gestisciBackNavigation,
+          ),
+          actions: [
+            if (isModifica)
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                tooltip: 'Elimina intervento',
+                onPressed: _isSaving ? null : _elimina,
+              ),
+          ],
+        ),
+        body: body,
+      ),
+    );
+  }
+
   // ─── Gruppo 1 — Identificazione intervento ────────────────────────────────
 
   Widget _buildGruppo1(bool isDesktop) {
     return _buildGruppoCard(
       titolo: 'Identificazione intervento',
       isDesktop: isDesktop,
+      icona: Icons.person_outline,
+      isAperta: _gruppo1Aperta,
+      onToggle: () => setState(() => _gruppo1Aperta = !_gruppo1Aperta),
+      preview: _clienteDisplayCtrl.text,
       children: [
         // Campo cliente con autocomplete
         _buildAutocompleteCliente(),
@@ -796,12 +880,13 @@ class _ServizioPestFormPageState
         _buildRiga(isDesktop, [
           TextFormField(
             controller: _codiceDataCtrl,
+            style: const TextStyle(color: Colors.white),
             readOnly: true,
             decoration: _dec('Codice data (AAMMGG)').copyWith(
               filled: true,
-              fillColor: AppColors.inputBackground,
+              fillColor: const Color(0x0DFFFFFF),
               suffixIcon: const Icon(Icons.lock_outline,
-                  size: 16, color: AppColors.textDisabled),
+                  size: 16, color: AppColors.textOnDarkMuted),
             ),
           ),
           GestureDetector(
@@ -809,9 +894,10 @@ class _ServizioPestFormPageState
             child: AbsorbPointer(
               child: TextFormField(
                 controller: _oraCtrl,
+                style: const TextStyle(color: Colors.white),
                 decoration: _dec('Ora').copyWith(
                   suffixIcon: const Icon(Icons.access_time,
-                      size: 18, color: AppColors.textDisabled),
+                      size: 18, color: AppColors.textOnDarkMuted),
                 ),
               ),
             ),
@@ -833,20 +919,27 @@ class _ServizioPestFormPageState
     return _buildGruppoCard(
       titolo: 'Dati cliente',
       isDesktop: isDesktop,
+      icona: Icons.business_outlined,
+      isAperta: _gruppo2Aperta,
+      onToggle: () => setState(() => _gruppo2Aperta = !_gruppo2Aperta),
+      preview: _committenteCtrl.text,
       children: [
         _buildRiga(isDesktop, [
           TextFormField(
             controller: _tipoCommittenteCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Tipo committente'),
           ),
           TextFormField(
             controller: _committenteCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Committente'),
           ),
         ]),
         const SizedBox(height: 12),
         TextFormField(
           controller: _indirizzoCommCtrl,
+          style: const TextStyle(color: Colors.white),
           decoration: _dec('Indirizzo committente'),
         ),
         const SizedBox(height: 12),
@@ -854,6 +947,7 @@ class _ServizioPestFormPageState
           // CAP con lookup automatico
           TextFormField(
             controller: _capCommCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('CAP'),
             keyboardType: TextInputType.number,
             inputFormatters: [
@@ -864,10 +958,12 @@ class _ServizioPestFormPageState
           ),
           TextFormField(
             controller: _cittaCommCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Città'),
           ),
           TextFormField(
             controller: _provCommCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Provincia'),
             inputFormatters: [
               LengthLimitingTextInputFormatter(2),
@@ -879,14 +975,17 @@ class _ServizioPestFormPageState
         _buildRiga(isDesktop, [
           TextFormField(
             controller: _codiceFiscaleCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('C.F. / P.IVA'),
           ),
           TextFormField(
             controller: _codiceUnivocoCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Codice univoco'),
           ),
           TextFormField(
             controller: _referenteCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Referente'),
           ),
         ]),
@@ -900,14 +999,20 @@ class _ServizioPestFormPageState
     return _buildGruppoCard(
       titolo: 'Dati intervento',
       isDesktop: isDesktop,
+      icona: Icons.location_on_outlined,
+      isAperta: _gruppo3Aperta,
+      onToggle: () => setState(() => _gruppo3Aperta = !_gruppo3Aperta),
+      preview: _indirizzoIntervCtrl.text,
       children: [
         _buildRiga(isDesktop, [
           TextFormField(
             controller: _indirizzoIntervCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Indirizzo intervento'),
           ),
           TextFormField(
             controller: _capCittaProvIntervCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('CAP / Città / Provincia intervento'),
           ),
         ]),
@@ -921,12 +1026,14 @@ class _ServizioPestFormPageState
         const SizedBox(height: 12),
         TextFormField(
           controller: _noteAreeCtrl,
+          style: const TextStyle(color: Colors.white),
           maxLines: 3,
           decoration: _dec('Note aree intervento'),
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: _noteAzioniCtrl,
+          style: const TextStyle(color: Colors.white),
           maxLines: 3,
           decoration: _dec('Note azioni correttive'),
         ),
@@ -938,6 +1045,10 @@ class _ServizioPestFormPageState
 
   Widget _buildGruppo4(bool isDesktop) {
     return _buildGruppoCard(
+      icona: Icons.calendar_month_outlined,
+      isAperta: _gruppo4Aperta,
+      onToggle: () => setState(() => _gruppo4Aperta = !_gruppo4Aperta),
+      preview: _dataUlterioreCtrl.text,
       titolo: 'Ulteriori interventi',
       isDesktop: isDesktop,
       children: [
@@ -955,21 +1066,23 @@ class _ServizioPestFormPageState
             child: AbsorbPointer(
               child: TextFormField(
                 controller: _dataUlterioreCtrl,
+                style: const TextStyle(color: Colors.white),
                 decoration: _dec('Data ulteriore intervento').copyWith(
                   suffixIcon: const Icon(Icons.calendar_today_outlined,
-                      size: 18, color: AppColors.textDisabled),
+                      size: 18, color: AppColors.textOnDarkMuted),
                 ),
               ),
             ),
           ),
           TextFormField(
             controller: _codiceDataUltCtrl,
+            style: const TextStyle(color: Colors.white),
             readOnly: true,
             decoration: _dec('Codice data ulteriore (AAMMGG)').copyWith(
               filled: true,
-              fillColor: AppColors.inputBackground,
+              fillColor: const Color(0x0DFFFFFF),
               suffixIcon: const Icon(Icons.lock_outline,
-                  size: 16, color: AppColors.textDisabled),
+                  size: 16, color: AppColors.textOnDarkMuted),
             ),
           ),
           GestureDetector(
@@ -977,9 +1090,10 @@ class _ServizioPestFormPageState
             child: AbsorbPointer(
               child: TextFormField(
                 controller: _oraUltCtrl,
+                style: const TextStyle(color: Colors.white),
                 decoration: _dec('Ora ulteriore').copyWith(
                   suffixIcon: const Icon(Icons.access_time,
-                      size: 18, color: AppColors.textDisabled),
+                      size: 18, color: AppColors.textOnDarkMuted),
                 ),
               ),
             ),
@@ -988,6 +1102,7 @@ class _ServizioPestFormPageState
         const SizedBox(height: 12),
         TextFormField(
           controller: _noteAzioniUltCtrl,
+          style: const TextStyle(color: Colors.white),
           maxLines: 3,
           decoration: _dec('Note azioni correttive ulteriori'),
         ),
@@ -1001,6 +1116,9 @@ class _ServizioPestFormPageState
     return _buildGruppoCard(
       titolo: 'Voci economiche',
       isDesktop: isDesktop,
+      icona: Icons.receipt_outlined,
+      isAperta: _gruppo5Aperta,
+      onToggle: () => setState(() => _gruppo5Aperta = !_gruppo5Aperta),
       children: [
         _buildSezioneVoce(
           etichetta: 'Voce A',
@@ -1018,7 +1136,7 @@ class _ServizioPestFormPageState
           valRitenuta: _valRitenutaA,
           tot: _totA,
         ),
-        const Divider(height: 28, color: AppColors.divider),
+        Container(height: 0.5, color: AppColors.glassBorder, margin: const EdgeInsets.symmetric(vertical: 14)),
         _buildSezioneVoce(
           etichetta: 'Voce B',
           isDesktop: isDesktop,
@@ -1035,7 +1153,7 @@ class _ServizioPestFormPageState
           valRitenuta: _valRitenutaB,
           tot: _totB,
         ),
-        const Divider(height: 28, color: AppColors.divider),
+        Container(height: 0.5, color: AppColors.glassBorder, margin: const EdgeInsets.symmetric(vertical: 14)),
         _buildSezioneVoce(
           etichetta: 'Voce C',
           isDesktop: isDesktop,
@@ -1081,7 +1199,7 @@ class _ServizioPestFormPageState
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 14,
-            color: AppColors.primary,
+            color: AppColors.accentGreenDark,
           ),
         ),
         const SizedBox(height: 10),
@@ -1155,9 +1273,9 @@ class _ServizioPestFormPageState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryLightest,
+        color: AppColors.glassCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.40), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1167,7 +1285,7 @@ class _ServizioPestFormPageState
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 14,
-              color: AppColors.primaryDark,
+              color: AppColors.accentGreenDark,
             ),
           ),
           const SizedBox(height: 12),
@@ -1185,8 +1303,9 @@ class _ServizioPestFormPageState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.primary.withValues(alpha: 0.30),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1196,7 +1315,7 @@ class _ServizioPestFormPageState
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
-                    color: AppColors.textOnPrimary,
+                    color: AppColors.accentGreenDark,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1205,7 +1324,7 @@ class _ServizioPestFormPageState
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 20,
-                    color: AppColors.textOnPrimary,
+                    color: AppColors.accentGreenDark,
                   ),
                 ),
               ],
@@ -1222,14 +1341,14 @@ class _ServizioPestFormPageState
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 11, color: AppColors.textSecondary)),
+                fontSize: 11, color: AppColors.textOnDarkSecondary)),
         const SizedBox(height: 4),
         Text(
           _moneyFmt.format(valore),
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 14,
-            color: AppColors.primaryDark,
+            color: AppColors.accentGreenDark,
           ),
         ),
       ],
@@ -1242,9 +1361,14 @@ class _ServizioPestFormPageState
     return _buildGruppoCard(
       titolo: 'Amministrativo',
       isDesktop: isDesktop,
+      icona: Icons.admin_panel_settings_outlined,
+      isAperta: _gruppo6Aperta,
+      onToggle: () => setState(() => _gruppo6Aperta = !_gruppo6Aperta),
+      preview: _emailCtrl.text,
       children: [
         TextFormField(
           controller: _ulterioriNoteCtrl,
+          style: const TextStyle(color: Colors.white),
           maxLines: 3,
           decoration: _dec('Ulteriori note'),
         ),
@@ -1252,10 +1376,12 @@ class _ServizioPestFormPageState
         _buildRiga(isDesktop, [
           TextFormField(
             controller: _contattiCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Contatti'),
           ),
           TextFormField(
             controller: _emailCtrl,
+            style: const TextStyle(color: Colors.white),
             decoration: _dec('Email'),
             keyboardType: TextInputType.emailAddress,
             validator: (v) {
@@ -1278,15 +1404,20 @@ class _ServizioPestFormPageState
   Widget _buildBottoni() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.divider)),
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: AppColors.glassDarkest,
+        border: Border(top: BorderSide(color: AppColors.glassBorder, width: 0.5)),
       ),
       child: Row(
         children: [
           // Annulla
           OutlinedButton(
             onPressed: _isSaving ? null : _chiudiPagina,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textOnDarkSecondary,
+              side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Annulla'),
           ),
           const SizedBox(width: 12),
@@ -1295,14 +1426,16 @@ class _ServizioPestFormPageState
             child: OutlinedButton(
               onPressed: _isSaving ? null : _esci,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
+                foregroundColor: AppColors.textOnDarkSecondary,
+                side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: _isSaving
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          color: AppColors.textSecondary, strokeWidth: 2))
+                          color: AppColors.accentGreenDark, strokeWidth: 2))
                   : const Text('Esci'),
             ),
           ),
@@ -1312,13 +1445,17 @@ class _ServizioPestFormPageState
             child: FilledButton(
               onPressed: _isSaving ? null : _salva,
               style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                foregroundColor: AppColors.accentGreenDark,
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               child: _isSaving
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          color: AppColors.surface, strokeWidth: 2))
+                          color: AppColors.accentGreenDark, strokeWidth: 2))
                   : const Text('Salva'),
             ),
           ),
@@ -1329,40 +1466,157 @@ class _ServizioPestFormPageState
 
   // ─── Widget riutilizzabili ─────────────────────────────────────────────────
 
-  /// Card gruppo con ExpansionTile — espanso su desktop, chiuso su mobile
   Widget _buildGruppoCard({
     required String titolo,
     required bool isDesktop,
     required List<Widget> children,
+    required IconData icona,
+    required bool isAperta,
+    required VoidCallback onToggle,
+    String preview = '',
   }) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.divider),
-      ),
-      color: AppColors.surface,
-      child: ExpansionTile(
-        initiallyExpanded: isDesktop,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12)),
-        collapsedShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12)),
-        title: Text(
-          titolo,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-            color: AppColors.textPrimary,
-          ),
+    if (isDesktop) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.glassCardMedium,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
         ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      width: 0.5),
+                ),
+                child: Icon(icona, color: AppColors.accentGreenDark, size: 14),
+              ),
+              const SizedBox(width: 8),
+              Text(titolo,
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accentGreenDark,
+                      letterSpacing: 0.3)),
+            ]),
+            Container(
+                height: 0.5,
+                color: const Color(0x26FFFFFF),
+                margin: const EdgeInsets.symmetric(vertical: 10)),
+            ...children,
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.glassCardMedium,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.glassBorderMedium, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(height: 1, color: AppColors.divider),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.35),
+                          width: 0.5),
+                    ),
+                    child:
+                        Icon(icona, color: AppColors.accentGreenDark, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(titolo,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.accentGreenDark,
+                          letterSpacing: 0.3)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: isAperta ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(preview,
+                          style: const TextStyle(
+                              fontSize: 11, color: Color(0x80FFFFFF)),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          textAlign: TextAlign.end),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: isAperta ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0x14FFFFFF),
+                        border: Border.all(
+                            color: const Color(0x26FFFFFF), width: 0.5),
+                      ),
+                      child: const Icon(Icons.keyboard_arrow_up,
+                          color: Color(0x80FFFFFF), size: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              sizeCurve: Curves.easeInOut,
+              firstCurve: Curves.easeInOut,
+              secondCurve: Curves.easeInOut,
+              crossFadeState: isAperta
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              firstChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 0.5,
+                    color: const Color(0x26FFFFFF),
+                    margin: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: children,
+                    ),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox(width: double.infinity, height: 0),
             ),
           ),
         ],
@@ -1408,6 +1662,7 @@ class _ServizioPestFormPageState
   }) {
     return TextFormField(
       controller: ctrl,
+      style: const TextStyle(color: Colors.white),
       decoration: _dec(label),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: intero
@@ -1428,7 +1683,7 @@ class _ServizioPestFormPageState
         Text(
           label,
           style: const TextStyle(
-              fontSize: 12, color: AppColors.textSecondary),
+              fontSize: 12, color: AppColors.textOnDarkSecondary),
         ),
         const SizedBox(height: 4),
         Container(
@@ -1437,11 +1692,14 @@ class _ServizioPestFormPageState
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: highlight
-                ? AppColors.primaryLight
-                : AppColors.inputBackground,
+                ? AppColors.primary.withValues(alpha: 0.20)
+                : const Color(0x0DFFFFFF),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: highlight ? AppColors.primary : AppColors.divider,
+              color: highlight
+                  ? AppColors.primary.withValues(alpha: 0.50)
+                  : AppColors.glassBorder,
+              width: 0.5,
             ),
           ),
           child: Text(
@@ -1449,7 +1707,7 @@ class _ServizioPestFormPageState
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13,
-              color: highlight ? AppColors.primaryDark : AppColors.textPrimary,
+              color: highlight ? AppColors.accentGreenDark : AppColors.textOnDark,
             ),
           ),
         ),
@@ -1479,6 +1737,7 @@ class _ServizioPestFormPageState
         }
         return TextFormField(
           controller: ctrl,
+          style: const TextStyle(color: Colors.white),
           focusNode: focusNode,
           decoration: _dec('Codice cliente — ricerca per nome o numero'),
           onFieldSubmitted: (_) => onSubmit(),
@@ -1490,7 +1749,11 @@ class _ServizioPestFormPageState
           alignment: Alignment.topLeft,
           child: Material(
             elevation: 4,
-            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFF0A2A1A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+            ),
             child: SizedBox(
               width: min(500, MediaQuery.of(ctx).size.width - 32),
               child: ListView.builder(
@@ -1504,21 +1767,21 @@ class _ServizioPestFormPageState
                     leading: CircleAvatar(
                       radius: 16,
                       backgroundColor:
-                          AppColors.primary.withValues(alpha: 0.1),
+                          AppColors.primary.withValues(alpha: 0.20),
                       child: Text(
                         c.initials,
                         style: const TextStyle(
                             fontSize: 11,
-                            color: AppColors.primary,
+                            color: AppColors.accentGreenDark,
                             fontWeight: FontWeight.w700),
                       ),
                     ),
                     title: Text(c.committente,
                         style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 13)),
+                            fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textOnDark)),
                     subtitle: Text(c.numeroFormattato,
                         style: const TextStyle(
-                            fontSize: 11, color: AppColors.textSecondary)),
+                            fontSize: 11, color: AppColors.textOnDarkSecondary)),
                     onTap: () => onSelected(c),
                   );
                 },
@@ -1533,9 +1796,26 @@ class _ServizioPestFormPageState
   InputDecoration _dec(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      labelStyle: const TextStyle(color: AppColors.glassFieldLabelDim, fontSize: 13),
+      filled: true,
+      fillColor: const Color(0x0DFFFFFF),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.glassBorder, width: 0.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.glassBorder, width: 0.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.error, width: 0.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
   }
 }

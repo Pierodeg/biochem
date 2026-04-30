@@ -61,7 +61,8 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
         }
         final categoria = snap.data;
         if (categoria == null) {
-          return _buildScheletro(hintText: 'Categoria non trovata su Firestore');
+          return _buildScheletro(
+              hintText: 'Categoria non trovata su Firestore');
         }
         if (!categoria.hasSottocategorie) {
           return _buildDropdownSemplice(categoria.items);
@@ -85,7 +86,11 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
       dropdownColor: const Color(0xFF0A2A1A),
       iconEnabledColor: AppColors.textOnDarkSecondary,
       items: items
-          .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+          .map((i) => DropdownMenuItem(
+                value: i,
+                child: Text(i,
+                    style: const TextStyle(color: Colors.white, fontSize: 14)),
+              ))
           .toList(),
       onChanged: (v) {
         setState(() => _valoreSelezionato = v);
@@ -106,9 +111,8 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
         ? _sottocategoriaSelezionata
         : null;
 
-    final elementiDisponibili = sottoValida != null
-        ? (sottocategorie[sottoValida] ?? [])
-        : <String>[];
+    final elementiDisponibili =
+        sottoValida != null ? (sottocategorie[sottoValida] ?? []) : <String>[];
 
     final elemValido = elementiDisponibili.contains(_elementoSelezionato)
         ? _elementoSelezionato
@@ -125,7 +129,12 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
           dropdownColor: const Color(0xFF0A2A1A),
           iconEnabledColor: AppColors.textOnDarkSecondary,
           items: chiavi
-              .map((k) => DropdownMenuItem(value: k, child: Text(k)))
+              .map((k) => DropdownMenuItem(
+                    value: k,
+                    child: Text(k,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14)),
+                  ))
               .toList(),
           onChanged: (v) => setState(() {
             _sottocategoriaSelezionata = v;
@@ -144,7 +153,12 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
             dropdownColor: const Color(0xFF0A2A1A),
             iconEnabledColor: AppColors.textOnDarkSecondary,
             items: elementiDisponibili
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .map((e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14)),
+                    ))
                 .toList(),
             onChanged: (v) {
               setState(() => _elementoSelezionato = v);
@@ -166,8 +180,8 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
       enabled: false,
       decoration: _dec(widget.label).copyWith(
         hintText: hintText ?? 'Caricamento...',
-        hintStyle: const TextStyle(
-            color: AppColors.textOnDarkMuted, fontSize: 13),
+        hintStyle:
+            const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 13),
         suffixIcon: hintText == null
             ? const SizedBox(
                 width: 18,
@@ -189,32 +203,28 @@ class _CategoriaDropdownState extends ConsumerState<CategoriaDropdown> {
   InputDecoration _dec(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(
-          color: AppColors.textOnDarkSecondary, fontSize: 13),
+      labelStyle:
+          const TextStyle(color: AppColors.textOnDarkSecondary, fontSize: 13),
       filled: true,
       fillColor: const Color(0x0DFFFFFF),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(color: AppColors.glassBorder, width: 0.5),
+        borderSide: const BorderSide(color: AppColors.glassBorder, width: 0.5),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(color: AppColors.glassBorder, width: 0.5),
+        borderSide: const BorderSide(color: AppColors.glassBorder, width: 0.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide:
             const BorderSide(color: AppColors.glassBorderSubtle, width: 0.5),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
   }
 }
