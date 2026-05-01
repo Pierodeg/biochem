@@ -11,6 +11,7 @@ import '../../../models/cliente_model.dart';
 import '../../../models/servizio_pest_model.dart';
 import '../../../services/cap_service.dart';
 import '../../../services/clienti_service.dart';
+import '../../../services/notifiche_avvio_service.dart';
 import '../../../services/servizi_pest_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
 
@@ -533,6 +534,11 @@ class _ServizioPestFormPageState
           await _serviziPestService.salvaServizioPest(modello);
       _servizioIdCorrente = servizioId;
       _servizioOriginale = modello;
+      // Aggiorna subito la campanella notifiche (fire-and-forget)
+      final uid = ref.read(currentUserProvider).valueOrNull?.uid;
+      if (uid != null) {
+        NotificheAvvioService().verificaScadenze(uid, forceCheck: true);
+      }
       _snapshotIniziale = _snapshotCorrente();
 
       if (mounted) {

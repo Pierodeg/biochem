@@ -71,17 +71,24 @@ class AppuntamentiService {
 
   /// Restituisce gli appuntamenti non completati nei prossimi [giorni] giorni.
   /// Usato per generare notifiche in-app proattive.
+  ///
+  /// Il filtro su `completato` viene applicato in Dart invece che in Firestore
+  /// per evitare la necessità di un indice composito (completato + dataInizio).
   Future<List<AppuntamentoModel>> getAppuntamentiInScadenza(int giorni) async {
     final ora = DateTime.now();
-    final limite = ora.add(Duration(days: giorni));
+    // Partiamo dall'inizio della giornata per includere appuntamenti di oggi
+    // con orario già passato (utile per notificaGiorniPrima = 0).
+    final oggiMezzanotte =
+        DateTime(ora.year, ora.month, ora.day);
+    final limite = oggiMezzanotte.add(Duration(days: giorni));
     final snap = await _collection
-        .where('completato', isEqualTo: false)
-        .where('dataInizio', isGreaterThanOrEqualTo: Timestamp.fromDate(ora))
+        .where('dataInizio', isGreaterThanOrEqualTo: Timestamp.fromDate(oggiMezzanotte))
         .where('dataInizio', isLessThanOrEqualTo: Timestamp.fromDate(limite))
         .orderBy('dataInizio')
         .get();
     return snap.docs
         .map((doc) => AppuntamentoModel.fromFirestore(doc))
+        .where((app) => !app.completato)
         .toList();
   }
 }

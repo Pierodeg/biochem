@@ -1,5 +1,6 @@
 import 'package:biochem/services/cap_service.dart';
 import 'package:biochem/services/clienti_service.dart';
+import 'package:biochem/services/notifiche_avvio_service.dart';
 import 'package:biochem/services/servizi_lab_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,8 +277,13 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       final addr = _indirizziServizio.firstWhere(
         (a) => a.id == id,
         orElse: () => const IndirizzoServizioModel(
-            id: '', indirizzo: '', cap: '', citta: '',
-            provincia: '', referente: '', note: ''),
+            id: '',
+            indirizzo: '',
+            cap: '',
+            citta: '',
+            provincia: '',
+            referente: '',
+            note: ''),
       );
       if (addr.id.isNotEmpty) {
         _luogoPrelievoCtrl.text = addr.indirizzo;
@@ -337,16 +343,14 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   // ─── Carica preset dal Registro in base al campione ──────────────────────
 
   Future<void> _caricaPresetDaCampione(String campione) async {
-    final nomePreset =
-        _mapCampionePreset[campione.toLowerCase().trim()];
+    final nomePreset = _mapCampionePreset[campione.toLowerCase().trim()];
     if (nomePreset == null) return;
 
     setState(() => _caricandoPreset = true);
     try {
       final presets = await _registroService.getPreset().first;
       final preset = presets
-          .where((p) =>
-              p.nome.toLowerCase() == nomePreset.toLowerCase())
+          .where((p) => p.nome.toLowerCase() == nomePreset.toLowerCase())
           .firstOrNull;
 
       if (preset == null || !mounted) return;
@@ -414,8 +418,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   }
 
   Map<String, Object?> _snapshotCorrente() {
-    final m = _costruisciModello(
-        isDraft: _servizioOriginale?.isDraft ?? false);
+    final m = _costruisciModello(isDraft: _servizioOriginale?.isDraft ?? false);
     return {
       'codiceCliente': m.codiceCliente,
       'tipoAnalisi': m.tipoAnalisi,
@@ -494,6 +497,11 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       final servizioId = await _serviziLabService.salvaServizioLab(modello);
       _servizioIdCorrente = servizioId;
       _servizioOriginale = modello;
+      // Aggiorna subito la campanella notifiche (fire-and-forget)
+      final uid = ref.read(currentUserProvider).valueOrNull?.uid;
+      if (uid != null) {
+        NotificheAvvioService().verificaScadenze(uid, forceCheck: true);
+      }
       _snapshotIniziale = _snapshotCorrente();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -519,8 +527,8 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Errore: $e',
-              style: const TextStyle(color: Colors.white)),
+          content:
+              Text('Errore: $e', style: const TextStyle(color: Colors.white)),
           backgroundColor: AppColors.error.withValues(alpha: 0.90),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -571,8 +579,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
               onPressed: () => Navigator.pop(ctx, _SceltaEsci.bozza),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.textOnDarkSecondary,
-                side:
-                    BorderSide(color: AppColors.glassBorder, width: 0.5),
+                side: BorderSide(color: AppColors.glassBorder, width: 0.5),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
@@ -584,8 +591,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
               backgroundColor: AppColors.primary.withValues(alpha: 0.30),
               foregroundColor: AppColors.accentGreenDark,
               side: BorderSide(
-                  color: AppColors.primary.withValues(alpha: 0.50),
-                  width: 0.5),
+                  color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -626,16 +632,14 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Annulla',
-                  style:
-                      TextStyle(color: AppColors.textOnDarkSecondary))),
+                  style: TextStyle(color: AppColors.textOnDarkSecondary))),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.error.withValues(alpha: 0.25),
               foregroundColor: const Color(0xFFFF7070),
               side: BorderSide(
-                  color: AppColors.error.withValues(alpha: 0.40),
-                  width: 0.5),
+                  color: AppColors.error.withValues(alpha: 0.40), width: 0.5),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -684,29 +688,36 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 600;
     final isModifica = _servizioIdCorrente != null;
-    final titolo =
-        isModifica ? 'Modifica servizio lab' : 'Nuovo servizio lab';
+    final titolo = isModifica ? 'Modifica servizio lab' : 'Nuovo servizio lab';
 
     final userAsync = ref.watch(currentUserProvider);
     if (userAsync.isLoading) {
-      return _buildGlassScaffold(titolo: titolo, isModifica: false,
+      return _buildGlassScaffold(
+          titolo: titolo,
+          isModifica: false,
           body: const Center(
               child: CircularProgressIndicator(color: AppColors.primary)));
     }
     final user = userAsync.valueOrNull;
     if (user == null || !user.isAdmin) {
-      return _buildGlassScaffold(titolo: titolo, isModifica: false,
+      return _buildGlassScaffold(
+          titolo: titolo,
+          isModifica: false,
           body: const Center(
               child: Text('Accesso non autorizzato',
                   style: TextStyle(color: AppColors.error))));
     }
     if (_isLoading) {
-      return _buildGlassScaffold(titolo: titolo, isModifica: false,
+      return _buildGlassScaffold(
+          titolo: titolo,
+          isModifica: false,
           body: const Center(
               child: CircularProgressIndicator(color: AppColors.primary)));
     }
     if (_erroreCaricamento != null) {
-      return _buildGlassScaffold(titolo: titolo, isModifica: false,
+      return _buildGlassScaffold(
+          titolo: titolo,
+          isModifica: false,
           body: Center(
               child: Text('Errore: $_erroreCaricamento',
                   style: const TextStyle(color: AppColors.error))));
@@ -730,20 +741,68 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                   padding: EdgeInsets.all(isDesktop ? 24 : 16),
                   child: Column(
                     children: [
-                      _GruppoCard(titolo: 'Identificazione e analisi', icona: Icons.science_outlined, isDesktop: isDesktop, isAperta: _gruppo1Aperta, onToggle: () => setState(() => _gruppo1Aperta = !_gruppo1Aperta), preview: _clienteDisplayCtrl.text, campi: _buildGruppo1(isDesktop)),
+                      _GruppoCard(
+                          titolo: 'Identificazione e analisi',
+                          icona: Icons.science_outlined,
+                          isDesktop: isDesktop,
+                          isAperta: _gruppo1Aperta,
+                          onToggle: () =>
+                              setState(() => _gruppo1Aperta = !_gruppo1Aperta),
+                          preview: _clienteDisplayCtrl.text,
+                          campi: _buildGruppo1(isDesktop)),
                       const SizedBox(height: 12),
-                      _GruppoCard(titolo: 'Date e tempistiche', icona: Icons.calendar_month_outlined, isDesktop: isDesktop, isAperta: _gruppo2Aperta, onToggle: () => setState(() => _gruppo2Aperta = !_gruppo2Aperta), preview: _inizioProveCtrl.text, campi: _buildGruppo2(isDesktop)),
+                      _GruppoCard(
+                          titolo: 'Date e tempistiche',
+                          icona: Icons.calendar_month_outlined,
+                          isDesktop: isDesktop,
+                          isAperta: _gruppo2Aperta,
+                          onToggle: () =>
+                              setState(() => _gruppo2Aperta = !_gruppo2Aperta),
+                          preview: _inizioProveCtrl.text,
+                          campi: _buildGruppo2(isDesktop)),
                       const SizedBox(height: 12),
-                      _GruppoCard(titolo: 'Dati cliente', icona: Icons.business_outlined, isDesktop: isDesktop, isAperta: _gruppo3Aperta, onToggle: () => setState(() => _gruppo3Aperta = !_gruppo3Aperta), preview: _committenteCtrl.text, campi: _buildGruppo3(isDesktop)),
+                      _GruppoCard(
+                          titolo: 'Dati cliente',
+                          icona: Icons.business_outlined,
+                          isDesktop: isDesktop,
+                          isAperta: _gruppo3Aperta,
+                          onToggle: () =>
+                              setState(() => _gruppo3Aperta = !_gruppo3Aperta),
+                          preview: _committenteCtrl.text,
+                          campi: _buildGruppo3(isDesktop)),
                       const SizedBox(height: 12),
-                      _GruppoCard(titolo: 'Campione e prelievo', icona: Icons.water_drop_outlined, isDesktop: isDesktop, isAperta: _gruppo4Aperta, onToggle: () => setState(() => _gruppo4Aperta = !_gruppo4Aperta), preview: _campioneRiferimento ?? '', campi: _buildGruppo4(isDesktop)),
+                      _GruppoCard(
+                          titolo: 'Campione e prelievo',
+                          icona: Icons.water_drop_outlined,
+                          isDesktop: isDesktop,
+                          isAperta: _gruppo4Aperta,
+                          onToggle: () =>
+                              setState(() => _gruppo4Aperta = !_gruppo4Aperta),
+                          preview: _campioneRiferimento ?? '',
+                          campi: _buildGruppo4(isDesktop)),
                       const SizedBox(height: 12),
                       // ── GRUPPO REPORT ──────────────────────────────────
                       _buildGruppoReport(isDesktop),
                       const SizedBox(height: 12),
-                      _GruppoCard(titolo: 'Contatti cliente', icona: Icons.contact_mail_outlined, isDesktop: isDesktop, isAperta: _gruppo5Aperta, onToggle: () => setState(() => _gruppo5Aperta = !_gruppo5Aperta), preview: _emailCtrl.text, campi: _buildGruppo5(isDesktop)),
+                      _GruppoCard(
+                          titolo: 'Contatti cliente',
+                          icona: Icons.contact_mail_outlined,
+                          isDesktop: isDesktop,
+                          isAperta: _gruppo5Aperta,
+                          onToggle: () =>
+                              setState(() => _gruppo5Aperta = !_gruppo5Aperta),
+                          preview: _emailCtrl.text,
+                          campi: _buildGruppo5(isDesktop)),
                       const SizedBox(height: 12),
-                      _GruppoCard(titolo: 'Amministrativo', icona: Icons.admin_panel_settings_outlined, isDesktop: isDesktop, isAperta: _gruppo6Aperta, onToggle: () => setState(() => _gruppo6Aperta = !_gruppo6Aperta), preview: _tecnico ?? '', campi: _buildGruppo6(isDesktop)),
+                      _GruppoCard(
+                          titolo: 'Amministrativo',
+                          icona: Icons.admin_panel_settings_outlined,
+                          isDesktop: isDesktop,
+                          isAperta: _gruppo6Aperta,
+                          onToggle: () =>
+                              setState(() => _gruppo6Aperta = !_gruppo6Aperta),
+                          preview: _tecnico ?? '',
+                          campi: _buildGruppo6(isDesktop)),
                     ],
                   ),
                 ),
@@ -792,8 +851,8 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
               // Badge contatore parametri
               if (_parametriReport.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.20),
                     borderRadius: BorderRadius.circular(10),
@@ -823,8 +882,8 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                       width: 0.5),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 12),
                 ),
               ),
@@ -848,17 +907,14 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                 SizedBox(width: 10),
                 Text('Caricamento preset...',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textOnDarkSecondary)),
+                        fontSize: 12, color: AppColors.textOnDarkSecondary)),
               ],
             )
           else if (_parametriReport.isEmpty) ...[
             Row(
               children: [
                 Icon(
-                  hasPreset
-                      ? Icons.info_outline
-                      : Icons.block_outlined,
+                  hasPreset ? Icons.info_outline : Icons.block_outlined,
                   size: 14,
                   color: hasPreset
                       ? AppColors.accentGreenDark
@@ -888,9 +944,8 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                 .toSet()
                 .take(3)
                 .map((cat) {
-              final count = _parametriReport
-                  .where((p) => p.categoria == cat)
-                  .length;
+              final count =
+                  _parametriReport.where((p) => p.categoria == cat).length;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
@@ -915,8 +970,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                     Text(
                       '($count parametri)',
                       style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textOnDarkMuted),
+                          fontSize: 11, color: AppColors.textOnDarkMuted),
                     ),
                   ],
                 ),
@@ -950,8 +1004,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
     final w = isDesktop ? 300.0 : double.infinity;
     return [
       SizedBox(
-          width: isDesktop ? w * 2 + 16 : w,
-          child: _buildRicercaCliente()),
+          width: isDesktop ? w * 2 + 16 : w, child: _buildRicercaCliente()),
       SizedBox(
         width: w,
         child: CategoriaDropdown(
@@ -1009,8 +1062,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
             c.committente.toLowerCase().contains(q) ||
             c.numeroCliente.toString().contains(q));
       },
-      displayStringForOption: (c) =>
-          '${c.numeroFormattato} — ${c.committente}',
+      displayStringForOption: (c) => '${c.numeroFormattato} — ${c.committente}',
       onSelected: _onClienteSelezionato,
       optionsViewBuilder: (context, onSelected, options) => Align(
         alignment: Alignment.topLeft,
@@ -1022,8 +1074,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
             side: BorderSide(color: AppColors.glassBorder, width: 0.5),
           ),
           child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(maxHeight: 220, maxWidth: 400),
+            constraints: const BoxConstraints(maxHeight: 220, maxWidth: 400),
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: options.length,
@@ -1036,8 +1087,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                   subtitle: Text(
                       '${cliente.numeroFormattato} · ${cliente.citta}',
                       style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textOnDarkSecondary)),
+                          fontSize: 12, color: AppColors.textOnDarkSecondary)),
                   onTap: () => onSelected(cliente),
                 );
               },
@@ -1089,8 +1139,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
             suffixIcon: const Icon(Icons.calendar_today,
                 size: 18, color: AppColors.textOnDarkMuted),
           ),
-          validator: (v) =>
-              (v == null || v.isEmpty) ? 'Obbligatorio' : null,
+          validator: (v) => (v == null || v.isEmpty) ? 'Obbligatorio' : null,
         ),
       ),
       SizedBox(
@@ -1133,14 +1182,54 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   List<Widget> _buildGruppo3(bool isDesktop) {
     final w = isDesktop ? 280.0 : double.infinity;
     return [
-      SizedBox(width: w, child: TextFormField(controller: _tipoCommittenteCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Tipo committente'))),
-      SizedBox(width: isDesktop ? w * 2 + 16 : w, child: TextFormField(controller: _committenteCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Committente'))),
-      SizedBox(width: isDesktop ? w * 2 + 16 : w, child: TextFormField(controller: _indirizzoCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Indirizzo'))),
-      SizedBox(width: isDesktop ? 120 : w, child: TextFormField(controller: _capClienteCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('CAP'))),
-      SizedBox(width: w, child: TextFormField(controller: _cittaCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Città'))),
-      SizedBox(width: w, child: TextFormField(controller: _pivaCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('P.IVA / Codice Fiscale'))),
-      SizedBox(width: w, child: TextFormField(controller: _codiceUnivocoCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Codice Univoco'))),
-      SizedBox(width: w, child: TextFormField(controller: _referenteCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('C/A Referente'))),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _tipoCommittenteCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Tipo committente'))),
+      SizedBox(
+          width: isDesktop ? w * 2 + 16 : w,
+          child: TextFormField(
+              controller: _committenteCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Committente'))),
+      SizedBox(
+          width: isDesktop ? w * 2 + 16 : w,
+          child: TextFormField(
+              controller: _indirizzoCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Indirizzo'))),
+      SizedBox(
+          width: isDesktop ? 120 : w,
+          child: TextFormField(
+              controller: _capClienteCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('CAP'))),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _cittaCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Città'))),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _pivaCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('P.IVA / Codice Fiscale'))),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _codiceUnivocoCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Codice Univoco'))),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _referenteCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('C/A Referente'))),
     ];
   }
 
@@ -1160,8 +1249,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
             // Carica preset automaticamente se disponibile e lista vuota
             if (v != null &&
                 _parametriReport.isEmpty &&
-                _mapCampionePreset
-                    .containsKey(v.toLowerCase().trim())) {
+                _mapCampionePreset.containsKey(v.toLowerCase().trim())) {
               _caricaPresetDaCampione(v);
             }
           },
@@ -1180,8 +1268,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       ),
       SizedBox(
         width: isDesktop ? w * 2 + 16 : w,
-        child: _buildDropdownIndirizzoPrelievo(
-            isDesktop ? w * 2 + 16 : w),
+        child: _buildDropdownIndirizzoPrelievo(isDesktop ? w * 2 + 16 : w),
       ),
       SizedBox(
         width: w,
@@ -1192,7 +1279,12 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
           onChanged: _onCapPrelievoChanged,
         ),
       ),
-      SizedBox(width: w, child: TextFormField(controller: _puntoPresaCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Punto presa'))),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _puntoPresaCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Punto presa'))),
       SizedBox(
         width: w,
         child: CategoriaDropdown(
@@ -1217,44 +1309,86 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   Widget _buildDropdownIndirizzoPrelievo(double width) {
     final clienteSelezionato = _codiceClienteId.isNotEmpty;
     final items = <DropdownMenuItem<String>>[];
+
     if (clienteSelezionato && _clienteSelezionato != null) {
       final c = _clienteSelezionato!;
-      final indirizzoP =
-          c.indirizzoServizio.isNotEmpty ? c.indirizzoServizio : c.indirizzo;
-      final cittaP =
-          c.cittaServizio.isNotEmpty ? c.cittaServizio : c.citta;
-      items.add(DropdownMenuItem(
-        value: 'principale',
-        child: Text(
-            'Indirizzo principale — $indirizzoP${cittaP.isNotEmpty ? ", $cittaP" : ""}',
-            overflow: TextOverflow.ellipsis),
-      ));
+
+      final indirizzoP = c.indirizzoServizio.trim().isNotEmpty
+          ? c.indirizzoServizio.trim()
+          : c.indirizzo.trim();
+
+      final cittaP = c.cittaServizio.trim().isNotEmpty
+          ? c.cittaServizio.trim()
+          : c.citta.trim();
+
+      final hasIndirizzoPrincipale = indirizzoP.isNotEmpty || cittaP.isNotEmpty;
+
+      if (hasIndirizzoPrincipale) {
+        items.add(
+          DropdownMenuItem(
+            value: 'principale',
+            child: Text(
+              'Indirizzo principale — $indirizzoP${cittaP.isNotEmpty ? ", $cittaP" : ""}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        );
+      }
+
       for (final addr in _indirizziServizio) {
+        final indirizzo = addr.indirizzo.trim();
+        final citta = addr.citta.trim();
+        final referente = addr.referente.trim();
+
+        final hasIndirizzo = indirizzo.isNotEmpty || citta.isNotEmpty;
+
+        if (!hasIndirizzo) continue;
+
         final label = [
-          addr.indirizzo,
-          if (addr.citta.isNotEmpty) addr.citta,
-          if (addr.referente.isNotEmpty) '(${addr.referente})',
+          indirizzo,
+          if (citta.isNotEmpty) citta,
+          if (referente.isNotEmpty) '($referente)',
         ].join(' ');
-        items.add(DropdownMenuItem(
+
+        items.add(
+          DropdownMenuItem(
             value: addr.id,
-            child: Text(label, overflow: TextOverflow.ellipsis)));
+            child: Text(label, overflow: TextOverflow.ellipsis),
+          ),
+        );
       }
     }
+
+    final hasIndirizzi = items.isNotEmpty;
+
     return DropdownButtonFormField<String>(
-      initialValue: _indirizzoPrelievoId,
+      initialValue: hasIndirizzi ? _indirizzoPrelievoId : null,
       style: const TextStyle(color: Colors.white, fontSize: 14),
       dropdownColor: const Color(0xFF0A2A1A),
       iconEnabledColor: AppColors.textOnDarkSecondary,
-      decoration: _dec('Indirizzo/Coordinate prelievo servizio').copyWith(
-        hintText: clienteSelezionato
-            ? 'Seleziona indirizzo...'
-            : 'Seleziona prima un cliente',
-        hintStyle: const TextStyle(
-            color: AppColors.textOnDarkSecondary, fontSize: 13),
+      decoration: _dec('Indirizzo/Coordinate prelievo servizio'),
+      hint: Text(
+        !clienteSelezionato
+            ? 'Seleziona prima un cliente'
+            : hasIndirizzi
+                ? 'Seleziona indirizzo...'
+                : 'Nessun indirizzo inserito',
+        style: const TextStyle(
+          color: AppColors.textOnDarkMuted,
+        ),
+      ),
+      disabledHint: Text(
+        !clienteSelezionato
+            ? 'Seleziona prima un cliente'
+            : 'Nessun indirizzo presente',
+        style: const TextStyle(
+          color: AppColors.textOnDarkMuted,
+        ),
       ),
       items: items,
-      onChanged:
-          clienteSelezionato ? _onIndirizzoPrelievoSelezionato : null,
+      onChanged: clienteSelezionato && hasIndirizzi
+          ? _onIndirizzoPrelievoSelezionato
+          : null,
       isExpanded: true,
     );
   }
@@ -1264,9 +1398,27 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   List<Widget> _buildGruppo5(bool isDesktop) {
     final w = isDesktop ? 280.0 : double.infinity;
     return [
-      SizedBox(width: w, child: TextFormField(controller: _emailCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Email'), keyboardType: TextInputType.emailAddress)),
-      SizedBox(width: w, child: TextFormField(controller: _telefonoCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Telefono'), keyboardType: TextInputType.phone)),
-      SizedBox(width: w, child: TextFormField(controller: _pecCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('PEC'), keyboardType: TextInputType.emailAddress)),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _emailCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Email'),
+              keyboardType: TextInputType.emailAddress)),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _telefonoCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Telefono'),
+              keyboardType: TextInputType.phone)),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _pecCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('PEC'),
+              keyboardType: TextInputType.emailAddress)),
     ];
   }
 
@@ -1275,26 +1427,59 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   List<Widget> _buildGruppo6(bool isDesktop) {
     final w = isDesktop ? 400.0 : double.infinity;
     return [
-      SizedBox(width: w, child: TextFormField(controller: _notePrezzoCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Note prezzo'), maxLines: 3)),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _notePrezzoCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Note prezzo'),
+              maxLines: 3)),
       SizedBox(
         width: isDesktop ? 200 : w,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SwitchListTile(title: const Text('FT', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textOnDark)), value: _ft, onChanged: (v) => setState(() => _ft = v), activeThumbColor: AppColors.accentGreenDark, contentPadding: EdgeInsets.zero, dense: true),
-          SwitchListTile(title: const Text('Fattura pagata', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textOnDark)), value: _fatturaPagata, onChanged: (v) => setState(() => _fatturaPagata = v), activeThumbColor: AppColors.accentGreenDark, contentPadding: EdgeInsets.zero, dense: true),
+          SwitchListTile(
+              title: const Text('FT',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textOnDark)),
+              value: _ft,
+              onChanged: (v) => setState(() => _ft = v),
+              activeThumbColor: AppColors.accentGreenDark,
+              contentPadding: EdgeInsets.zero,
+              dense: true),
+          SwitchListTile(
+              title: const Text('Fattura pagata',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textOnDark)),
+              value: _fatturaPagata,
+              onChanged: (v) => setState(() => _fatturaPagata = v),
+              activeThumbColor: AppColors.accentGreenDark,
+              contentPadding: EdgeInsets.zero,
+              dense: true),
         ]),
       ),
-      SizedBox(width: w, child: TextFormField(controller: _noteTecnicheCtrl, style: const TextStyle(color: Colors.white), decoration: _dec('Note tecniche'), maxLines: 4)),
+      SizedBox(
+          width: w,
+          child: TextFormField(
+              controller: _noteTecnicheCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Note tecniche'),
+              maxLines: 4)),
     ];
   }
 
   // ─── WIDGET CONDIVISI ─────────────────────────────────────────────────────
 
-  Widget _buildCampoSolaLettura({required String label, required TextEditingController controller}) {
+  Widget _buildCampoSolaLettura(
+      {required String label, required TextEditingController controller}) {
     return TextFormField(
       controller: controller,
       readOnly: true,
-      style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accentGreenDark),
-      decoration: _dec(label).copyWith(filled: true, fillColor: const Color(0x0DFFFFFF)),
+      style: const TextStyle(
+          fontWeight: FontWeight.w700, color: AppColors.accentGreenDark),
+      decoration: _dec(label)
+          .copyWith(filled: true, fillColor: const Color(0x0DFFFFFF)),
     );
   }
 
@@ -1303,41 +1488,77 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
         color: AppColors.glassDarkest,
-        border: Border(top: BorderSide(color: AppColors.glassBorder, width: 0.5)),
+        border:
+            Border(top: BorderSide(color: AppColors.glassBorder, width: 0.5)),
       ),
       child: Row(children: [
         OutlinedButton(
           onPressed: _isSaving ? null : _chiudiPagina,
-          style: OutlinedButton.styleFrom(foregroundColor: AppColors.textOnDarkSecondary, side: BorderSide(color: AppColors.glassBorder, width: 0.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textOnDarkSecondary,
+              side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8))),
           child: const Text('Annulla'),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: OutlinedButton(
             onPressed: _isSaving ? null : _esci,
-            style: OutlinedButton.styleFrom(foregroundColor: AppColors.textOnDarkSecondary, side: BorderSide(color: AppColors.glassBorder, width: 0.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: _isSaving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: AppColors.accentGreenDark, strokeWidth: 2)) : const Text('Esci'),
+            style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textOnDarkSecondary,
+                side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
+            child: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        color: AppColors.accentGreenDark, strokeWidth: 2))
+                : const Text('Esci'),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: FilledButton(
             onPressed: _isSaving ? null : _salva,
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primary.withValues(alpha: 0.30), foregroundColor: AppColors.accentGreenDark, side: BorderSide(color: AppColors.primary.withValues(alpha: 0.50), width: 0.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: _isSaving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: AppColors.accentGreenDark, strokeWidth: 2)) : const Text('Salva'),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+                foregroundColor: AppColors.accentGreenDark,
+                side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.50),
+                    width: 0.5),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
+            child: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        color: AppColors.accentGreenDark, strokeWidth: 2))
+                : const Text('Salva'),
           ),
         ),
       ]),
     );
   }
 
-  Widget _buildGlassScaffold({required String titolo, required bool isModifica, required Widget body}) {
+  Widget _buildGlassScaffold(
+      {required String titolo,
+      required bool isModifica,
+      required Widget body}) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.gradientStart, AppColors.gradientMid1, AppColors.gradientMid2, AppColors.gradientEnd],
+          colors: [
+            AppColors.gradientStart,
+            AppColors.gradientMid1,
+            AppColors.gradientMid2,
+            AppColors.gradientEnd
+          ],
           stops: [0.0, 0.3, 0.7, 1.0],
         ),
       ),
@@ -1345,11 +1566,19 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: AppColors.glassDarkest,
-          title: Text(titolo, style: const TextStyle(color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textOnDark), onPressed: _gestisciBackNavigation),
+          title: Text(titolo,
+              style: const TextStyle(
+                  color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.textOnDark),
+              onPressed: _gestisciBackNavigation),
           actions: [
             if (isModifica)
-              IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.error), tooltip: 'Elimina servizio', onPressed: _isSaving ? null : _elimina),
+              IconButton(
+                  icon:
+                      const Icon(Icons.delete_outline, color: AppColors.error),
+                  tooltip: 'Elimina servizio',
+                  onPressed: _isSaving ? null : _elimina),
           ],
         ),
         body: body,
@@ -1360,13 +1589,24 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   InputDecoration _dec(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AppColors.glassFieldLabelDim, fontSize: 13),
+      labelStyle:
+          const TextStyle(color: AppColors.glassFieldLabelDim, fontSize: 13),
       filled: true,
       fillColor: const Color(0x0DFFFFFF),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.glassBorder, width: 0.5)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.glassBorder, width: 0.5)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.error, width: 0.5)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide:
+              const BorderSide(color: AppColors.glassBorder, width: 0.5)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide:
+              const BorderSide(color: AppColors.glassBorder, width: 0.5)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+      errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.error, width: 0.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
   }
@@ -1409,24 +1649,19 @@ class _ReportPopupState extends State<_ReportPopup> {
 
   List<ParametroReport> get _parametriCategoria => _categoriaSelezionata == null
       ? _parametri
-      : _parametri
-          .where((p) => p.categoria == _categoriaSelezionata)
-          .toList();
+      : _parametri.where((p) => p.categoria == _categoriaSelezionata).toList();
 
   Future<void> _caricaPreset() async {
     final campione = widget.campioneRiferimento;
     if (campione == null) return;
-    final nomePreset =
-        _mapCampionePreset[campione.toLowerCase().trim()];
+    final nomePreset = _mapCampionePreset[campione.toLowerCase().trim()];
     if (nomePreset == null) return;
 
     setState(() => _caricando = true);
     try {
-      final presets =
-          await widget.registroService.getPreset().first;
+      final presets = await widget.registroService.getPreset().first;
       final preset = presets
-          .where((p) =>
-              p.nome.toLowerCase() == nomePreset.toLowerCase())
+          .where((p) => p.nome.toLowerCase() == nomePreset.toLowerCase())
           .firstOrNull;
       if (preset == null || !mounted) return;
 
@@ -1447,8 +1682,7 @@ class _ReportPopupState extends State<_ReportPopup> {
       setState(() {
         _parametri = nuovi;
         final categorie = _parametri.map((p) => p.categoria).toSet().toList();
-        _categoriaSelezionata =
-            categorie.isNotEmpty ? categorie.first : null;
+        _categoriaSelezionata = categorie.isNotEmpty ? categorie.first : null;
       });
     } finally {
       if (mounted) setState(() => _caricando = false);
@@ -1463,8 +1697,7 @@ class _ReportPopupState extends State<_ReportPopup> {
     final vlCtrl = TextEditingController(text: esistente?.vl ?? '');
     final loqCtrl = TextEditingController(text: esistente?.loq ?? '');
     final iCtrl = TextEditingController(text: esistente?.i ?? '');
-    final metodoCtrl =
-        TextEditingController(text: esistente?.metodoRif ?? '');
+    final metodoCtrl = TextEditingController(text: esistente?.metodoRif ?? '');
     final risultatoCtrl =
         TextEditingController(text: esistente?.risultato ?? '');
 
@@ -1473,8 +1706,8 @@ class _ReportPopupState extends State<_ReportPopup> {
           hintText: hint,
           labelStyle: const TextStyle(
               color: AppColors.textOnDarkSecondary, fontSize: 12),
-          hintStyle: const TextStyle(
-              color: AppColors.textOnDarkMuted, fontSize: 12),
+          hintStyle:
+              const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 12),
           filled: true,
           fillColor: const Color(0x0DFFFFFF),
           border: OutlineInputBorder(
@@ -1489,8 +1722,7 @@ class _ReportPopupState extends State<_ReportPopup> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 1.5),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1573,16 +1805,15 @@ class _ReportPopupState extends State<_ReportPopup> {
                 ),
                 const SizedBox(height: 14),
                 // Divisore
-                Container(
-                    height: 0.5, color: AppColors.glassBorderSubtle),
+                Container(height: 0.5, color: AppColors.glassBorderSubtle),
                 const SizedBox(height: 14),
                 // Risultato
                 TextField(
                   controller: risultatoCtrl,
                   style: const TextStyle(
                       color: AppColors.textOnDark, fontSize: 13),
-                  decoration: dec('Risultato',
-                      hint: 'Es. <LOQ, 0,12, non det...'),
+                  decoration:
+                      dec('Risultato', hint: 'Es. <LOQ, 0,12, non det...'),
                 ),
               ],
             ),
@@ -1592,8 +1823,7 @@ class _ReportPopupState extends State<_ReportPopup> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Annulla',
-                style:
-                    TextStyle(color: AppColors.textOnDarkSecondary)),
+                style: TextStyle(color: AppColors.textOnDarkSecondary)),
           ),
           FilledButton(
             onPressed: () {
@@ -1633,8 +1863,7 @@ class _ReportPopupState extends State<_ReportPopup> {
               backgroundColor: AppColors.primary.withValues(alpha: 0.30),
               foregroundColor: AppColors.accentGreenDark,
               side: BorderSide(
-                  color: AppColors.primary.withValues(alpha: 0.50),
-                  width: 0.5),
+                  color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -1659,8 +1888,8 @@ class _ReportPopupState extends State<_ReportPopup> {
           ),
           Expanded(
             child: Text(valore,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.textOnDark)),
+                style:
+                    const TextStyle(fontSize: 12, color: AppColors.textOnDark)),
           ),
         ],
       ),
@@ -1670,8 +1899,8 @@ class _ReportPopupState extends State<_ReportPopup> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final hasPreset = _mapCampionePreset.containsKey(
-        widget.campioneRiferimento?.toLowerCase().trim() ?? '');
+    final hasPreset = _mapCampionePreset
+        .containsKey(widget.campioneRiferimento?.toLowerCase().trim() ?? '');
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -1691,11 +1920,11 @@ class _ReportPopupState extends State<_ReportPopup> {
               padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
               decoration: BoxDecoration(
                 color: AppColors.glassDarkest,
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 border: Border(
-                    bottom: BorderSide(
-                        color: AppColors.glassBorder, width: 0.5)),
+                    bottom:
+                        BorderSide(color: AppColors.glassBorder, width: 0.5)),
               ),
               child: Row(
                 children: [
@@ -1761,14 +1990,13 @@ class _ReportPopupState extends State<_ReportPopup> {
                 color: AppColors.glassDark,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: _categorie.map((cat) {
                       final isSelected = cat == _categoriaSelezionata;
-                      final count = _parametri
-                          .where((p) => p.categoria == cat)
-                          .length;
+                      final count =
+                          _parametri.where((p) => p.categoria == cat).length;
                       return GestureDetector(
                         onTap: () =>
                             setState(() => _categoriaSelezionata = cat),
@@ -1839,17 +2067,58 @@ class _ReportPopupState extends State<_ReportPopup> {
                               color: AppColors.glassDarkest,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color: AppColors.glassBorder,
-                                  width: 0.5),
+                                  color: AppColors.glassBorder, width: 0.5),
                             ),
                             child: const Row(
                               children: [
-                                Expanded(flex: 3, child: Text('PARAMETRO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textOnDarkMuted, letterSpacing: 0.5))),
-                                Expanded(flex: 1, child: Text('U.M.', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textOnDarkMuted, letterSpacing: 0.5))),
-                                Expanded(flex: 2, child: Text('V.L.', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textOnDarkMuted, letterSpacing: 0.5))),
-                                Expanded(flex: 1, child: Text('LoQ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textOnDarkMuted, letterSpacing: 0.5))),
-                                Expanded(flex: 1, child: Text('I', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textOnDarkMuted, letterSpacing: 0.5))),
-                                Expanded(flex: 2, child: Text('METODO RIF.', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textOnDarkMuted, letterSpacing: 0.5))),
+                                Expanded(
+                                    flex: 3,
+                                    child: Text('PARAMETRO',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textOnDarkMuted,
+                                            letterSpacing: 0.5))),
+                                Expanded(
+                                    flex: 1,
+                                    child: Text('U.M.',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textOnDarkMuted,
+                                            letterSpacing: 0.5))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Text('V.L.',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textOnDarkMuted,
+                                            letterSpacing: 0.5))),
+                                Expanded(
+                                    flex: 1,
+                                    child: Text('LoQ',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textOnDarkMuted,
+                                            letterSpacing: 0.5))),
+                                Expanded(
+                                    flex: 1,
+                                    child: Text('I',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textOnDarkMuted,
+                                            letterSpacing: 0.5))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Text('METODO RIF.',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textOnDarkMuted,
+                                            letterSpacing: 0.5))),
                                 SizedBox(width: 40),
                               ],
                             ),
@@ -1868,19 +2137,61 @@ class _ReportPopupState extends State<_ReportPopup> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Expanded(flex: 3, child: Text(p.parametro, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textOnDark))),
-                                    Expanded(flex: 1, child: Text(p.um, style: const TextStyle(fontSize: 11, color: AppColors.textOnDarkSecondary))),
-                                    Expanded(flex: 2, child: Text(p.vl, style: const TextStyle(fontSize: 11, color: AppColors.textOnDarkSecondary))),
-                                    Expanded(flex: 1, child: Text(p.loq, style: const TextStyle(fontSize: 11, color: AppColors.textOnDarkSecondary))),
-                                    Expanded(flex: 1, child: Text(p.i, style: const TextStyle(fontSize: 11, color: AppColors.textOnDarkSecondary))),
-                                    Expanded(flex: 2, child: Text(p.metodoRif, style: const TextStyle(fontSize: 10, color: AppColors.textOnDarkMuted), maxLines: 2, overflow: TextOverflow.ellipsis)),
+                                    Expanded(
+                                        flex: 3,
+                                        child: Text(p.parametro,
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppColors.textOnDark))),
+                                    Expanded(
+                                        flex: 1,
+                                        child: Text(p.um,
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors
+                                                    .textOnDarkSecondary))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text(p.vl,
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors
+                                                    .textOnDarkSecondary))),
+                                    Expanded(
+                                        flex: 1,
+                                        child: Text(p.loq,
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors
+                                                    .textOnDarkSecondary))),
+                                    Expanded(
+                                        flex: 1,
+                                        child: Text(p.i,
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors
+                                                    .textOnDarkSecondary))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text(p.metodoRif,
+                                            style: const TextStyle(
+                                                fontSize: 10,
+                                                color:
+                                                    AppColors.textOnDarkMuted),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis)),
                                     SizedBox(
                                       width: 56,
                                       child: Row(
                                         children: [
                                           GestureDetector(
                                             onTap: () => _modificaParametro(p),
-                                            child: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textOnDarkSecondary),
+                                            child: const Icon(
+                                                Icons.edit_outlined,
+                                                size: 16,
+                                                color: AppColors
+                                                    .textOnDarkSecondary),
                                           ),
                                           const SizedBox(width: 8),
                                           GestureDetector(
@@ -1888,25 +2199,77 @@ class _ReportPopupState extends State<_ReportPopup> {
                                               final ok = await showDialog<bool>(
                                                 context: context,
                                                 builder: (ctx) => AlertDialog(
-                                                  backgroundColor: const Color(0xFF0A2A1A),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.glassBorder, width: 0.5)),
-                                                  title: const Text('Elimina parametro', style: TextStyle(color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
-                                                  content: Text('Eliminare "${p.parametro}"?', style: const TextStyle(color: AppColors.textOnDarkSecondary)),
+                                                  backgroundColor:
+                                                      const Color(0xFF0A2A1A),
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              16),
+                                                      side: BorderSide(
+                                                          color: AppColors
+                                                              .glassBorder,
+                                                          width: 0.5)),
+                                                  title: const Text(
+                                                      'Elimina parametro',
+                                                      style: TextStyle(
+                                                          color: AppColors
+                                                              .textOnDark,
+                                                          fontWeight:
+                                                              FontWeight.w600)),
+                                                  content: Text(
+                                                      'Eliminare "${p.parametro}"?',
+                                                      style: const TextStyle(
+                                                          color: AppColors
+                                                              .textOnDarkSecondary)),
                                                   actions: [
-                                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla', style: TextStyle(color: AppColors.textOnDarkSecondary))),
+                                                    TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                ctx, false),
+                                                        child: const Text(
+                                                            'Annulla',
+                                                            style: TextStyle(
+                                                                color: AppColors
+                                                                    .textOnDarkSecondary))),
                                                     FilledButton(
-                                                      onPressed: () => Navigator.pop(ctx, true),
-                                                      style: FilledButton.styleFrom(backgroundColor: AppColors.error.withValues(alpha: 0.25), foregroundColor: const Color(0xFFFF7070), side: BorderSide(color: AppColors.error.withValues(alpha: 0.40), width: 0.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                                                      child: const Text('Elimina'),
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              ctx, true),
+                                                      style: FilledButton.styleFrom(
+                                                          backgroundColor: AppColors
+                                                              .error
+                                                              .withValues(
+                                                                  alpha: 0.25),
+                                                          foregroundColor:
+                                                              const Color(
+                                                                  0xFFFF7070),
+                                                          side: BorderSide(
+                                                              color: AppColors
+                                                                  .error
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.40),
+                                                              width: 0.5),
+                                                          shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8))),
+                                                      child:
+                                                          const Text('Elimina'),
                                                     ),
                                                   ],
                                                 ),
                                               );
                                               if (ok == true) {
-                                                setState(() => _parametri.remove(p));
+                                                setState(
+                                                    () => _parametri.remove(p));
                                               }
                                             },
-                                            child: Icon(Icons.delete_outline, size: 16, color: AppColors.error.withValues(alpha: 0.7)),
+                                            child: Icon(Icons.delete_outline,
+                                                size: 16,
+                                                color: AppColors.error
+                                                    .withValues(alpha: 0.7)),
                                           ),
                                         ],
                                       ),
@@ -1924,19 +2287,17 @@ class _ReportPopupState extends State<_ReportPopup> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               decoration: BoxDecoration(
                 color: AppColors.glassDarkest,
-                borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(16)),
                 border: Border(
-                    top: BorderSide(
-                        color: AppColors.glassBorder, width: 0.5)),
+                    top: BorderSide(color: AppColors.glassBorder, width: 0.5)),
               ),
               child: Row(
                 children: [
                   Text(
                     '${_parametri.length} parametri totali',
                     style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textOnDarkSecondary),
+                        fontSize: 12, color: AppColors.textOnDarkSecondary),
                   ),
                   const SizedBox(width: 12),
                   OutlinedButton.icon(
@@ -1945,9 +2306,13 @@ class _ReportPopupState extends State<_ReportPopup> {
                     label: const Text('Aggiungi'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.accentGreenDark,
-                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.50),
+                          width: 0.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       textStyle: const TextStyle(fontSize: 12),
                     ),
                   ),
@@ -1956,8 +2321,8 @@ class _ReportPopupState extends State<_ReportPopup> {
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textOnDarkSecondary,
-                      side: BorderSide(
-                          color: AppColors.glassBorder, width: 0.5),
+                      side:
+                          BorderSide(color: AppColors.glassBorder, width: 0.5),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
@@ -1974,8 +2339,7 @@ class _ReportPopupState extends State<_ReportPopup> {
                           AppColors.primary.withValues(alpha: 0.30),
                       foregroundColor: AppColors.accentGreenDark,
                       side: BorderSide(
-                          color:
-                              AppColors.primary.withValues(alpha: 0.50),
+                          color: AppColors.primary.withValues(alpha: 0.50),
                           width: 0.5),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),

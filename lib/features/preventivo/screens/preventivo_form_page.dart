@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/service_providers.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/preventivo/preventivo_preview_page.dart';
 import '../../../models/cliente_model.dart';
 import '../../../models/listino_model.dart';
 import '../../../models/preventivo_model.dart';
@@ -37,7 +38,6 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
 
   bool _isLoading = true;
   bool _isSaving = false;
-  bool _isGeneratingPdf = false;
   String? _erroreCaricamento;
   String? _preventivoIdCorrente;
   bool _allowDirectPop = false;
@@ -481,6 +481,46 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   Future<void> _salvaEsci() async =>
       _persistiPreventivo(isDraft: false, closeAfterSave: true);
 
+  Future<bool> _confermaAzione({
+    required String titolo,
+    required String contenuto,
+    required String confermaLabel,
+    bool pericolo = false,
+  }) async {
+    final conferma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A2A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        title: Text(titolo, style: const TextStyle(color: AppColors.textOnDark, fontWeight: FontWeight.w600, fontSize: 16)),
+        content: Text(contenuto, style: const TextStyle(color: AppColors.textOnDarkSecondary, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla', style: TextStyle(color: AppColors.textOnDarkSecondary)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: (pericolo ? AppColors.error : AppColors.primary).withValues(alpha: pericolo ? 0.25 : 0.30),
+              foregroundColor: pericolo ? const Color(0xFFFF7070) : AppColors.accentGreenDark,
+              side: BorderSide(
+                color: (pericolo ? AppColors.error : AppColors.primary).withValues(alpha: pericolo ? 0.40 : 0.50),
+                width: 0.5,
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(confermaLabel),
+          ),
+        ],
+      ),
+    );
+    return conferma == true;
+  }
+
   Future<void> _esci() async {
     if (!_hasUnsavedChanges) {
       await _chiudiPagina();
@@ -536,59 +576,28 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     );
   }
 
-  Future<void> _generaPdf() async {
+  Future<void> _mostraAnteprima() async {
     if (_preventivoIdCorrente == null) return;
-    setState(() => _isGeneratingPdf = true);
-    try {
-      if (_hasUnsavedChanges) {
-        final conferma = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF0A2A1A),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: AppColors.glassBorder, width: 0.5),
-            ),
-            title: const Text('Modifiche non salvate', style: TextStyle(color: AppColors.textOnDark, fontWeight: FontWeight.w600, fontSize: 16)),
-            content: const Text('Il PDF verrà generato con i dati salvati in precedenza. Procedere?', style: TextStyle(color: AppColors.textOnDarkSecondary, fontSize: 14)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Annulla', style: TextStyle(color: AppColors.textOnDarkSecondary)),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.30),
-                  foregroundColor: AppColors.accentGreenDark,
-                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.50), width: 0.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Genera PDF'),
-              ),
-            ],
-          ),
-        );
-        if (conferma != true || !mounted) return;
-      }
-      final modello = _preventivoOriginale;
-      if (modello == null) return;
-      await _pdfService.stampaPreventivo(modello);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Errore PDF: $e', style: const TextStyle(color: Colors.white)),
-          backgroundColor: AppColors.error.withValues(alpha: 0.90),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
-          ),
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _isGeneratingPdf = false);
-    }
+    final modello = _preventivoOriginale;
+    if (modello == null) return;
+
+    final conferma = await _confermaAzione(
+      titolo: 'Anteprima e download PDF',
+      contenuto: _hasUnsavedChanges
+          ? 'Aprire il PDF con i dati salvati in precedenza? Dalla schermata successiva potrai visualizzarlo o scaricarlo.'
+          : 'Aprire il PDF di questo preventivo? Dalla schermata successiva potrai visualizzarlo o scaricarlo.',
+      confermaLabel: 'Apri PDF',
+    );
+    if (!conferma || !mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PreventivoPreviewPage(
+          buildPdf: () => _pdfService.buildPdfBytes(modello),
+          nomeFile: 'preventivo_${modello.numeroFormattato}.pdf',
+        ),
+      ),
+    );
   }
 
   Future<void> _elimina() async {
@@ -682,18 +691,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         titolo: titolo,
         actions: [
           if (!_isLoading && _preventivoIdCorrente != null) ...[
-            _isGeneratingPdf
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentGreenDark)))
-                : IconButton(
-                    icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.accentGreenDark),
-                    tooltip: 'Genera PDF',
-                    onPressed: _isSaving ? null : _generaPdf,
-                  ),
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.accentGreenDark),
+              tooltip: 'Anteprima e download PDF',
+              onPressed: _isSaving ? null : _mostraAnteprima,
+            ),
             IconButton(
               icon: Icon(Icons.delete_outline, color: AppColors.error.withValues(alpha: 0.8)),
               tooltip: 'Elimina',
@@ -804,7 +806,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
                 style: const TextStyle(color: Colors.white),
                 decoration: _dec('Ora').copyWith(
                     suffixIcon:
-                        const Icon(Icons.access_time_outlined, size: 18)),
+                        const Icon(Icons.access_time_outlined, size: 18,color: AppColors.textOnDarkMuted)),
               ),
             ),
           ),
@@ -816,7 +818,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
                 style: const TextStyle(color: Colors.white),
                 decoration: _dec('Data').copyWith(
                     suffixIcon:
-                        const Icon(Icons.calendar_today_outlined, size: 18)),
+                        const Icon(Icons.calendar_today_outlined, size: 18,color: AppColors.textOnDarkMuted)),
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
               ),
@@ -1087,7 +1089,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               const Text('Totale',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13,color: Colors.white)),
               const SizedBox(width: 24),
               Text(_moneyFmt.format(_totale),
                   style: const TextStyle(
@@ -1348,7 +1350,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
                   _moneyFmt.format(
                       r.costoCaduno * (int.tryParse(r.qtaCtrl.text) ?? 0)),
                   style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w500),
+                      fontSize: 12, fontWeight: FontWeight.w500,color: Colors.white),
                   textAlign: TextAlign.center),
             ),
             const SizedBox(width: 6),

@@ -102,11 +102,23 @@ class PreventivoPdfService {
             _buildNote(p),
           ],
           pw.SizedBox(height: 10),
+          pw.Text(
+            'Tutte le altre prestazioni professionali saranno eseguite secondo quanto previsto da metodi, norme tecniche in vigore all’atto della fornitura, su tutti gli interventi viene rilasciato attestato/certificato in funzione dell\'attività svolta. PER ULTERIORI INFO SI VEDANO ANCHE CONDIZIONI GENERALI DEI SERVIZI',
+            style: pw.TextStyle(fontSize: 7, color: _grigio),
+            textAlign: pw.TextAlign.justify,
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            'Tutti i prezzi sono da considerarsi IVA esclusa secondo le disposizioni di legge in vigore a quel momento e validi per la durata dell’appalto.',
+            style: pw.TextStyle(fontSize: 7, color: _grigio),
+            textAlign: pw.TextAlign.justify,
+          ),
+          pw.SizedBox(height: 10),
           _buildIban(p),
+          pw.SizedBox(height: 8),
+          _buildDisclaimer(),
           pw.SizedBox(height: 24),
           _buildFirme(p),
-          pw.SizedBox(height: 10),
-          _buildDisclaimer(),
         ],
       ),
     );
@@ -572,22 +584,6 @@ class PreventivoPdfService {
   // ─── NOTE ─────────────────────────────────────────────────────────────────
 
   pw.Widget _buildNote(PreventivoModel p) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
-        pw.Text('NOTE VARIE SERVIZI CONDIZIONI OFFERTA',
-            style: pw.TextStyle(font: _fb, fontSize: 8, color: _nero)),
-        pw.SizedBox(height: 4),
-        pw.Text(p.note,
-            style: pw.TextStyle(fontSize: 8, color: _grigio, lineSpacing: 2)),
-      ],
-    );
-  }
-
-  // ─── IBAN ─────────────────────────────────────────────────────────────────
-
-  pw.Widget _buildIban(PreventivoModel p) {
-    if (p.iban.isEmpty && p.intestatoA.isEmpty) return pw.SizedBox();
     return pw.Container(
       padding: const pw.EdgeInsets.all(8),
       decoration: pw.BoxDecoration(
@@ -596,11 +592,112 @@ class PreventivoPdfService {
         borderRadius: pw.BorderRadius.circular(3),
       ),
       child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Text(
+            'NOTE VARIE SERVIZI CONDIZIONI OFFERTA',
+            style: pw.TextStyle(font: _fb, fontSize: 8, color: _nero),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            p.note,
+            style: pw.TextStyle(
+              fontSize: 8,
+              color: _grigio,
+              lineSpacing: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── IBAN ─────────────────────────────────────────────────────────────────
+
+  pw.Widget _buildIban(PreventivoModel p) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        color: _grigioChi,
+        border: pw.Border.all(color: _bordo, width: 0.5),
+        borderRadius: pw.BorderRadius.circular(3),
+      ),
+      child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          if (p.iban.isNotEmpty) _rigaInfo('Coordinate IBAN  ', p.iban),
-          if (p.intestatoA.isNotEmpty) _rigaInfo('Intestato a', p.intestatoA),
-          if (p.causale.isNotEmpty) _rigaInfo('Causale', p.causale),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                if (p.intestatoA.isNotEmpty)
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Intestato a: ',
+                        style: pw.TextStyle(fontSize: 8, color: _grigio),
+                      ),
+                      pw.Expanded(
+                        child: pw.Text(
+                          p.intestatoA,
+                          style: pw.TextStyle(
+                            font: _fb,
+                            fontSize: 8,
+                            color: _nero,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                if (p.causale.isNotEmpty) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Causale: ',
+                        style: pw.TextStyle(fontSize: 8, color: _grigio),
+                      ),
+                      pw.Expanded(
+                        child: pw.Text(
+                          p.causale,
+                          style: pw.TextStyle(
+                            font: _fb,
+                            fontSize: 8,
+                            color: _nero,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 40),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Text(
+                  'Biochemlabs',
+                  style: pw.TextStyle(font: _fb, fontSize: 10, color: _verde),
+                ),
+                pw.Text(
+                  'il chimico',
+                  style: pw.TextStyle(font: _fi, fontSize: 9, color: _nero),
+                ),
+                pw.Text(
+                  'Dr. Leonardo Daga',
+                  style: pw.TextStyle(fontSize: 9, color: _nero),
+                ),
+                pw.Text(
+                  'iscr. Ord. Pur Chimici n° 219A',
+                  style: pw.TextStyle(fontSize: 7, color: _grigio),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -609,42 +706,37 @@ class PreventivoPdfService {
   // ─── FIRME ────────────────────────────────────────────────────────────────
 
   pw.Widget _buildFirme(PreventivoModel p) {
-    return pw.Row(children: [
-      // Firma cliente
-      pw.Expanded(
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('DATA, LUOGO',
-                style: pw.TextStyle(fontSize: 8, color: _grigio)),
-            pw.SizedBox(height: 24),
-            pw.Divider(color: _nero, height: 1),
-            pw.SizedBox(height: 3),
-            pw.Text('FIRMA CLIENTE',
-                style: pw.TextStyle(fontSize: 8, color: _grigio)),
-          ],
+    return pw.Row(
+      children: [
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'DATA, LUOGO',
+                style: pw.TextStyle(fontSize: 8, color: _grigio),
+              ),
+              pw.SizedBox(height: 28),
+              pw.Divider(color: _nero, height: 1),
+            ],
+          ),
         ),
-      ),
-      pw.SizedBox(width: 40),
-      // Firma BioChem
-      pw.Expanded(
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: [
-            pw.Text('Biochemlabs',
-                style: pw.TextStyle(font: _fb, fontSize: 10, color: _verde)),
-            pw.Text('il chimico',
-                style: pw.TextStyle(font: _fi, fontSize: 9, color: _nero)),
-            pw.Text('Dr. Leonardo Daga',
-                style: pw.TextStyle(fontSize: 9, color: _nero)),
-            pw.Text('iscr. Ord. Pur Chimici n° 219A',
-                style: pw.TextStyle(fontSize: 7, color: _grigio)),
-            pw.SizedBox(height: 18),
-            pw.Divider(color: _nero, height: 1),
-          ],
+        pw.SizedBox(width: 40),
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'FIRMA CLIENTE',
+                style: pw.TextStyle(fontSize: 8, color: _grigio),
+              ),
+              pw.SizedBox(height: 28),
+              pw.Divider(color: _nero, height: 1),
+            ],
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 
   // ─── DISCLAIMER ───────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import '../../../models/appuntamento_model.dart';
 import '../../../models/cliente_model.dart';
 import '../../../services/appuntamenti_service.dart';
 import '../../../services/clienti_service.dart';
+import '../../../services/notifiche_avvio_service.dart';
 
 class AppuntamentoFormPage extends ConsumerStatefulWidget {
   final String? appuntamentoId;
@@ -200,6 +201,10 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
       );
 
       await _appuntamentiService.salvaAppuntamento(app);
+      // Aggiorna subito la campanella notifiche (fire-and-forget)
+      if (app.notificaAbilitata) {
+        NotificheAvvioService().verificaScadenze(uid, forceCheck: true);
+      }
       if (mounted) {
         _showSnackBar('Appuntamento salvato', AppColors.primary);
         context.pop();

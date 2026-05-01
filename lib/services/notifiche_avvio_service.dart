@@ -11,7 +11,7 @@ import 'notifiche_service.dart';
 /// Usa SharedPreferences per tenere traccia dell'ultimo controllo ed evitare
 /// notifiche duplicate nella stessa sessione.
 class NotificheAvvioService {
-  static const String _keyUltimoControllo = 'ultimo_controllo_notifiche';
+  static const String _prefixKeyUltimoControllo = 'ultimo_controllo_notifiche';
   static const int _giorniDiAnticipo = 3;
 
   final AppuntamentiService _appuntamentiService;
@@ -29,15 +29,23 @@ class NotificheAvvioService {
   ///
   /// [uid] è l'UID dell'utente correntemente autenticato.
   /// Verifica SharedPreferences per non rieseguire il controllo se già eseguito oggi.
-  Future<void> verificaScadenze(String uid) async {
+  /// [forceCheck] = true bypassa il gate giornaliero (SharedPreferences).
+  /// Usato dopo il salvataggio di un appuntamento per aggiornare subito la campanella.
+  Future<void> verificaScadenze(String uid, {bool forceCheck = false}) async {
     try {
     final prefs = await SharedPreferences.getInstance();
     final oggi = DateTime.now();
     final oggiStr = '${oggi.year}-${oggi.month}-${oggi.day}';
 
+    // Chiave per utente per evitare conflitti su dispositivi condivisi
+    final keyUltimoControllo = '${_prefixKeyUltimoControllo}_$uid';
+
     // Evita di eseguire il controllo più volte nello stesso giorno
-    final ultimoControllo = prefs.getString(_keyUltimoControllo);
-    if (ultimoControllo == oggiStr) return;
+    // (bypassato quando chiamato esplicitamente dopo un salvataggio)
+    if (!forceCheck) {
+      final ultimoControllo = prefs.getString(keyUltimoControllo);
+      if (ultimoControllo == oggiStr) return;
+    }
 
     try {
       // Carica appuntamenti in scadenza nei prossimi 3 giorni
@@ -74,8 +82,10 @@ class NotificheAvvioService {
         await _notificheService.creaNotifica(uid, notifica);
       }
 
-      // Salva la data dell'ultimo controllo riuscito
-      await prefs.setString(_keyUltimoControllo, oggiStr);
+      // Salva la data dell'ultimo controllo (solo per il check giornaliero)
+      if (!forceCheck) {
+        await prefs.setString(keyUltimoControllo, oggiStr);
+      }
     } catch (_) {
       // Errore silenzioso: l'app funziona anche senza notifiche
     }

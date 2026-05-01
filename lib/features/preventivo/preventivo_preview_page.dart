@@ -105,13 +105,23 @@ class _PreventivoPreviewPageState extends State<PreventivoPreviewPage> {
       if (webWidget != null) return webWidget;
       return const Center(child: Text('Anteprima non disponibile su questo browser'));
     }
-    // Mobile/Desktop: usa PdfPreview del package printing
-    return PdfPreview(
+
+    final preview = PdfPreview(
       build: (_) async => _bytes!,
       canChangePageFormat: false,
       canChangeOrientation: false,
       canDebug: false,
       pdfFileName: widget.nomeFile,
+    );
+
+    final isMobile = defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    if (!isMobile) return preview;
+
+    return InteractiveViewer(
+      minScale: 1,
+      maxScale: 4,
+      child: preview,
     );
   }
 }

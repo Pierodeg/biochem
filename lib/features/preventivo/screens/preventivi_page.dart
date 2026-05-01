@@ -1,12 +1,7 @@
-import 'dart:typed_data';
-import 'package:biochem/utils/web_pdf_preview_stub.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/service_providers.dart';
 import '../../../features/auth/providers/auth_provider.dart';
@@ -36,7 +31,6 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
   String _queryRicerca = '';
   bool _filtroAperto = false;
   FiltroPreventiviStato _filtro = const FiltroPreventiviStato();
-  String? _pdfInGenerazione;
 
   final _moneyFmt =
       NumberFormat.currency(locale: 'it_IT', symbol: '€', decimalDigits: 2);
@@ -46,121 +40,6 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
   void dispose() {
     _cercaController.dispose();
     super.dispose();
-  }
-
-  Future<void> _eliminaPreventivo(PreventivoModel p) async {
-    final conferma = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0A2A1A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.glassBorder, width: 0.5),
-        ),
-        titleTextStyle: const TextStyle(
-          color: AppColors.textOnDark,
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-        ),
-        contentTextStyle: const TextStyle(
-          color: AppColors.textOnDarkSecondary,
-          fontSize: 14,
-        ),
-        title: const Text('Elimina preventivo'),
-        content: Text(
-            'Eliminare il preventivo di ${p.committente}? Azione irreversibile.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(
-                foregroundColor: AppColors.textOnDarkSecondary),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error.withValues(alpha: 0.25),
-              foregroundColor: const Color(0xFFFF7070),
-              side: BorderSide(
-                  color: AppColors.error.withValues(alpha: 0.40), width: 0.5),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
-    );
-    if (conferma != true || !mounted) return;
-    try {
-      await ref.read(preventiviServiceProvider).eliminaPreventivo(p.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.success.withValues(alpha: 0.90),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
-            ),
-            content:
-                const Text('Preventivo eliminato', style: TextStyle(color: Colors.white)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.error.withValues(alpha: 0.90),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
-            ),
-            content: Text('Errore: $e',
-                style: const TextStyle(color: Colors.white)),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _mostraAnteprima(PreventivoModel p) async {
-    setState(() => _pdfInGenerazione = p.id);
-    try {
-      final service = ref.read(preventivoPdfServiceProvider);
-      final bytes = await service.buildPdfBytes(p);
-      if (!mounted) return;
-      setState(() => _pdfInGenerazione = null);
-      await showDialog<void>(
-        context: context,
-        builder: (_) => _PdfPreviewDialog(
-          titolo: p.numeroFormattato,
-          nomeFile: '${p.numeroFormattato}.pdf',
-          bytes: bytes,
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        setState(() => _pdfInGenerazione = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.error.withValues(alpha: 0.90),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15), width: 0.5),
-            ),
-            content: Text('Errore generazione PDF: $e',
-                style: const TextStyle(color: Colors.white)),
-          ),
-        );
-      }
-    }
   }
 
   List<PreventivoModel> _filtra(List<PreventivoModel> lista) {
@@ -276,7 +155,6 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
           borderRadius: BorderRadius.circular(12),
           hoverColor: AppColors.glassCardHover,
           onTap: isAdmin ? () => context.push('/preventivo/${p.id}') : null,
-          onLongPress: () => _mostraAnteprima(p),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -290,32 +168,7 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                     ],
                     _buildBadgeNumero(p),
                     const Spacer(),
-                    Text(
-                      _dateFmt.format(p.data),
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textOnDarkSecondary),
-                    ),
-                    const SizedBox(width: 4),
-                    _pdfInGenerazione == p.id
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                color: AppColors.primary, strokeWidth: 2))
-                        : GestureDetector(
-                            onTap: () => _mostraAnteprima(p),
-                            child: const Icon(Icons.picture_as_pdf_outlined,
-                                color: AppColors.textOnDarkSecondary, size: 18),
-                          ),
                     if (isAdmin) ...[
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => _eliminaPreventivo(p),
-                        child: const Icon(Icons.delete_outline,
-                            color: AppColors.error, size: 18),
-                      ),
-                      const SizedBox(width: 4),
                       const Icon(Icons.chevron_right,
                           color: AppColors.textOnDarkMuted, size: 18),
                     ],
@@ -333,8 +186,18 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 12, color: AppColors.textOnDarkMuted),
+                    const SizedBox(width: 5),
+                    Text(
+                      _dateFmt.format(p.data),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textOnDarkSecondary),
+                    ),
                     if (p.totale > 0)
                       Container(
+                        margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
@@ -550,39 +413,6 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
                                 TextStyle(color: AppColors.textOnDarkMuted)),
                   ),
 
-                  if (isAdmin) ...[
-                    _separatoreV(),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _pdfInGenerazione == p.id
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    color: AppColors.primary, strokeWidth: 2))
-                            : IconButton(
-                                icon: const Icon(
-                                    Icons.picture_as_pdf_outlined,
-                                    color: AppColors.textOnDarkSecondary,
-                                    size: 18),
-                                tooltip: 'Anteprima PDF',
-                                onPressed: () => _mostraAnteprima(p),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: AppColors.error, size: 18),
-                          tooltip: 'Elimina',
-                          onPressed: () => _eliminaPreventivo(p),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                  ],
-
                   const SizedBox(width: 12),
                   const Icon(Icons.chevron_right,
                       color: AppColors.textOnDarkMuted, size: 20),
@@ -788,110 +618,6 @@ class _PreventiviPageState extends ConsumerState<PreventiviPage> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Dialog anteprima PDF ─────────────────────────────────────────────────────
-
-class _PdfPreviewDialog extends StatefulWidget {
-  const _PdfPreviewDialog({
-    required this.titolo,
-    required this.nomeFile,
-    required this.bytes,
-  });
-
-  final String titolo;
-  final String nomeFile;
-  final Uint8List bytes;
-
-  @override
-  State<_PdfPreviewDialog> createState() => _PdfPreviewDialogState();
-}
-
-class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
-  @override
-  void dispose() {
-    if (kIsWeb) disposeWebPdfIframePreview();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF0A2A1A),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.glassBorder, width: 0.5),
-      ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: SizedBox(
-        width: double.maxFinite,
-        height: MediaQuery.of(context).size.height * 0.85,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-              decoration: const BoxDecoration(
-                color: AppColors.glassDarkest,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.picture_as_pdf_outlined,
-                      color: Colors.white, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.titolo,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close,
-                        color: Colors.white, size: 20),
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Chiudi',
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(16)),
-                child: kIsWeb
-                    ? _buildWebPreview()
-                    : PdfPreview(
-                        build: (_) async => widget.bytes,
-                        pdfFileName: widget.nomeFile,
-                        allowPrinting: true,
-                        allowSharing: true,
-                        canChangeOrientation: false,
-                        canChangePageFormat: false,
-                        canDebug: false,
-                        initialPageFormat: PdfPageFormat.a4,
-                        maxPageWidth: 800,
-                        actions: const [],
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWebPreview() {
-    final webWidget = buildWebPdfIframePreview(widget.bytes);
-    if (webWidget != null) return webWidget;
-    return const Center(
-      child: Text('Anteprima non disponibile su questo browser'),
     );
   }
 }
