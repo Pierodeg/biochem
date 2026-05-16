@@ -1,6 +1,5 @@
 import 'package:biochem/services/cap_service.dart';
 import 'package:biochem/services/clienti_service.dart';
-import 'package:biochem/services/notifiche_avvio_service.dart';
 import 'package:biochem/services/servizi_lab_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,15 +15,6 @@ import '../../../models/registro_parametro_model.dart';
 import '../../../services/indirizzi_servizio_service.dart';
 import '../../../services/registro_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
-
-/// Mapping campione di riferimento → nome preset nel Registro
-const _mapCampionePreset = <String, String>{
-  'acqua di rete': 'Registro Acque',
-  'acqua rete imp. domestico': 'Registro Acque',
-  'acqua di pozzo non trattata': 'Registro Acque',
-  'acqua di pozzo trattata': 'Registro Acque',
-  'acqua grezza': 'Registro Acque',
-};
 
 class ServizioLabFormPage extends ConsumerStatefulWidget {
   final String? servizioId;
@@ -343,19 +333,19 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   // ─── Carica preset dal Registro in base al campione ──────────────────────
 
   Future<void> _caricaPresetDaCampione(String campione) async {
-    final nomePreset = _mapCampionePreset[campione.toLowerCase().trim()];
-    if (nomePreset == null) return;
-
     setState(() => _caricandoPreset = true);
     try {
       final presets = await _registroService.getPreset().first;
+
+      // Cerca preset che abbia questo campione nella lista campioni
       final preset = presets
-          .where((p) => p.nome.toLowerCase() == nomePreset.toLowerCase())
+          .where((p) => p.campioni.any(
+                (c) => c.toLowerCase().trim() == campione.toLowerCase().trim(),
+              ))
           .firstOrNull;
 
       if (preset == null || !mounted) return;
 
-      // Converti i parametri del Registro in ParametroReport
       final nuoviParametri = preset.categorie
           .expand((cat) => cat.parametri)
           .map((p) => ParametroReport(
@@ -497,11 +487,6 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       final servizioId = await _serviziLabService.salvaServizioLab(modello);
       _servizioIdCorrente = servizioId;
       _servizioOriginale = modello;
-      // Aggiorna subito la campanella notifiche (fire-and-forget)
-      final uid = ref.read(currentUserProvider).valueOrNull?.uid;
-      if (uid != null) {
-        NotificheAvvioService().verificaScadenze(uid, forceCheck: true);
-      }
       _snapshotIniziale = _snapshotCorrente();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -818,8 +803,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   // ─── GRUPPO REPORT ────────────────────────────────────────────────────────
 
   Widget _buildGruppoReport(bool isDesktop) {
-    final hasPreset = _mapCampionePreset
-        .containsKey(_campioneRiferimento?.toLowerCase().trim() ?? '');
+    final hasPreset = _campioneRiferimento != null;
 
     return Container(
       width: double.infinity,
@@ -1246,10 +1230,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
           initialValue: _campioneRiferimento,
           onChanged: (v) {
             setState(() => _campioneRiferimento = v);
-            // Carica preset automaticamente se disponibile e lista vuota
-            if (v != null &&
-                _parametriReport.isEmpty &&
-                _mapCampionePreset.containsKey(v.toLowerCase().trim())) {
+            if (v != null && _parametriReport.isEmpty) {
               _caricaPresetDaCampione(v);
             }
           },
@@ -1654,15 +1635,18 @@ class _ReportPopupState extends State<_ReportPopup> {
   Future<void> _caricaPreset() async {
     final campione = widget.campioneRiferimento;
     if (campione == null) return;
-    final nomePreset = _mapCampionePreset[campione.toLowerCase().trim()];
-    if (nomePreset == null) return;
 
     setState(() => _caricando = true);
     try {
       final presets = await widget.registroService.getPreset().first;
+
+      // Cerca preset che abbia questo campione nella lista campioni
       final preset = presets
-          .where((p) => p.nome.toLowerCase() == nomePreset.toLowerCase())
+          .where((p) => p.campioni.any(
+                (c) => c.toLowerCase().trim() == campione.toLowerCase().trim(),
+              ))
           .firstOrNull;
+
       if (preset == null || !mounted) return;
 
       final nuovi = preset.categorie
@@ -1899,8 +1883,7 @@ class _ReportPopupState extends State<_ReportPopup> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final hasPreset = _mapCampionePreset
-        .containsKey(widget.campioneRiferimento?.toLowerCase().trim() ?? '');
+    final hasPreset = widget.campioneRiferimento != null;
 
     return Dialog(
       backgroundColor: Colors.transparent,

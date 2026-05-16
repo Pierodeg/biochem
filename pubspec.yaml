@@ -28,20 +28,28 @@ dependencies:
   # Calendario
   table_calendar: ^3.1.2
 
-  # Storage locale (per evitare notifiche duplicate all'avvio)
-  shared_preferences: ^2.3.2
+  # Notifiche push FCM
+  firebase_messaging: ^15.1.3
+  flutter_local_notifications: ^18.0.0
+
+  # Animazioni Lottie (splash screen)
+  lottie: ^3.1.3
 
   # Generazione e stampa/condivisione PDF
   pdf: ^3.11.1
   printing: ^5.13.1
   universal_html: ^2.2.4
 
-  # firebase_messaging: ^15.1.3  # Fase 2 — richiede Service Worker su web
+  # Import Excel
+  file_picker: ^8.0.0
+  excel: ^4.0.2
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
@@ -50,3 +58,20 @@ flutter:
     - assets/data/cap_sardegna.json
     - assets/images/
     - assets/icons/
+    - assets/animations/
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  # Icona legacy (Android < 8 e iOS): usa il PNG com'è
+  image_path: "assets/icons/app_icon.png"
+  # Adaptive icon (Android 8+): foreground = logo, background = trasparente
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#00000000"
+  min_sdk_android: 21
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false

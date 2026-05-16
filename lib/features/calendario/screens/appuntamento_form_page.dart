@@ -9,7 +9,6 @@ import '../../../models/appuntamento_model.dart';
 import '../../../models/cliente_model.dart';
 import '../../../services/appuntamenti_service.dart';
 import '../../../services/clienti_service.dart';
-import '../../../services/notifiche_avvio_service.dart';
 
 class AppuntamentoFormPage extends ConsumerStatefulWidget {
   final String? appuntamentoId;
@@ -47,8 +46,9 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
   final _tecnicoCtrl = TextEditingController();
   final _descrizioneCtrl = TextEditingController();
   String _colore = '#5F5E5A';
-  bool _notificaAbilitata = false;
+  bool _notificaAbilitata = true;
   int _notificaGiorniPrima = 1;
+  int _notificaMinutiPrima = 0;
   bool _completato = false;
   List<ClienteModel> _clienti = [];
 
@@ -103,6 +103,7 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
     _colore = app.colore;
     _notificaAbilitata = app.notificaAbilitata;
     _notificaGiorniPrima = app.notificaGiorniPrima;
+    _notificaMinutiPrima = app.notificaMinutiPrima;
     _completato = app.completato;
     _servizioCtrl.text = app.servizioCid ?? '';
     if (app.clienteId != null) {
@@ -194,6 +195,7 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
             : null,
         notificaAbilitata: _notificaAbilitata,
         notificaGiorniPrima: _notificaGiorniPrima,
+        notificaMinutiPrima: _notificaMinutiPrima,
         completato: _completato,
         colore: _colore,
         creadaDa: _appuntamentoOriginale?.creadaDa ?? uid,
@@ -201,10 +203,6 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
       );
 
       await _appuntamentiService.salvaAppuntamento(app);
-      // Aggiorna subito la campanella notifiche (fire-and-forget)
-      if (app.notificaAbilitata) {
-        NotificheAvvioService().verificaScadenze(uid, forceCheck: true);
-      }
       if (mounted) {
         _showSnackBar('Appuntamento salvato', AppColors.primary);
         context.pop();
@@ -632,77 +630,7 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
 
                   // Gruppo: Impostazioni
                   _buildGruppo('Impostazioni', [
-                    Row(
-                      children: [
-                        const Icon(Icons.notifications_outlined,
-                            size: 18, color: AppColors.accentGreenDark),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text('Notifica abilitata',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textOnDark,
-                                  fontSize: 14)),
-                        ),
-                        Switch(
-                          value: _notificaAbilitata,
-                          onChanged: (v) =>
-                              setState(() => _notificaAbilitata = v),
-                          activeColor: AppColors.accentGreenDark,
-                          activeTrackColor:
-                              AppColors.primary.withValues(alpha: 0.40),
-                          inactiveThumbColor:
-                              AppColors.textOnDarkSecondary,
-                          inactiveTrackColor: AppColors.glassDark,
-                        ),
-                      ],
-                    ),
-                    if (_notificaAbilitata) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Text('Anticipo:',
-                              style: TextStyle(
-                                  color: AppColors.textOnDarkSecondary,
-                                  fontSize: 12)),
-                          Expanded(
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                activeTrackColor: AppColors.primary,
-                                inactiveTrackColor:
-                                    AppColors.glassBorder,
-                                thumbColor: AppColors.accentGreenDark,
-                                overlayColor: AppColors.primary
-                                    .withValues(alpha: 0.20),
-                                valueIndicatorColor: AppColors.glassDarkest,
-                                valueIndicatorTextStyle: const TextStyle(
-                                    color: AppColors.textOnDark),
-                              ),
-                              child: Slider(
-                                value: _notificaGiorniPrima.toDouble(),
-                                min: 0,
-                                max: 7,
-                                divisions: 7,
-                                label: _notificaGiorniPrima == 0
-                                    ? 'Stesso giorno'
-                                    : '$_notificaGiorniPrima gg prima',
-                                onChanged: (v) => setState(
-                                    () => _notificaGiorniPrima = v.round()),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            _notificaGiorniPrima == 0
-                                ? 'Stesso\ngiorno'
-                                : '$_notificaGiorniPrima gg\nprima',
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textOnDarkSecondary),
-                            textAlign: TextAlign.end,
-                          ),
-                        ],
-                      ),
-                    ],
+                    _buildSezioneNotifiche(),
                     Container(
                       height: 0.5,
                       color: AppColors.glassBorderSubtle,
@@ -1006,6 +934,387 @@ class _AppuntamentoFormPageState extends ConsumerState<AppuntamentoFormPage> {
     final h = hex.replaceAll('#', '');
     if (h.length == 8) return Color(int.parse(h, radix: 16));
     return Color(int.parse('FF$h', radix: 16));
+  }
+
+  // ─── Sezione notifiche ────────────────────────────────────────────────────
+
+  Widget _buildSezioneNotifiche() {
+    const opzioniMinuti = [0, 15, 30, 60, 120, 180, 360];
+    const labelMinuti = ['All\'ora', '15 min', '30 min', '1 ora', '2 ore', '3 ore', '6 ore'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.notifications_outlined,
+                size: 18, color: AppColors.accentGreenDark),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Notifica abilitata',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textOnDark,
+                      fontSize: 14)),
+            ),
+            Switch(
+              value: _notificaAbilitata,
+              onChanged: (v) => setState(() => _notificaAbilitata = v),
+              activeColor: AppColors.accentGreenDark,
+              activeTrackColor: AppColors.primary.withValues(alpha: 0.40),
+              inactiveThumbColor: AppColors.textOnDarkSecondary,
+              inactiveTrackColor: AppColors.glassDark,
+            ),
+          ],
+        ),
+
+        if (_notificaAbilitata) ...[
+          Container(
+            height: 0.5,
+            color: AppColors.glassBorderSubtle,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+          ),
+
+          // ── Giorni prima ────────────────────────────────────────────────
+          Row(
+            children: [
+              const Icon(Icons.calendar_today_outlined,
+                  size: 16, color: AppColors.accentGreenDark),
+              const SizedBox(width: 8),
+              const Text('Giorni prima',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textOnDark)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _modificaGiorniPrima(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.40),
+                        width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _notificaGiorniPrima == 0
+                            ? 'Stesso giorno'
+                            : '$_notificaGiorniPrima ${_notificaGiorniPrima == 1 ? 'giorno' : 'giorni'}',
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.accentGreenDark,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.edit_outlined,
+                          size: 12, color: AppColors.accentGreenDark),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppColors.primary,
+              inactiveTrackColor: AppColors.glassBorder,
+              thumbColor: AppColors.accentGreenDark,
+              overlayColor: AppColors.primary.withValues(alpha: 0.20),
+            ),
+            child: Slider(
+              value: _notificaGiorniPrima.toDouble().clamp(0, 7),
+              min: 0,
+              max: 7,
+              divisions: 7,
+              label: _notificaGiorniPrima == 0
+                  ? 'Stesso giorno'
+                  : '$_notificaGiorniPrima gg',
+              onChanged: (v) =>
+                  setState(() => _notificaGiorniPrima = v.round()),
+            ),
+          ),
+
+          Container(
+            height: 0.5,
+            color: AppColors.glassBorderSubtle,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+          ),
+
+          // ── Anticipo orario ───────────────────────────────────────────
+          Row(
+            children: [
+              const Icon(Icons.access_time_outlined,
+                  size: 16, color: AppColors.accentGreenDark),
+              const SizedBox(width: 8),
+              const Text('Anticipo orario',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textOnDark)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _modificaMinutiPrima(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.40),
+                        width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _labelMinuti(_notificaMinutiPrima),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.accentGreenDark,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.edit_outlined,
+                          size: 12, color: AppColors.accentGreenDark),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: List.generate(opzioniMinuti.length, (i) {
+              final minuti = opzioniMinuti[i];
+              final isSelected = _notificaMinutiPrima == minuti;
+              return GestureDetector(
+                onTap: () => setState(() => _notificaMinutiPrima = minuti),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.30)
+                        : AppColors.glassCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.60)
+                          : AppColors.glassBorder,
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Text(
+                    labelMinuti[i],
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected
+                          ? AppColors.accentGreenDark
+                          : AppColors.textOnDarkSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.glassDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline,
+                    size: 14, color: AppColors.textOnDarkMuted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _riepilogoNotifica(),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.textOnDarkSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _labelMinuti(int minuti) {
+    if (minuti == 0) return 'All\'ora';
+    if (minuti < 60) return '$minuti min';
+    final ore = minuti ~/ 60;
+    final min = minuti % 60;
+    if (min == 0) return ore == 1 ? '1 ora' : '$ore ore';
+    return '$ore h $min min';
+  }
+
+  String _riepilogoNotifica() {
+    if (_notificaGiorniPrima == 0 && _notificaMinutiPrima == 0) {
+      return 'Notifica all\'ora esatta dell\'appuntamento';
+    }
+    final parti = <String>[];
+    if (_notificaGiorniPrima > 0) {
+      parti.add('$_notificaGiorniPrima ${_notificaGiorniPrima == 1 ? 'giorno' : 'giorni'} prima');
+    }
+    if (_notificaMinutiPrima > 0) {
+      parti.add('${_labelMinuti(_notificaMinutiPrima)} prima');
+    }
+    return 'Notifica ${parti.join(' e ')} dell\'appuntamento';
+  }
+
+  Future<void> _modificaGiorniPrima() async {
+    final ctrl = TextEditingController(text: _notificaGiorniPrima.toString());
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A2A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        title: const Text('Giorni prima',
+            style: TextStyle(
+                color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: 'Numero giorni (0-30)',
+            labelStyle:
+                const TextStyle(color: AppColors.glassFieldLabelDim),
+            filled: true,
+            fillColor: const Color(0x0DFFFFFF),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: AppColors.glassBorder, width: 0.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: AppColors.glassBorder, width: 0.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla',
+                style: TextStyle(color: AppColors.textOnDarkSecondary)),
+          ),
+          FilledButton(
+            onPressed: () {
+              final v = int.tryParse(ctrl.text) ?? 0;
+              setState(() => _notificaGiorniPrima = v.clamp(0, 30));
+              Navigator.pop(ctx);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+              foregroundColor: AppColors.accentGreenDark,
+              side: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.50),
+                  width: 0.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Conferma'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _modificaMinutiPrima() async {
+    final ctrl = TextEditingController(text: _notificaMinutiPrima.toString());
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A2A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder, width: 0.5),
+        ),
+        title: const Text('Anticipo in minuti',
+            style: TextStyle(
+                color: AppColors.textOnDark, fontWeight: FontWeight.w600)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: 'Minuti (0-1440)',
+            hintText: 'Es. 90 = 1 ora e 30 min',
+            hintStyle: const TextStyle(
+                color: AppColors.textOnDarkMuted, fontSize: 12),
+            labelStyle:
+                const TextStyle(color: AppColors.glassFieldLabelDim),
+            filled: true,
+            fillColor: const Color(0x0DFFFFFF),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: AppColors.glassBorder, width: 0.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: AppColors.glassBorder, width: 0.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla',
+                style: TextStyle(color: AppColors.textOnDarkSecondary)),
+          ),
+          FilledButton(
+            onPressed: () {
+              final v = int.tryParse(ctrl.text) ?? 0;
+              setState(() => _notificaMinutiPrima = v.clamp(0, 1440));
+              Navigator.pop(ctx);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary.withValues(alpha: 0.30),
+              foregroundColor: AppColors.accentGreenDark,
+              side: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.50),
+                  width: 0.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Conferma'),
+          ),
+        ],
+      ),
+    );
   }
 
   InputDecoration _inputDec(String label) => InputDecoration(

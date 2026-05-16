@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../services/fcm_service.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ProfilePanel extends ConsumerWidget {
@@ -69,6 +70,7 @@ class ProfilePanel extends ConsumerWidget {
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     Navigator.of(context).pop();
+    await FcmService(ProviderScope.containerOf(context, listen: false)).eliminaToken();
     await ref.read(authServiceProvider).signOut();
   }
 

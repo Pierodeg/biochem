@@ -113,6 +113,7 @@ class RegistroPresetModel {
   final String nome;
   final String descrizione;
   final List<RegistroCategoriaModel> categorie;
+  final List<String> campioni;
   final DateTime createdAt;
 
   const RegistroPresetModel({
@@ -120,6 +121,7 @@ class RegistroPresetModel {
     required this.nome,
     required this.descrizione,
     required this.categorie,
+    this.campioni = const [],
     required this.createdAt,
   });
 
@@ -138,6 +140,7 @@ class RegistroPresetModel {
       nome: data['nome'] as String? ?? '',
       descrizione: data['descrizione'] as String? ?? '',
       categorie: categorie,
+      campioni: List<String>.from(data['campioni'] as List? ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -146,6 +149,7 @@ class RegistroPresetModel {
     'nome': nome,
     'descrizione': descrizione,
     'categorie': categorie.map((c) => c.toMap()).toList(),
+    'campioni': campioni,
     'createdAt': Timestamp.fromDate(createdAt),
   };
 }

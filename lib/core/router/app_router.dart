@@ -17,14 +17,20 @@ import '../../features/admin/screens/admin_settings_page.dart';
 import '../../features/servizi_lab/screens/servizi_lab_page.dart';
 import '../../features/servizi_lab/screens/servizio_lab_form_page.dart';
 import '../../features/registro/screens/registro_page.dart';
+import '../../features/splash/splash_screen.dart';
 
 final pendingNotificationProvider = StateProvider<String?>((ref) => null);
+
+/// Diventa true dopo almeno 4 secondi dall'avvio (gestito da SplashScreen).
+/// Il router aspetta questo flag prima di navigare via dalla splash.
+final minSplashElapsedProvider = StateProvider<bool>((ref) => false);
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ValueNotifier<int>(0);
 
   ref.listen(authStateProvider, (_, __) => notifier.value++);
   ref.listen(currentUserProvider, (_, __) => notifier.value++);
+  ref.listen(minSplashElapsedProvider, (_, __) => notifier.value++);
 
   final router = GoRouter(
     initialLocation: '/',
@@ -32,9 +38,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
     redirect: (context, state) {
       final authState = ref.read(authStateProvider);
+      final minElapsed = ref.read(minSplashElapsedProvider);
       final isOnSplash = state.matchedLocation == '/';
 
-      if (authState.isLoading) return isOnSplash ? null : '/';
+      // Resta sulla splash finché non sono trascorsi 4s E l'auth è caricata
+      if (authState.isLoading || !minElapsed) return isOnSplash ? null : '/';
 
       final isAuthenticated = authState.valueOrNull != null;
       final isOnLogin = state.matchedLocation == '/login';
@@ -103,9 +111,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ─── Splash ───────────────────────────────────────────────────────────
       GoRoute(
         path: '/',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        builder: (context, state) => const SplashScreen(),
       ),
 
       // ─── Login ────────────────────────────────────────────────────────────

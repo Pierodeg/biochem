@@ -147,14 +147,14 @@ class NotifichePanel extends ConsumerWidget {
 
     return InkWell(
       onTap: () async {
-        // Segna come letta
         if (!n.letta) {
           await notificheService.segnaLetta(uid, n.id);
         }
-        // Naviga all'appuntamento se presente
-        if (n.appuntamentoId != null && context.mounted) {
-          Navigator.pop(context); // chiude il drawer
-          context.push('/calendario/${n.appuntamentoId}');
+        final appId = n.appuntamentoId;
+        if (appId != null && appId.isNotEmpty && context.mounted) {
+          Navigator.pop(context);
+          ref.read(pendingAppuntamentoProvider.notifier).state = appId;
+          context.go('/calendario');
         }
       },
       child: Container(

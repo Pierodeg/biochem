@@ -19,6 +19,7 @@ class _CalendarioPageState extends ConsumerState<CalendarioPage> {
   bool _vistaSettimana = false;
   DateTime _giornoSelezionato = DateTime.now();
   DateTime _meseCorrente = DateTime.now();
+  bool _pendingHandled = false;
 
   final _formatter = DateFormat('dd/MM/yyyy', 'it');
   final _formatterGiorno = DateFormat('EEEE d MMMM', 'it');
@@ -30,6 +31,18 @@ class _CalendarioPageState extends ConsumerState<CalendarioPage> {
         ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
     final appuntamentiAsync =
         ref.watch(_appuntamentiMeseProvider(_meseCorrente));
+
+    ref.listen<String?>(pendingAppuntamentoProvider, (previous, appuntamentoId) {
+      if (appuntamentoId == null || appuntamentoId.isEmpty) return;
+      if (_pendingHandled) return;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        ref.read(pendingAppuntamentoProvider.notifier).state = null;
+        _pendingHandled = false;
+        await _apriDettaglioDaId(appuntamentoId);
+      });
+      _pendingHandled = true;
+    });
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -734,6 +747,28 @@ class _CalendarioPageState extends ConsumerState<CalendarioPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _apriDettaglioDaId(String appuntamentoId) async {
+    try {
+      final service = ref.read(appuntamentiServiceProvider);
+      final app = await service.getAppuntamentoById(appuntamentoId);
+      if (app == null) return;
+
+      if (!mounted) return;
+
+      setState(() {
+        _giornoSelezionato = app.dataInizio;
+        _meseCorrente = app.dataInizio;
+      });
+
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (!mounted) return;
+      _mostraDettaglioEvento(app);
+    } catch (e) {
+      debugPrint('Errore apertura appuntamento da notifica: $e');
+    }
   }
 
   void _mostraDettaglioEvento(AppuntamentoModel app) {

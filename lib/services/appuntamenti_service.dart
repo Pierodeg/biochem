@@ -46,6 +46,13 @@ class AppuntamentiService {
             .toList());
   }
 
+  /// Carica un singolo appuntamento per ID direttamente da Firestore
+  Future<AppuntamentoModel?> getAppuntamentoById(String id) async {
+    final doc = await _collection.doc(id).get();
+    if (!doc.exists) return null;
+    return AppuntamentoModel.fromFirestore(doc);
+  }
+
   // ─── Scrittura ─────────────────────────────────────────────────────────────
 
   /// Salva un appuntamento (crea se [app.id] è vuoto, aggiorna altrimenti)

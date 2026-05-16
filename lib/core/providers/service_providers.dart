@@ -63,3 +63,7 @@ final listinoServiceProvider =
     /// Singleton del servizio registro preset (Firestore collection 'registro_preset')
 final registroServiceProvider =
     Provider<RegistroService>((ref) => RegistroService());
+
+/// ID appuntamento da aprire in dettaglio — impostato da FcmService
+/// quando l'utente tocca una notifica push
+final pendingAppuntamentoProvider = StateProvider<String?>((ref) => null);

@@ -32,4 +32,11 @@ class RegistroService {
   Future<void> eliminaPreset(String id) async {
     await _db.collection('registro_preset').doc(id).delete();
   }
+
+  Future<List<String>> getCampioni() async {
+    final doc = await _db.collection('impostazioni').doc('campioni_riferimento').get();
+    if (!doc.exists) return [];
+    final data = doc.data() as Map<String, dynamic>;
+    return List<String>.from(data['items'] as List? ?? []);
+  }
 }

@@ -30,6 +30,10 @@ class AppuntamentoModel {
   /// Giorni di anticipo per la notifica (0 = stesso giorno, 1 = 1 giorno prima...)
   final int notificaGiorniPrima;
 
+  /// Anticipo in minuti per la notifica oraria (es. 15, 30, 60, 120)
+  /// 0 = notifica all'ora esatta dell'appuntamento
+  final int notificaMinutiPrima;
+
   /// Se true, l'appuntamento è stato completato/archiviato
   final bool completato;
 
@@ -54,6 +58,7 @@ class AppuntamentoModel {
     this.tecnico,
     required this.notificaAbilitata,
     required this.notificaGiorniPrima,
+    this.notificaMinutiPrima = 0,
     required this.completato,
     required this.colore,
     required this.creadaDa,
@@ -77,6 +82,7 @@ class AppuntamentoModel {
       tecnico: data['tecnico'] as String?,
       notificaAbilitata: data['notificaAbilitata'] as bool? ?? false,
       notificaGiorniPrima: (data['notificaGiorniPrima'] as num?)?.toInt() ?? 1,
+      notificaMinutiPrima: data['notificaMinutiPrima'] as int? ?? 0,
       completato: data['completato'] as bool? ?? false,
       colore: data['colore'] as String? ?? '#5F5E5A',
       creadaDa: data['creadaDa'] as String? ?? '',
@@ -99,6 +105,7 @@ class AppuntamentoModel {
       'tecnico': tecnico,
       'notificaAbilitata': notificaAbilitata,
       'notificaGiorniPrima': notificaGiorniPrima,
+      'notificaMinutiPrima': notificaMinutiPrima,
       'completato': completato,
       'colore': colore,
       'creadaDa': creadaDa,
