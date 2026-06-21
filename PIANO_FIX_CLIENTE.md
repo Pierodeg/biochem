@@ -64,19 +64,19 @@ Ogni voce ha:
 | B1 | Numerazione preventivo: reset giornaliero o ora | 🟡 | M | ✅ |
 | C1 | DaMo fornitore di default + committente da anagrafica | 🔴 | M | ⬜ |
 | C2 | Indirizzo servizio selezionabile da anagrafica | 🟡 | M | ⬜ |
-| C3 | Oggetto: manuale **o** da elenco servizi | 🟡 | M | ⬜ |
+| C3 | Oggetto: manuale **o** da elenco servizi | 🟡 | M | ✅ |
 | C4 | Riga servizio/prezzo leggibile da telefono (bug UI) | 🔴 | S | ✅ |
-| C5 | Condizioni e rinnovo da elenco + manuale | 🟡 | M | ⬜ |
+| C5 | Condizioni e rinnovo da elenco + manuale | 🟡 | M | ✅ |
 | C6 | Coordinate bancarie DaMo di default, modificabili solo da admin | 🟡 | M | ⬜ |
 | C7 | Causale di default = codice preventivo | 🟢 | S | ✅ |
-| C8 | Note/condizioni offerta da elenco + manuale | 🟢 | M | ⬜ |
+| C8 | Note/condizioni offerta da elenco + manuale | 🟢 | M | ✅ |
 | D1 | Carta intestata simile all'esempio | 🟡 | M | ⏸️ |
 | D2 | Footer: aggiungere numero laboratorio | 🟢 | S | ✅* |
 | D3 | Intestazione ripetuta su ogni pagina | 🔴 | S | ✅ |
 | D4 | Nome file PDF = codice preventivo | 🔴 | S | ✅ |
-| E1 | Dropdown codice cliente: mostrare committente, non città | 🟡 | S | ⬜ |
-| E2 | Tipo analisi: suggerimento su dove caricare nuove tipologie | 🟢 | S | ⬜ |
-| E3 | Tecnico: inserimento manuale oltre a elenco | 🟡 | M | ⬜ |
+| E1 | Dropdown codice cliente: mostrare committente, non città | 🟡 | S | ✅ |
+| E2 | Tipo analisi: suggerimento su dove caricare nuove tipologie | 🟢 | S | ✅ |
+| E3 | Tecnico: inserimento manuale oltre a elenco | 🟡 | M | ✅ |
 | E4 | Numero: eliminare la barra "/" tra anno e progressivo | 🟢 | S | ✅ |
 | F1 | Gestione parametri da pagina esterna per tipo campione | 🟡 | M | ⬜ |
 | G1 | ⭐ Collegamento risultati analisi → certificato | 🔴 | XL | ⏸️ |
@@ -197,7 +197,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### C3 — Oggetto: inserimento manuale o da elenco servizi 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — campo oggetto ora `CampoConSuggerimenti` (`preventivo_oggetti`): elenco a tendina + testo libero. ⏳ Da popolare la lista su Firestore.
 
 **Stato attuale.** L'oggetto è solo testo libero (`_oggettoCtrl`, [preventivo_form_page.dart:379](lib/features/preventivo/screens/preventivo_form_page.dart#L379)).
 
@@ -225,7 +225,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### C5 — Condizioni e rinnovo da elenco + manuale 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — pagamento, durata, **rinnovo**, periodo, validità ora `CampoConSuggerimenti` (elenco + manuale). Rinnovo convertito da dropdown puro a campo editabile (`_rinnovoCtrl`). ⏳ Da popolare `preventivo_durata`/`preventivo_periodo` su Firestore (`preventivo_pagamento`/`preventivo_validita`/`preventivo_rinnovo` già esistono).
 
 **Stato attuale.** `rinnovoScadenza` è già un dropdown (`impostazioni/preventivo_rinnovo`). `pagamento`, `durataContratto`, `validita`, `periodoIntervento` sono testo libero ([preventivo_form_page.dart:383-387](lib/features/preventivo/screens/preventivo_form_page.dart#L383)). Esistono già le liste `preventivo_pagamento` e `preventivo_validita` nelle impostazioni.
 
@@ -270,7 +270,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### C8 — Note / condizioni offerta da elenco + manuale 🟢 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — campo note ora `CampoConSuggerimenti` (`preventivo_note`), multilinea, elenco + manuale. ⏳ Da popolare la lista su Firestore.
 
 **Stato attuale.** Le note ("NOTE VARIE SERVIZI CONDIZIONI OFFERTA") sono testo libero (`_noteCtrl`).
 
@@ -348,7 +348,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### E1 — Dropdown codice cliente: mostrare il committente, non la città 🟡 · S
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — sottotitolo del dropdown cambiato da `numero · città` a solo `numero`; il committente resta il titolo in evidenza.
 
 **Stato attuale.** Nell'Autocomplete il titolo mostra già il committente, ma il **sottotitolo** mostra `numero · città` ([servizio_lab_form_page.dart:1070](lib/features/servizi_lab/screens/servizio_lab_form_page.dart#L1070)). Il file è attualmente modificato (non committato), quindi da verificare lo stato esatto in esecuzione.
 
@@ -362,7 +362,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### E2 — Tipo analisi: suggerimento su dove caricare nuove tipologie 🟢 · S
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — hint sotto il campo: "Per aggiungere nuove tipologie: Impostazioni → Categorie analisi".
 
 **Stato attuale.** "Tipo analisi" è un `CategoriaDropdown(categoriaId: 'categorie_analisi')` ([servizio_lab_form_page.dart:993](lib/features/servizi_lab/screens/servizio_lab_form_page.dart#L993)) che legge gli item da `impostazioni/categorie_analisi`. Le nuove tipologie si aggiungono nella pagina impostazioni admin, ma nel form non c'è un suggerimento.
 
@@ -376,7 +376,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### E3 — Tecnico: inserimento manuale oltre a elenco 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — campo tecnico ora `CampoConSuggerimenti` (`lab_tecnici`): elenco + inserimento manuale.
 
 **Stato attuale.** "Tecnico" è un `CategoriaDropdown(categoriaId: 'lab_tecnici')` ([servizio_lab_form_page.dart:1004](lib/features/servizi_lab/screens/servizio_lab_form_page.dart#L1004)): `CategoriaDropdown` è **solo selezione**, non consente testo libero.
 
@@ -500,6 +500,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 21/06/2026 | **Sprint 3a** | ✅ | Nuovo widget riusabile `CampoConSuggerimenti` (elenco + manuale). Applicato a C3 (oggetto), C5 (pagamento/durata/rinnovo/periodo/validità), C8 (note). Lab: E3 (tecnico editabile), E2 (hint tipo analisi), E1 (dropdown cliente mostra committente, non città). ⚠️ Da popolare su Firestore le liste `impostazioni/preventivo_{oggetti,durata,periodo,note}` per avere i suggerimenti. `flutter analyze`: 0 errori. |
 | 21/06/2026 | **Sprint 2** | ✅ | A1 (unicità numero cliente), A2 (numero più basso disponibile), B1 (numerazione preventivo con reset giornaliero — decisione presa). `flutter analyze`: 0 errori. Branch `fix/segnalazioni-cliente`. |
 | 21/06/2026 | **Sprint 1** | ✅ | Completate D3 (header ogni pagina), D4 (nome file), C4 (riga prezzo mobile), C7 (causale=codice), E4 (no barra certificazione). D2 ✅ parziale (manca numero personale). `flutter analyze`: 0 errori (solo info di stile preesistenti). |
 | 21/06/2026 | — | 📄 Creato | Analisi del codice e stesura del piano (21 voci, A–G). Tutte ⬜ da fare; D1 e G1 ⏸️ in attesa di input. |

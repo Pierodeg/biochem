@@ -14,6 +14,7 @@ import '../../../models/preventivo_model.dart';
 import '../../../services/cap_service.dart';
 import '../../../services/clienti_service.dart';
 import '../../../services/listino_service.dart';
+import '../../../widgets/campo_con_suggerimenti.dart';
 import '../../../services/preventivi_service.dart';
 import '../../../services/preventivo_pdf_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
@@ -92,7 +93,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   // ─── Gruppo 4 — Condizioni ────────────────────────────────────────────────
   final _pagamentoCtrl = TextEditingController();
   final _durataContrattoCtrl = TextEditingController();
-  String? _rinnovoScadenza;
+  final _rinnovoCtrl = TextEditingController();
   final _periodoInterventoCtrl = TextEditingController();
   final _validitaCtrl = TextEditingController(text: '30 giorni');
 
@@ -148,6 +149,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     _oggettoCtrl.dispose();
     _pagamentoCtrl.dispose();
     _durataContrattoCtrl.dispose();
+    _rinnovoCtrl.dispose();
     _periodoInterventoCtrl.dispose();
     _validitaCtrl.dispose();
     _noteCtrl.dispose();
@@ -226,7 +228,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
 
     _pagamentoCtrl.text = p.pagamento;
     _durataContrattoCtrl.text = p.durataContratto;
-    _rinnovoScadenza = p.rinnovoScadenza.isNotEmpty ? p.rinnovoScadenza : null;
+    _rinnovoCtrl.text = p.rinnovoScadenza;
     _periodoInterventoCtrl.text = p.periodoIntervento;
     _validitaCtrl.text = p.validita;
 
@@ -385,7 +387,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       righe: righe,
       pagamento: _pagamentoCtrl.text.trim(),
       durataContratto: _durataContrattoCtrl.text.trim(),
-      rinnovoScadenza: _rinnovoScadenza ?? '',
+      rinnovoScadenza: _rinnovoCtrl.text.trim(),
       periodoIntervento: _periodoInterventoCtrl.text.trim(),
       validita: _validitaCtrl.text.trim(),
       note: _noteCtrl.text.trim(),
@@ -879,11 +881,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         const Text('Oggetto:',
             style: TextStyle(fontSize: 12, color: AppColors.textOnDarkSecondary)),
         const SizedBox(height: 4),
-        TextFormField(
+        CampoConSuggerimenti(
+            categoriaId: 'preventivo_oggetti',
+            label: 'Oggetto del preventivo',
             controller: _oggettoCtrl,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 2,
-            decoration: _dec('Oggetto del preventivo')),
+            maxLines: 2),
       ],
     );
   }
@@ -1549,33 +1551,31 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       onToggle: () => setState(() => _gruppo4Aperta = !_gruppo4Aperta),
       children: [
         // PAGAMENTO
-        TextFormField(
-            controller: _pagamentoCtrl,
-            style: const TextStyle(color: Colors.white),
-            decoration: _dec('PAGAMENTO')),
+        CampoConSuggerimenti(
+            categoriaId: 'preventivo_pagamento',
+            label: 'PAGAMENTO',
+            controller: _pagamentoCtrl),
         const SizedBox(height: 12),
         _buildRiga(isDesktop, [
-          TextFormField(
-              controller: _durataContrattoCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: _dec('Durata contratto')),
-          CategoriaDropdown(
-            categoriaId: 'preventivo_rinnovo',
-            label: 'Rinnovo a scadenza',
-            initialValue: _rinnovoScadenza,
-            onChanged: (v) => setState(() => _rinnovoScadenza = v),
-          ),
+          CampoConSuggerimenti(
+              categoriaId: 'preventivo_durata',
+              label: 'Durata contratto',
+              controller: _durataContrattoCtrl),
+          CampoConSuggerimenti(
+              categoriaId: 'preventivo_rinnovo',
+              label: 'Rinnovo a scadenza',
+              controller: _rinnovoCtrl),
         ]),
         const SizedBox(height: 12),
         _buildRiga(isDesktop, [
-          TextFormField(
-              controller: _periodoInterventoCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: _dec('Periodo intervento')),
-          TextFormField(
-              controller: _validitaCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: _dec('Validità offerta')),
+          CampoConSuggerimenti(
+              categoriaId: 'preventivo_periodo',
+              label: 'Periodo intervento',
+              controller: _periodoInterventoCtrl),
+          CampoConSuggerimenti(
+              categoriaId: 'preventivo_validita',
+              label: 'Validità offerta',
+              controller: _validitaCtrl),
         ]),
       ],
     );
@@ -1590,11 +1590,11 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       isAperta: _gruppo5Aperta,
       onToggle: () => setState(() => _gruppo5Aperta = !_gruppo5Aperta),
       children: [
-        TextFormField(
+        CampoConSuggerimenti(
+            categoriaId: 'preventivo_note',
+            label: 'Note',
             controller: _noteCtrl,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 6,
-            decoration: _dec('Note')),
+            maxLines: 6),
       ],
     );
   }

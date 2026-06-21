@@ -14,6 +14,7 @@ import '../../../models/servizio_lab_model.dart';
 import '../../../services/indirizzi_servizio_service.dart';
 import '../../../services/registro_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
+import '../../../widgets/campo_con_suggerimenti.dart';
 
 class ServizioLabFormPage extends ConsumerStatefulWidget {
   final String? servizioId;
@@ -95,7 +96,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   List<IndirizzoServizioModel> _indirizziServizio = [];
   String? _indirizzoPrelievoId;
   ClienteModel? _clienteSelezionato;
-  String? _tecnico;
+  final _tecnicoCtrl = TextEditingController();
 
   // Gruppo 6
   final _notePrezzoCtrl = TextEditingController();
@@ -142,6 +143,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
     _pecCtrl.dispose();
     _notePrezzoCtrl.dispose();
     _noteTecnicheCtrl.dispose();
+    _tecnicoCtrl.dispose();
     super.dispose();
   }
 
@@ -211,7 +213,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
     _emailCtrl.text = s.email;
     _telefonoCtrl.text = s.telefono;
     _pecCtrl.text = s.pec;
-    _tecnico = s.tecnico.isNotEmpty ? s.tecnico : null;
+    _tecnicoCtrl.text = s.tecnico;
     _notePrezzoCtrl.text = s.notePrezzo;
     _ft = s.ft;
     _fatturaPagata = s.fatturaPagata;
@@ -396,7 +398,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       email: _emailCtrl.text.trim(),
       telefono: _telefonoCtrl.text.trim(),
       pec: _pecCtrl.text.trim(),
-      tecnico: _tecnico ?? '',
+      tecnico: _tecnicoCtrl.text.trim(),
       notePrezzo: _notePrezzoCtrl.text.trim(),
       ft: _ft,
       fatturaPagata: _fatturaPagata,
@@ -785,7 +787,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                           isAperta: _gruppo6Aperta,
                           onToggle: () =>
                               setState(() => _gruppo6Aperta = !_gruppo6Aperta),
-                          preview: _tecnico ?? '',
+                          preview: _tecnicoCtrl.text,
                           campi: _buildGruppo6(isDesktop)),
                     ],
                   ),
@@ -990,22 +992,34 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
           width: isDesktop ? w * 2 + 16 : w, child: _buildRicercaCliente()),
       SizedBox(
         width: w,
-        child: CategoriaDropdown(
-          categoriaId: 'categorie_analisi',
-          label: 'Tipo analisi *',
-          initialValue: _tipoAnalisi,
-          onChanged: (v) => setState(() => _tipoAnalisi = v),
-          validator: (v) =>
-              v == null || v.isEmpty ? 'Campo obbligatorio' : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CategoriaDropdown(
+              categoriaId: 'categorie_analisi',
+              label: 'Tipo analisi *',
+              initialValue: _tipoAnalisi,
+              onChanged: (v) => setState(() => _tipoAnalisi = v),
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Campo obbligatorio' : null,
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 4, left: 4),
+              child: Text(
+                'Per aggiungere nuove tipologie: Impostazioni → Categorie analisi',
+                style:
+                    TextStyle(fontSize: 11, color: AppColors.textOnDarkMuted),
+              ),
+            ),
+          ],
         ),
       ),
       SizedBox(
         width: w,
-        child: CategoriaDropdown(
+        child: CampoConSuggerimenti(
           categoriaId: 'lab_tecnici',
           label: 'Tecnico *',
-          initialValue: _tecnico,
-          onChanged: (v) => setState(() => _tecnico = v),
+          controller: _tecnicoCtrl,
           validator: (v) =>
               v == null || v.isEmpty ? 'Campo obbligatorio' : null,
         ),
@@ -1068,7 +1082,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
                   title: Text(cliente.committente,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
-                      '${cliente.numeroFormattato} · ${cliente.citta}',
+                      cliente.numeroFormattato,
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textOnDarkSecondary)),
                   onTap: () => onSelected(cliente),
