@@ -179,6 +179,20 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
           _preventivoOriginale = p;
           _popolaDaModello(p);
         }
+      } else {
+        // Nuovo preventivo: precompila il fornitore (DaMo) e le coordinate
+        // bancarie di default. Il committente si imposta scegliendo il cliente.
+        final azienda =
+            await ref.read(impostazioniServiceProvider).getDatiAzienda();
+        _committenteCtrl.text = azienda.ragioneSociale;
+        _indirizzoCommCtrl.text = azienda.indirizzo;
+        _capCommCtrl.text = azienda.cap;
+        _cittaCommCtrl.text = azienda.citta;
+        _provCommCtrl.text = azienda.provincia;
+        _codiceFiscaleCtrl.text = azienda.piva;
+        _codiceUnivocoCtrl.text = azienda.codiceUnivoco;
+        _ibanCtrl.text = azienda.iban;
+        _intestatoACtrl.text = azienda.intestatarioIban;
       }
     } catch (e) {
       _erroreCaricamento = e.toString();
@@ -277,14 +291,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     setState(() {
       _codiceClienteId = c.id;
       _clienteDisplayCtrl.text = '${c.numeroFormattato} — ${c.committente}';
-      _committenteCtrl.text = c.committente;
-      _indirizzoCommCtrl.text = c.indirizzo;
-      _capCommCtrl.text = c.cap;
-      _cittaCommCtrl.text = c.citta;
-      _provCommCtrl.text = c.provincia;
-      _codiceFiscaleCtrl.text = c.pivaCodiceFiscale;
-      _codiceUnivocoCtrl.text = c.codiceUnivoco;
-      // Destra: pre-compila con stessi dati, modificabili
+      // Solo il destinatario (Spett.) viene dall'anagrafica.
+      // Il fornitore (colonna sinistra) e le coordinate bancarie restano DaMo.
       _spettCtrl.text = c.committente;
       _allaCorteseDiCtrl.text = c.referente;
       _indirizzoSpettCtrl.text = c.indirizzo;
@@ -292,7 +300,6 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       _piSpettCtrl.text = c.pivaCodiceFiscale;
       _cuSpettCtrl.text = c.codiceUnivoco;
       _indirizzoServizioCtrl.text = c.indirizzoServizio;
-      _intestatoACtrl.text = c.committente;
     });
   }
 
@@ -1611,11 +1618,17 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         _buildRiga(isDesktop, [
           TextFormField(
               controller: _ibanCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: _dec('Coordinate IBAN')),
+              readOnly: true,
+              style: const TextStyle(color: Colors.white70),
+              decoration: _dec('Coordinate IBAN').copyWith(
+                helperText: 'DaMo — modificabile da Impostazioni → Dati azienda',
+                helperStyle: const TextStyle(
+                    fontSize: 10, color: AppColors.textOnDarkMuted),
+              )),
           TextFormField(
               controller: _intestatoACtrl,
-              style: const TextStyle(color: Colors.white),
+              readOnly: true,
+              style: const TextStyle(color: Colors.white70),
               decoration: _dec('Intestato a')),
         ]),
         const SizedBox(height: 12),

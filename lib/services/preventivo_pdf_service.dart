@@ -21,7 +21,7 @@ const _nero = PdfColors.black;
 
 // ─── Contatti footer ──────────────────────────────────────────────────────────
 const _telLaboratorio = '+39 375 8622574';
-const _telPersonale = ''; // TODO: confermare il numero personale da affiancare
+const _telPersonale = '+39 349 7644010'; // numero principale DaMo (da carta intestata)
 
 /// Genera e condivide il PDF di un preventivo BioChem.
 /// Replica fedelmente il layout del documento cartaceo.

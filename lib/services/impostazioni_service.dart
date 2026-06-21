@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/categoria_model.dart';
+import '../models/dati_azienda_model.dart';
 
 // NOTA: Documenti Firestore da creare per le sezioni Pest (se non esistono):
 //   impostazioni/pest_tipi_intervento       → { nome: "Tipi intervento Pest", hasSottocategorie: false, items: [] }
@@ -205,5 +206,31 @@ class ImpostazioniService {
     if (indice < 0 || indice >= items.length) return;
     items.removeAt(indice);
     await _collection.doc(categoriaId).update({'items': items});
+  }
+
+  // ─── Dati azienda fornitrice (DaMo) ──────────────────────────────────────────
+
+  /// Legge i dati dell'azienda fornitrice da `impostazioni/dati_azienda`.
+  /// Se il documento non esiste, ritorna i default [DatiAzienda.damo].
+  Future<DatiAzienda> getDatiAzienda() async {
+    final doc = await _collection.doc('dati_azienda').get();
+    if (!doc.exists) return DatiAzienda.damo;
+    return DatiAzienda.fromMap(doc.data() as Map<String, dynamic>);
+  }
+
+  /// Stream real-time dei dati azienda (fallback ai default se assenti).
+  Stream<DatiAzienda> getDatiAziendaStream() {
+    return _collection.doc('dati_azienda').snapshots().map((snap) {
+      if (!snap.exists) return DatiAzienda.damo;
+      return DatiAzienda.fromMap(snap.data() as Map<String, dynamic>);
+    });
+  }
+
+  /// Salva i dati azienda (la scrittura è consentita solo agli admin dalle
+  /// regole Firestore su `impostazioni/`).
+  Future<void> salvaDatiAzienda(DatiAzienda dati) async {
+    await _collection
+        .doc('dati_azienda')
+        .set(dati.toMap(), SetOptions(merge: true));
   }
 }

@@ -8,6 +8,7 @@ import '../../../core/providers/service_providers.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../models/categoria_model.dart';
 import '../../../models/listino_model.dart';
+import '../../../models/dati_azienda_model.dart';
 import '../../../services/impostazioni_service.dart';
 import '../../../services/listino_service.dart';
 
@@ -186,6 +187,9 @@ class AdminSettingsPage extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Profilo azienda fornitrice (DaMo) — default preventivo + IBAN
+              _DatiAziendaCard(service: ref.read(impostazioniServiceProvider)),
+              const SizedBox(height: 8),
               // 5 macro sezioni come ExpansionTile di primo livello
               ..._macroSezioni.map((macro) => _MacroExpansionTile(
                     macro: macro,
@@ -2032,6 +2036,256 @@ class _ContenutoListinoV2State extends State<_ContenutoListinoV2> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Card: Dati azienda fornitrice (DaMo) ─────────────────────────────────────
+
+/// Editor del profilo azienda (`impostazioni/dati_azienda`): compare di default
+/// nel preventivo (colonna fornitore + coordinate bancarie). Solo admin. (C1/C6)
+class _DatiAziendaCard extends StatefulWidget {
+  final ImpostazioniService service;
+  const _DatiAziendaCard({required this.service});
+
+  @override
+  State<_DatiAziendaCard> createState() => _DatiAziendaCardState();
+}
+
+class _DatiAziendaCardState extends State<_DatiAziendaCard> {
+  final _ragioneSociale = TextEditingController();
+  final _indirizzo = TextEditingController();
+  final _cap = TextEditingController();
+  final _citta = TextEditingController();
+  final _provincia = TextEditingController();
+  final _piva = TextEditingController();
+  final _cu = TextEditingController();
+  final _rea = TextEditingController();
+  final _telefono = TextEditingController();
+  final _telefonoLab = TextEditingController();
+  final _email = TextEditingController();
+  final _web = TextEditingController();
+  final _iban = TextEditingController();
+  final _banca = TextEditingController();
+  final _intestatario = TextEditingController();
+  final _firmaTitolo = TextEditingController();
+  final _firmaNome = TextEditingController();
+  final _firmaIscrizione = TextEditingController();
+
+  bool _loading = true;
+  bool _salvando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _carica();
+  }
+
+  Future<void> _carica() async {
+    final d = await widget.service.getDatiAzienda();
+    _ragioneSociale.text = d.ragioneSociale;
+    _indirizzo.text = d.indirizzo;
+    _cap.text = d.cap;
+    _citta.text = d.citta;
+    _provincia.text = d.provincia;
+    _piva.text = d.piva;
+    _cu.text = d.codiceUnivoco;
+    _rea.text = d.rea;
+    _telefono.text = d.telefono;
+    _telefonoLab.text = d.telefonoLab;
+    _email.text = d.email;
+    _web.text = d.web;
+    _iban.text = d.iban;
+    _banca.text = d.banca;
+    _intestatario.text = d.intestatarioIban;
+    _firmaTitolo.text = d.firmaTitolo;
+    _firmaNome.text = d.firmaNome;
+    _firmaIscrizione.text = d.firmaIscrizione;
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  void dispose() {
+    for (final c in [
+      _ragioneSociale, _indirizzo, _cap, _citta, _provincia, _piva, _cu, _rea,
+      _telefono, _telefonoLab, _email, _web, _iban, _banca, _intestatario,
+      _firmaTitolo, _firmaNome, _firmaIscrizione,
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _salva() async {
+    setState(() => _salvando = true);
+    try {
+      await widget.service.salvaDatiAzienda(DatiAzienda(
+        ragioneSociale: _ragioneSociale.text.trim(),
+        indirizzo: _indirizzo.text.trim(),
+        cap: _cap.text.trim(),
+        citta: _citta.text.trim(),
+        provincia: _provincia.text.trim(),
+        piva: _piva.text.trim(),
+        codiceUnivoco: _cu.text.trim(),
+        rea: _rea.text.trim(),
+        telefono: _telefono.text.trim(),
+        telefonoLab: _telefonoLab.text.trim(),
+        email: _email.text.trim(),
+        web: _web.text.trim(),
+        iban: _iban.text.trim(),
+        banca: _banca.text.trim(),
+        intestatarioIban: _intestatario.text.trim(),
+        firmaTitolo: _firmaTitolo.text.trim(),
+        firmaNome: _firmaNome.text.trim(),
+        firmaIscrizione: _firmaIscrizione.text.trim(),
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Dati azienda salvati'),
+            backgroundColor: AppColors.primary));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Errore: $e'), backgroundColor: AppColors.error));
+      }
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
+  InputDecoration _dec(String label) => InputDecoration(
+        labelText: label,
+        isDense: true,
+        filled: true,
+        fillColor: AppColors.inputBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      );
+
+  Widget _campo(TextEditingController c, String label) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: TextField(controller: c, decoration: _dec(label)),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.divider),
+      ),
+      color: AppColors.surface,
+      child: ExpansionTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        collapsedShape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.info.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child:
+              const Icon(Icons.business_outlined, color: AppColors.info, size: 20),
+        ),
+        title: const Text(
+          'DATI AZIENDA (DaMo)',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: AppColors.textPrimary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        subtitle: const Text(
+          'Fornitore di default e coordinate bancarie del preventivo',
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        children: [
+          const Divider(height: 1, color: AppColors.divider),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _loading
+                ? const Center(
+                    child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ))
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _campo(_ragioneSociale, 'Ragione sociale'),
+                      _campo(_indirizzo, 'Indirizzo'),
+                      Row(children: [
+                        SizedBox(width: 90, child: _campo(_cap, 'CAP')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_citta, 'Città')),
+                        const SizedBox(width: 10),
+                        SizedBox(width: 76, child: _campo(_provincia, 'Prov.')),
+                      ]),
+                      Row(children: [
+                        Expanded(child: _campo(_piva, 'P.IVA')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_cu, 'Cod. Univoco')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_rea, 'REA')),
+                      ]),
+                      Row(children: [
+                        Expanded(child: _campo(_telefono, 'Telefono')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_telefonoLab, 'Telefono lab')),
+                      ]),
+                      Row(children: [
+                        Expanded(child: _campo(_email, 'Email')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_web, 'Web')),
+                      ]),
+                      const Divider(color: AppColors.divider),
+                      const SizedBox(height: 8),
+                      _campo(_iban, 'IBAN'),
+                      Row(children: [
+                        Expanded(child: _campo(_banca, 'Banca')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_intestatario, 'Intestato a')),
+                      ]),
+                      const Divider(color: AppColors.divider),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Expanded(child: _campo(_firmaTitolo, 'Firma — titolo')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _campo(_firmaNome, 'Firma — nome')),
+                      ]),
+                      _campo(_firmaIscrizione, 'Firma — iscrizione albo'),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                          onPressed: _salvando ? null : _salva,
+                          icon: _salvando
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      color: AppColors.surface, strokeWidth: 2))
+                              : const Icon(Icons.save_outlined, size: 18),
+                          label: const Text('Salva dati azienda'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
