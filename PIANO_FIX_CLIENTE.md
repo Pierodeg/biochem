@@ -59,9 +59,9 @@ Ogni voce ha:
 
 | # | Voce | Priorità | Compl. | Stato |
 |---|------|----------|--------|-------|
-| A1 | Numero cliente univoco (no duplicati) | 🔴 | M | ⬜ |
-| A2 | Auto-assegnazione numero più basso disponibile | 🟡 | M | ⬜ |
-| B1 | Numerazione preventivo: reset giornaliero o ora | 🟡 | M | ⬜ |
+| A1 | Numero cliente univoco (no duplicati) | 🔴 | M | ✅ |
+| A2 | Auto-assegnazione numero più basso disponibile | 🟡 | M | ✅ |
+| B1 | Numerazione preventivo: reset giornaliero o ora | 🟡 | M | ✅ |
 | C1 | DaMo fornitore di default + committente da anagrafica | 🔴 | M | ⬜ |
 | C2 | Indirizzo servizio selezionabile da anagrafica | 🟡 | M | ⬜ |
 | C3 | Oggetto: manuale **o** da elenco servizi | 🟡 | M | ⬜ |
@@ -103,7 +103,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### A1 — Numero cliente univoco 🔴 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — `numeroEsiste()` + controllo in `salvaCliente()`: il salvataggio è bloccato con messaggio se il numero è già usato da un altro cliente.
 
 **Stato attuale.** Il form permette di digitare il numero a mano:
 `int customNum = int.tryParse(_numeroClienteCtrl.text)` → se valorizzato viene usato così com'è, senza controllo di unicità ([cliente_form_page.dart:661](lib/features/anagrafiche/screens/cliente_form_page.dart#L661)). `getNextNumeroCliente()` incrementa solo un contatore ([clienti_service.dart:22](lib/services/clienti_service.dart#L22)). Nessun vincolo impedisce due clienti con lo stesso numero.
@@ -121,7 +121,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### A2 — Auto-assegnazione del numero più basso disponibile 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (21/06/2026) — `getNextNumeroCliente()` sostituito da `getPrimoNumeroLibero()`: assegna il più piccolo numero ≥ 1 non usato (riempie i buchi). Il form ora lo usa.
 
 **Stato attuale.** `getNextNumeroCliente()` fa `ultimo + 1`: se un cliente viene eliminato, il suo numero **non viene mai riusato** e restano dei "buchi".
 
@@ -142,7 +142,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### B1 — Reset giornaliero o orario del progressivo 🟡 · M
 
-**Stato:** ⬜ Da fare · *richiede decisione (vedi input)*
+**Stato:** ✅ Fatto (21/06/2026) — scelta: **reset giornaliero**. Contatore `contatori/preventivi_YYYYMMDD`: il progressivo riparte da 1 ogni giorno → codice `AAMMGG` + progressivo del giorno.
 
 **Stato attuale.** Il codice è `AAMMGG` + progressivo a 3 cifre **per anno** (`numeroFormattato`, [preventivo_model.dart:214](lib/models/preventivo_model.dart#L214)). Il contatore è `contatori/preventivi_YYYY` con campo `ultimo` ([preventivi_service.dart:38](lib/services/preventivi_service.dart#L38)). Quindi `xxx` cresce da inizio anno, non riparte ogni giorno.
 
@@ -500,6 +500,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 21/06/2026 | **Sprint 2** | ✅ | A1 (unicità numero cliente), A2 (numero più basso disponibile), B1 (numerazione preventivo con reset giornaliero — decisione presa). `flutter analyze`: 0 errori. Branch `fix/segnalazioni-cliente`. |
 | 21/06/2026 | **Sprint 1** | ✅ | Completate D3 (header ogni pagina), D4 (nome file), C4 (riga prezzo mobile), C7 (causale=codice), E4 (no barra certificazione). D2 ✅ parziale (manca numero personale). `flutter analyze`: 0 errori (solo info di stile preesistenti). |
 | 21/06/2026 | — | 📄 Creato | Analisi del codice e stesura del piano (21 voci, A–G). Tutte ⬜ da fare; D1 e G1 ⏸️ in attesa di input. |
 

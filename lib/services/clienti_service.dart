@@ -15,26 +15,42 @@ class ClientiService {
             snap.docs.map((doc) => ClienteModel.fromFirestore(doc)).toList());
   }
 
-  /// Restituisce il prossimo numero cliente in modo atomico.
-  ///
-  /// Usa una transazione Firestore sul documento `contatori/clienti`
-  /// per evitare race condition in caso di accessi concorrenti.
-  Future<int> getNextNumeroCliente() async {
-    final contatore =
-        FirebaseFirestore.instance.collection('contatori').doc('clienti');
+  /// Restituisce il più piccolo numero cliente disponibile (>= 1) non ancora
+  /// usato, riempiendo gli eventuali "buchi" lasciati da clienti eliminati. (A2)
+  Future<int> getPrimoNumeroLibero() async {
+    final snap = await _collection.get();
+    final usati = <int>{};
+    for (final doc in snap.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final n = (data['numeroCliente'] as num?)?.toInt();
+      if (n != null && n > 0) usati.add(n);
+    }
+    var candidato = 1;
+    while (usati.contains(candidato)) {
+      candidato++;
+    }
+    return candidato;
+  }
 
-    return FirebaseFirestore.instance.runTransaction<int>((tx) async {
-      final snap = await tx.get(contatore);
-      final corrente = (snap.data()?['ultimo'] as int?) ?? 0;
-      final prossimo = corrente + 1;
-      tx.set(contatore, {'ultimo': prossimo}, SetOptions(merge: true));
-      return prossimo;
-    });
+  /// True se [numero] è già assegnato a un cliente diverso da [escludiId].
+  /// Usato per garantire l'unicità del numero cliente. (A1)
+  Future<bool> numeroEsiste(int numero, {String? escludiId}) async {
+    final snap =
+        await _collection.where('numeroCliente', isEqualTo: numero).get();
+    return snap.docs.any((d) => d.id != escludiId);
   }
 
   /// Crea un nuovo cliente o aggiorna uno esistente
   /// Se [cliente.id] è vuoto, crea un nuovo documento con ID auto-generato
   Future<String> salvaCliente(ClienteModel cliente) async {
+    // A1 — unicità del numero cliente: blocca due clienti con lo stesso numero.
+    if (cliente.numeroCliente > 0 &&
+        await numeroEsiste(cliente.numeroCliente,
+            escludiId: cliente.id.isEmpty ? null : cliente.id)) {
+      throw Exception(
+        'Numero cliente ${cliente.numeroCliente} già assegnato a un altro cliente.',
+      );
+    }
     if (cliente.id.isNotEmpty) {
       final esistente = await _collection.doc(cliente.id).get();
       if (esistente.exists) {

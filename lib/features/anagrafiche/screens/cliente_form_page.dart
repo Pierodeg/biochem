@@ -662,7 +662,7 @@ class _ClienteFormPageState extends ConsumerState<ClienteFormPage> {
       if (customNum != null && customNum > 0) {
         _numeroCliente = customNum;
       } else {
-        _numeroCliente = await _clientiService.getNextNumeroCliente();
+        _numeroCliente = await _clientiService.getPrimoNumeroLibero();
       }
     } else {
       _numeroCliente = int.tryParse(_numeroClienteCtrl.text.trim()) ??

@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/preventivo_model.dart';
 
 // NOTA: Documenti Firestore da inizializzare:
-//   Collection 'preventivi'   → documenti PreventivoModel
-//   contatori/preventivi_YYYY → { ultimo: 0 }  (crea per ogni anno)
+//   Collection 'preventivi'        → documenti PreventivoModel
+//   contatori/preventivi_YYYYMMDD  → { ultimo: 0 }  (contatore giornaliero, auto-creato)
 
 /// Servizio per la gestione dei preventivi su Firestore
 class PreventiviService {
@@ -33,11 +33,14 @@ class PreventiviService {
 
   // ─── Generazione numero progressivo ───────────────────────────────────────
 
-  /// Genera il numero progressivo per anno usando una transazione Firestore.
-  /// Il contatore è in `contatori/preventivi_YYYY` → campo `ultimo`.
+  /// Genera il numero progressivo GIORNALIERO usando una transazione Firestore.
+  /// Il contatore è in `contatori/preventivi_YYYYMMDD` → campo `ultimo`,
+  /// così il progressivo riparte da 1 ogni giorno. (B1)
   Future<int> generaNumeroPrev(DateTime data) async {
-    final anno = data.year;
-    final docRef = _contatori.doc('preventivi_$anno');
+    final chiave = '${data.year}'
+        '${data.month.toString().padLeft(2, '0')}'
+        '${data.day.toString().padLeft(2, '0')}';
+    final docRef = _contatori.doc('preventivi_$chiave');
 
     return FirebaseFirestore.instance.runTransaction((tx) async {
       final snap = await tx.get(docRef);
