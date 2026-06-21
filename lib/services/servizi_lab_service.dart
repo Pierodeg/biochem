@@ -30,7 +30,7 @@ class ServiziLabService {
 
   // ─── Generazione codici ────────────────────────────────────────────────────
 
-  /// Calcola la prossima certificazione in modo atomico nel formato "AA/NNN".
+  /// Calcola la prossima certificazione in modo atomico nel formato "AANNN".
   ///
   /// Usa una transazione Firestore sul documento `contatori/servizi_lab_ANNO`
   /// per evitare race condition. Il contatore riparte da 001 ogni anno.
@@ -51,7 +51,7 @@ class ServiziLabService {
       return prossimo;
     });
 
-    return '$anno/${prossimo.toString().padLeft(3, '0')}';
+    return '$anno${prossimo.toString().padLeft(3, '0')}';
   }
 
   /// Genera il codice A nel formato AAMMGG

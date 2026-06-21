@@ -11,7 +11,6 @@ import '../utils/web_download.dart';
 // ─── Colori brand BioChem ─────────────────────────────────────────────────────
 final _verde = PdfColor.fromHex('00A843');
 final _verdeDark = PdfColor.fromHex('003D1E');
-final _verdeLight = PdfColor.fromHex('C8F5DC');
 final _blu = PdfColor.fromHex('1565C0');
 final _grigio = PdfColor.fromHex('555555');
 final _grigioChi = PdfColor.fromHex('F5F5F5');
@@ -19,6 +18,10 @@ final _bordo = PdfColor.fromHex('E0E0E0');
 final _bordoVerde = PdfColor.fromHex('C8F5DC');
 const _bianco = PdfColors.white;
 const _nero = PdfColors.black;
+
+// ─── Contatti footer ──────────────────────────────────────────────────────────
+const _telLaboratorio = '+39 375 8622574';
+const _telPersonale = ''; // TODO: confermare il numero personale da affiancare
 
 /// Genera e condivide il PDF di un preventivo BioChem.
 /// Replica fedelmente il layout del documento cartaceo.
@@ -39,12 +42,12 @@ class PreventivoPdfService {
       await downloadBytes(
         bytes: bytes,
         mimeType: 'application/pdf',
-        fileName: 'preventivo_${p.numeroFormattato}.pdf',
+        fileName: '${p.numeroFormattato}.pdf',
       );
     } else {
       await Printing.sharePdf(
         bytes: bytes,
-        filename: 'preventivo_${p.numeroFormattato}.pdf',
+        filename: '${p.numeroFormattato}.pdf',
       );
     }
   }
@@ -80,10 +83,12 @@ class PreventivoPdfService {
           margin: const pw.EdgeInsets.fromLTRB(32, 28, 32, 44),
           theme: theme,
         ),
+        header: (ctx) => pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 8),
+          child: _buildHeader(p, logoImage),
+        ),
         footer: (ctx) => _buildFooter(ctx, p),
         build: (ctx) => [
-          _buildHeader(p, logoImage),
-          pw.SizedBox(height: 10),
           _buildTagline(),
           pw.SizedBox(height: 10),
           _buildDatiCliente(p),
@@ -758,16 +763,29 @@ class PreventivoPdfService {
             pw.Border(top: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
       ),
       padding: const pw.EdgeInsets.only(top: 4),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      child: pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
         children: [
+          // Riga contatti: laboratorio (+ numero personale se configurato)
           pw.Text(
-            '${p.numeroFormattato} — ${p.committente}',
+            _telPersonale.isNotEmpty
+                ? 'Tel. $_telPersonale   ·   Lab. $_telLaboratorio'
+                : 'Lab. $_telLaboratorio',
             style: pw.TextStyle(fontSize: 7, color: _grigio),
           ),
-          pw.Text(
-            'Pagina ${ctx.pageNumber} di ${ctx.pagesCount}',
-            style: pw.TextStyle(fontSize: 7, color: _grigio),
+          pw.SizedBox(height: 2),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                '${p.numeroFormattato} — ${p.committente}',
+                style: pw.TextStyle(fontSize: 7, color: _grigio),
+              ),
+              pw.Text(
+                'Pagina ${ctx.pageNumber} di ${ctx.pagesCount}',
+                style: pw.TextStyle(fontSize: 7, color: _grigio),
+              ),
+            ],
           ),
         ],
       ),

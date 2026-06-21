@@ -351,10 +351,13 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             ))
         .toList();
 
-    // Genera causale automatica se vuota
+    // Causale automatica se vuota: di default = codice preventivo (AAMMGGxxx)
+    final codicePreventivo = (_numeroPrev ?? 0) > 0
+        ? PreventivoModel.formattaNumero(_numeroPrev!, _dataPrev)
+        : '';
     final causale = _causaleCtrl.text.trim().isNotEmpty
         ? _causaleCtrl.text.trim()
-        : '${_numeroPrev ?? ''} ${_oraCtrl.text}';
+        : codicePreventivo;
 
     return PreventivoModel(
       id: _preventivoIdCorrente ?? '',
@@ -1448,13 +1451,38 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
             style: const TextStyle(color: Colors.white, fontSize: 14),
             dropdownColor: const Color(0xFF0A2A1A),
             iconEnabledColor: AppColors.textOnDarkSecondary,
+            // Voce su due righe: descrizione + prezzo sempre leggibile da telefono
+            itemHeight: 72,
+            selectedItemBuilder: (context) => serviziRiga
+                .map((s) => Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                          '[${s.codiceUnivoco}] ${s.descrizione} — €${s.prezzoUnitario.toStringAsFixed(2)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12)),
+                    ))
+                .toList(),
             items: serviziRiga
                 .map((s) => DropdownMenuItem(
                     value: s.codiceUnivoco,
-                    child: Text(
-                        '[${s.codiceUnivoco}] ${s.descrizione} — €${s.prezzoUnitario.toStringAsFixed(2)}',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12))))
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('[${s.codiceUnivoco}] ${s.descrizione}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12)),
+                        const SizedBox(height: 2),
+                        Text('€${s.prezzoUnitario.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary)),
+                      ],
+                    )))
                 .toList(),
             onChanged: (r.tipologiaId == null || r.sottotipoId == null)
                 ? null

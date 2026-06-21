@@ -211,7 +211,12 @@ class PreventivoModel {
   });
 
   /// Numero formattato per display rapido: AAMMGG001
-  String get numeroFormattato {
+  String get numeroFormattato => formattaNumero(numeroPrev, data);
+
+  /// Costruisce il codice AAMMGGxxx da numero progressivo e data.
+  /// Esposto come statico per riusarlo (es. causale di default) anche
+  /// quando il modello non è ancora stato costruito.
+  static String formattaNumero(int numeroPrev, DateTime data) {
     if (numeroPrev == 0) return 'Bozza';
     final aa = data.year % 100;
     final mm = data.month.toString().padLeft(2, '0');
