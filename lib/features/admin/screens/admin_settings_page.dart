@@ -100,6 +100,10 @@ const _macroSezioni = [
       'preventivo_pagamento', // Modalità di pagamento
       'preventivo_validita', // Validità del preventivo
       'preventivo_rinnovo', // Rinnovo automatico
+      'preventivo_oggetti', // Oggetti ricorrenti (C3)
+      'preventivo_durata', // Durata contratto (C5)
+      'preventivo_periodo', // Periodo intervento (C5)
+      'preventivo_note', // Note/condizioni offerta ricorrenti (C8)
     ],
   ),
   _MacroSezione(
