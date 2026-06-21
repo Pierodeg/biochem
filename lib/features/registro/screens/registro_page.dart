@@ -7,7 +7,6 @@ import '../../../models/registro_parametro_model.dart';
 import '../../../services/import_registro_service.dart';
 import '../../../services/registro_service.dart';
 import 'dart:io';
-import 'dart:typed_data';
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 

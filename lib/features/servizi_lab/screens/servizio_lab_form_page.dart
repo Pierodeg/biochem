@@ -11,7 +11,6 @@ import '../../../features/auth/providers/auth_provider.dart';
 import '../../../models/cliente_model.dart';
 import '../../../models/indirizzo_servizio_model.dart';
 import '../../../models/servizio_lab_model.dart';
-import '../../../models/registro_parametro_model.dart';
 import '../../../services/indirizzi_servizio_service.dart';
 import '../../../services/registro_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
@@ -1230,7 +1229,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
           initialValue: _campioneRiferimento,
           onChanged: (v) {
             setState(() => _campioneRiferimento = v);
-            if (v != null && _parametriReport.isEmpty) {
+            if (_parametriReport.isEmpty) {
               _caricaPresetDaCampione(v);
             }
           },
@@ -1858,27 +1857,6 @@ class _ReportPopupState extends State<_ReportPopup> {
     );
   }
 
-  Widget _infoRiga(String label, String valore) {
-    if (valore.isEmpty || valore == '-') return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 60,
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 11, color: AppColors.textOnDarkMuted)),
-          ),
-          Expanded(
-            child: Text(valore,
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textOnDark)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
