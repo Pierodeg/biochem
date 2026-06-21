@@ -500,6 +500,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 21/06/2026 | **Fase test** | ▶️ | Consegnata la lista test per Sprint 1/2/3a (15/21). Restano: **C1/C6/C2** (gruppo DaMo — serve il profilo dati azienda + admin editor, **bloccato su dati DaMo**), **D1** (serve immagine intestazione), **G1** (serve Excel + modello certificato), **D2** (manca numero personale), **F1** (in gran parte già coperto dalla pagina Registro). |
 | 21/06/2026 | **Sprint 3a** | ✅ | Nuovo widget riusabile `CampoConSuggerimenti` (elenco + manuale). Applicato a C3 (oggetto), C5 (pagamento/durata/rinnovo/periodo/validità), C8 (note). Lab: E3 (tecnico editabile), E2 (hint tipo analisi), E1 (dropdown cliente mostra committente, non città). ⚠️ Da popolare su Firestore le liste `impostazioni/preventivo_{oggetti,durata,periodo,note}` per avere i suggerimenti. `flutter analyze`: 0 errori. |
 | 21/06/2026 | **Sprint 2** | ✅ | A1 (unicità numero cliente), A2 (numero più basso disponibile), B1 (numerazione preventivo con reset giornaliero — decisione presa). `flutter analyze`: 0 errori. Branch `fix/segnalazioni-cliente`. |
 | 21/06/2026 | **Sprint 1** | ✅ | Completate D3 (header ogni pagina), D4 (nome file), C4 (riga prezzo mobile), C7 (causale=codice), E4 (no barra certificazione). D2 ✅ parziale (manca numero personale). `flutter analyze`: 0 errori (solo info di stile preesistenti). |
