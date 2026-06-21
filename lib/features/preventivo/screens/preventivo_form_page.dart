@@ -14,6 +14,8 @@ import '../../../models/preventivo_model.dart';
 import '../../../services/cap_service.dart';
 import '../../../services/clienti_service.dart';
 import '../../../services/listino_service.dart';
+import '../../../services/indirizzi_servizio_service.dart';
+import '../../../models/indirizzo_servizio_model.dart';
 import '../../../widgets/campo_con_suggerimenti.dart';
 import '../../../services/preventivi_service.dart';
 import '../../../services/preventivo_pdf_service.dart';
@@ -35,6 +37,12 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   late final ClientiService _clientiService;
   late final CapService _capService;
   late final ListinoService _listinoService;
+  late final IndirizziServizioService _indirizziServizioService;
+
+  // C2 — indirizzi servizio del cliente selezionato
+  ClienteModel? _clienteSel;
+  List<IndirizzoServizioModel> _indirizziServizio = [];
+  String? _indirizzoServSelId;
   late final PreventivoPdfService _pdfService;
 
   bool _isLoading = true;
@@ -121,6 +129,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
     _clientiService = ref.read(clientiServiceProvider);
     _capService = ref.read(capServiceProvider);
     _listinoService = ref.read(listinoServiceProvider);
+    _indirizziServizioService = ref.read(indirizziServizioServiceProvider);
     _pdfService = ref.read(preventivoPdfServiceProvider);
     _dataCtrl.text = _dateFmt.format(_dataPrev);
     _oraCtrl.text = DateFormat('HH:mm').format(DateTime.now());
@@ -290,6 +299,9 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
   void _onClienteSelezionato(ClienteModel c) {
     setState(() {
       _codiceClienteId = c.id;
+      _clienteSel = c;
+      _indirizziServizio = [];
+      _indirizzoServSelId = null;
       _clienteDisplayCtrl.text = '${c.numeroFormattato} — ${c.committente}';
       // Solo il destinatario (Spett.) viene dall'anagrafica.
       // Il fornitore (colonna sinistra) e le coordinate bancarie restano DaMo.
@@ -301,6 +313,102 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       _cuSpettCtrl.text = c.codiceUnivoco;
       _indirizzoServizioCtrl.text = c.indirizzoServizio;
     });
+    _caricaIndirizziServizio(c.id);
+  }
+
+  Future<void> _caricaIndirizziServizio(String clienteId) async {
+    try {
+      final list =
+          await _indirizziServizioService.getIndirizzi(clienteId).first;
+      if (mounted) setState(() => _indirizziServizio = list);
+    } catch (_) {}
+  }
+
+  void _onIndirizzoServSelezionato(String? id) {
+    if (id == null) return;
+    setState(() => _indirizzoServSelId = id);
+    final c = _clienteSel;
+    if (id == 'principale' && c != null) {
+      final ind = c.indirizzoServizio.trim().isNotEmpty
+          ? c.indirizzoServizio.trim()
+          : c.indirizzo.trim();
+      final citta = c.cittaServizio.trim().isNotEmpty
+          ? c.cittaServizio.trim()
+          : c.citta.trim();
+      _indirizzoServizioCtrl.text =
+          [ind, citta].where((s) => s.isNotEmpty).join(', ');
+    } else {
+      final a = _indirizziServizio.firstWhere(
+        (x) => x.id == id,
+        orElse: () => const IndirizzoServizioModel(
+            id: '',
+            indirizzo: '',
+            cap: '',
+            citta: '',
+            provincia: '',
+            referente: '',
+            note: ''),
+      );
+      if (a.id.isNotEmpty) {
+        _indirizzoServizioCtrl.text = [a.indirizzo.trim(), a.citta.trim()]
+            .where((s) => s.isNotEmpty)
+            .join(', ');
+      }
+    }
+  }
+
+  Widget _buildDropdownIndirizzoServizio() {
+    if (_codiceClienteId.isEmpty) return const SizedBox.shrink();
+    final items = <DropdownMenuItem<String>>[];
+    final c = _clienteSel;
+    if (c != null) {
+      final indP = c.indirizzoServizio.trim().isNotEmpty
+          ? c.indirizzoServizio.trim()
+          : c.indirizzo.trim();
+      final cittaP = c.cittaServizio.trim().isNotEmpty
+          ? c.cittaServizio.trim()
+          : c.citta.trim();
+      if (indP.isNotEmpty || cittaP.isNotEmpty) {
+        items.add(DropdownMenuItem(
+          value: 'principale',
+          child: Text(
+            'Principale — $indP${cittaP.isNotEmpty ? ", $cittaP" : ""}',
+            overflow: TextOverflow.ellipsis,
+          ),
+        ));
+      }
+      for (final a in _indirizziServizio) {
+        final ind = a.indirizzo.trim();
+        final ci = a.citta.trim();
+        if (ind.isEmpty && ci.isEmpty) continue;
+        items.add(DropdownMenuItem(
+          value: a.id,
+          child: Text(
+            [
+              ind,
+              if (ci.isNotEmpty) ci,
+              if (a.referente.trim().isNotEmpty) '(${a.referente.trim()})',
+            ].join(' '),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ));
+      }
+    }
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: DropdownButtonFormField<String>(
+        initialValue: _indirizzoServSelId,
+        isExpanded: true,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        dropdownColor: const Color(0xFF0A2A1A),
+        iconEnabledColor: AppColors.textOnDarkSecondary,
+        decoration: _dec('Scegli indirizzo servizio da anagrafica')
+            .copyWith(isDense: true),
+        items: items,
+        onChanged: _onIndirizzoServSelezionato,
+      ),
+    );
   }
 
   Future<void> _onCapChanged(String valore) async {
@@ -872,7 +980,8 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               ]),
         const SizedBox(height: 12),
         Container(height: 0.5, color: AppColors.glassBorder, margin: const EdgeInsets.symmetric(vertical: 8)),
-        // Indirizzo servizio
+        // Indirizzo servizio — dropdown da anagrafica (C2) + campo manuale
+        _buildDropdownIndirizzoServizio(),
         Row(children: [
           const Text('indirizzo servizio:',
               style: TextStyle(fontSize: 12, color: AppColors.textOnDarkSecondary)),

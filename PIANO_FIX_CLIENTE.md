@@ -62,16 +62,16 @@ Ogni voce ha:
 | A1 | Numero cliente univoco (no duplicati) | 🔴 | M | ✅ |
 | A2 | Auto-assegnazione numero più basso disponibile | 🟡 | M | ✅ |
 | B1 | Numerazione preventivo: reset giornaliero o ora | 🟡 | M | ✅ |
-| C1 | DaMo fornitore di default + committente da anagrafica | 🔴 | M | ⬜ |
-| C2 | Indirizzo servizio selezionabile da anagrafica | 🟡 | M | ⬜ |
+| C1 | DaMo fornitore di default + committente da anagrafica | 🔴 | M | ✅ |
+| C2 | Indirizzo servizio selezionabile da anagrafica | 🟡 | M | ✅ |
 | C3 | Oggetto: manuale **o** da elenco servizi | 🟡 | M | ✅ |
 | C4 | Riga servizio/prezzo leggibile da telefono (bug UI) | 🔴 | S | ✅ |
 | C5 | Condizioni e rinnovo da elenco + manuale | 🟡 | M | ✅ |
-| C6 | Coordinate bancarie DaMo di default, modificabili solo da admin | 🟡 | M | ⬜ |
+| C6 | Coordinate bancarie DaMo di default, modificabili solo da admin | 🟡 | M | ✅ |
 | C7 | Causale di default = codice preventivo | 🟢 | S | ✅ |
 | C8 | Note/condizioni offerta da elenco + manuale | 🟢 | M | ✅ |
 | D1 | Carta intestata simile all'esempio | 🟡 | M | ⏸️ |
-| D2 | Footer: aggiungere numero laboratorio | 🟢 | S | ✅* |
+| D2 | Footer: aggiungere numero laboratorio | 🟢 | S | ✅ |
 | D3 | Intestazione ripetuta su ogni pagina | 🔴 | S | ✅ |
 | D4 | Nome file PDF = codice preventivo | 🔴 | S | ✅ |
 | E1 | Dropdown codice cliente: mostrare committente, non città | 🟡 | S | ✅ |
@@ -163,7 +163,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### C1 — DaMo fornitore di default + committente da anagrafica 🔴 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (22/06/2026) — nuovo `DatiAzienda` con default DaMo (dalla carta intestata di riferimento). Nuovo preventivo: colonna fornitore precompilata con DaMo; scegliendo il cliente si compila **solo** il destinatario (Spett.).
 
 **Stato attuale.** Quando si seleziona un cliente, il form riempie **sia** la colonna sinistra (committente/azienda) **sia** la colonna destra (Spett.) con i dati dello **stesso** cliente ([preventivo_form_page.dart:274-294](lib/features/preventivo/screens/preventivo_form_page.dart#L274)). Anche `intestatoA` (coordinate bancarie) viene impostato al committente del cliente ([:293](lib/features/preventivo/screens/preventivo_form_page.dart#L293)). Risultato: nel PDF il cliente appare su entrambi i lati e non compare DaMo come fornitore.
 
@@ -183,7 +183,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### C2 — Indirizzo del servizio selezionabile da anagrafica 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (22/06/2026) — dropdown "Scegli indirizzo servizio da anagrafica" (indirizzo principale + indirizzi servizio del cliente), con override manuale nel campo testo.
 
 **Stato attuale.** Nel preventivo l'indirizzo servizio è un campo testo (`_indirizzoServizioCtrl`, precompilato col solo `indirizzoServizio` del cliente). Nei **servizi lab** invece esiste già un dropdown che pesca gli indirizzi dall'anagrafica (`_buildDropdownIndirizzoPrelievo` + `IndirizziServizioService`).
 
@@ -239,7 +239,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### C6 — Coordinate bancarie DaMo di default, modificabili solo da admin 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ✅ Fatto (22/06/2026) — IBAN `IT13U0101585100000070694786` (Banco di Sardegna) + intestatario di default, **in sola lettura** nel preventivo; modificabili dall'admin nel nuovo editor "Dati azienda (DaMo)" in Impostazioni.
 
 **Stato attuale.** IBAN e intestatario sono campi liberi del preventivo; `intestatoA` viene erroneamente impostato al cliente (vedi C1). Nel PDF l'IBAN arriva dai campi del preventivo ([preventivo_pdf_service.dart:616](lib/services/preventivo_pdf_service.dart#L616)).
 
@@ -302,7 +302,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### D2 — Footer: aggiungere il numero del laboratorio 🟢 · S
 
-**Stato:** ✅* Fatto parzialmente (21/06/2026) — numero laboratorio `+39 375 8622574` aggiunto al footer. ⏳ Manca il **tuo numero personale**: è una costante `_telPersonale` in cima a [preventivo_pdf_service.dart](lib/services/preventivo_pdf_service.dart) — appena me lo dai, lo compilo e diventa ✅ pieno.
+**Stato:** ✅ Fatto (22/06/2026) — footer con **+39 349 7644010** (principale DaMo, da carta intestata) **+ Lab. +39 375 8622574**.
 
 **Stato attuale.** Il footer mostra `numeroFormattato — committente` e il numero pagina ([preventivo_pdf_service.dart:753](lib/services/preventivo_pdf_service.dart#L753)); non riporta i numeri di telefono.
 
@@ -484,9 +484,9 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Rif. | Cosa serve | Stato |
 |------|-----------|-------|
-| C1 / C6 | Dati anagrafici completi di **DaMo** (ragione sociale, indirizzo, P.IVA, CU, **IBAN**, intestatario) | ⏳ |
+| C1 / C6 | Dati anagrafici completi di **DaMo** (ragione sociale, indirizzo, P.IVA, CU, **IBAN**, intestatario) | ✅ ricavati dal PDF di riferimento |
 | D1 | **Immagine/screenshot** dell'intestazione di riferimento (o ok a ricostruirla da testo) | ⏳ |
-| D2 | Conferma del **tuo numero** da affiancare a quello del laboratorio | ⏳ |
+| D2 | Conferma del **tuo numero** da affiancare a quello del laboratorio | ✅ +39 349 7644010 (dal PDF) |
 | B1 / D4 | Decisione: progressivo **azzerato ogni giorno** *oppure* **ora** nel codice | ⏳ |
 | E4 | Conferma formato certificazione senza barra (`26001`?) e gestione storico | ⏳ |
 | F1 / G1 | Schema di **codifica** condivisa tra registro analisi e listino preventivi | ⏳ |
@@ -500,6 +500,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 22/06/2026 | **Sprint 3b (DaMo)** | ✅ | Dati DaMo estratti dalla carta intestata di riferimento (`2026_MOD_PREV_GENER.pdf`). **C1** (fornitore DaMo di default), **C6** (IBAN default read-only + editor admin "Dati azienda"), **C2** (dropdown indirizzo servizio da anagrafica), **D2** completato (+39 349 7644010 + lab). `flutter analyze`: 0 errori. Restano solo: **D1** (immagine/logo), **G1** (Excel + certificato), **F1** (già in gran parte coperto da Registro). |
 | 21/06/2026 | **Fase test** | ▶️ | Consegnata la lista test per Sprint 1/2/3a (15/21). Restano: **C1/C6/C2** (gruppo DaMo — serve il profilo dati azienda + admin editor, **bloccato su dati DaMo**), **D1** (serve immagine intestazione), **G1** (serve Excel + modello certificato), **D2** (manca numero personale), **F1** (in gran parte già coperto dalla pagina Registro). |
 | 21/06/2026 | **Sprint 3a** | ✅ | Nuovo widget riusabile `CampoConSuggerimenti` (elenco + manuale). Applicato a C3 (oggetto), C5 (pagamento/durata/rinnovo/periodo/validità), C8 (note). Lab: E3 (tecnico editabile), E2 (hint tipo analisi), E1 (dropdown cliente mostra committente, non città). ⚠️ Da popolare su Firestore le liste `impostazioni/preventivo_{oggetti,durata,periodo,note}` per avere i suggerimenti. `flutter analyze`: 0 errori. |
 | 21/06/2026 | **Sprint 2** | ✅ | A1 (unicità numero cliente), A2 (numero più basso disponibile), B1 (numerazione preventivo con reset giornaliero — decisione presa). `flutter analyze`: 0 errori. Branch `fix/segnalazioni-cliente`. |
