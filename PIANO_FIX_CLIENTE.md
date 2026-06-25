@@ -470,7 +470,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### H1 — Campi configurabili da Impostazioni su tutte le pagine 🔴 · XL
 
-**Stato:** ⬜ Da fare (task grossa — da isolare in uno sprint dedicato)
+**Stato:** ⬜ Da fare — ⚠️ **pilota già realizzato** (widget `CampoConfigurabile` + migrazione campi Preventivo) ma **accantonato sul branch `feature/campi-configurabili`** in attesa del prossimo deploy. Riprendere da lì (cherry-pick / merge) dopo il deploy delle task cliente.
 
 **Stato attuale.** Il meccanismo esiste ma è **parziale**:
 - Widget riusabili già pronti: [`CampoConSuggerimenti`](lib/widgets/campo_con_suggerimenti.dart) (testo libero + tendina da `impostazioni/{categoriaId}`) e `CategoriaDropdown` (sola selezione).
@@ -578,6 +578,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 25/06/2026 | **DEPLOY task cliente** | 🚀 | Deploy per mostrare al cliente le modifiche richieste (aree A–E + fix PDF D2/D3/C6). **H1 accantonato**: il lavoro "campi configurabili" (pilota Preventivo) è preservato sul branch `feature/campi-configurabili` e andrà nel **prossimo deploy**. `staging` riportato a `c48d4de` (solo task cliente). **Post-deploy backlog**: D1 (carta intestata, ora c'è il riferimento), F1, G1 (serve Excel+modello), H1 (riprendere dal branch), H2, H3, H4. |
 | 25/06/2026 | **Blocco 1 — Fix PDF** | ✅ | Implementati (da verificare in test): PDF ora legge `impostazioni/dati_azienda` → stampa **IBAN + banca** (prima assenti), footer con contatti (tel/lab/email/web) + riga legale (P.IVA/REA/Cod.Univ), **firma** da DatiAzienda (corretto refuso "Pur Chimici"). **D3 completato**: l'intera intestazione (logo, dati cliente, indirizzo servizio, oggetto) si ripete su ogni pagina. `flutter analyze`: 0 errori. Commit `d634e7a`. |
 | 25/06/2026 | **Area H (nuova)** | 📄 | Aggiunte H1–H4 da richieste cliente: H1 campi configurabili da Impostazioni su tutte le pagine (XL, isolata), H2 creazione sezioni admin (base già esistente), H3 rinomina + redesign Impostazioni, H4 spostare Dati azienda nel Profilo. Audit codice: tutte le voci ✅ Sprint 1/2/3a/3b verificate corrette. Emersi 3 fix PDF: IBAN/banca non stampati, PDF ignora `DatiAzienda` (telefoni/firma hardcoded, refuso "Pur Chimici"), D3 ripete solo logo e non il blocco dati cliente. Decisioni aperte: formato codice (AAMMGGxxx vs AAMMGG_ora), nuovo nome Impostazioni (H3), Dati azienda spostati o duplicati (H4). |
 | 22/06/2026 | **Sprint 3b (DaMo)** | ✅ | Dati DaMo estratti dalla carta intestata di riferimento (`2026_MOD_PREV_GENER.pdf`). **C1** (fornitore DaMo di default), **C6** (IBAN default read-only + editor admin "Dati azienda"), **C2** (dropdown indirizzo servizio da anagrafica), **D2** completato (+39 349 7644010 + lab). `flutter analyze`: 0 errori. Restano solo: **D1** (immagine/logo), **G1** (Excel + certificato), **F1** (già in gran parte coperto da Registro). |
