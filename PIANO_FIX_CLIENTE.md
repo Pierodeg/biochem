@@ -81,7 +81,7 @@ Ogni voce ha:
 | E4 | Numero: eliminare la barra "/" tra anno e progressivo | 🟢 | S | ✅ |
 | F1 | Gestione parametri da pagina esterna per tipo campione | 🟡 | M | ⬜ |
 | G1 | ⭐ Collegamento risultati analisi → certificato | 🔴 | XL | ⏸️ |
-| H1 | Campi configurabili da Impostazioni su **tutte** le pagine | 🔴 | XL | ⬜ |
+| H1 | Campi configurabili da Impostazioni su **tutte** le pagine | 🔴 | XL | 🔄 |
 | H2 | Admin: creare/gestire le sezioni (liste) da popolare | 🟡 | M | 🔄 |
 | H3 | Rinominare + ridisegnare la sezione Impostazioni | 🟡 | M | ⬜ |
 | H4 | Spostare "Dati azienda" nel Profilo (default, solo admin) | 🟡 | S | ⬜ |
@@ -470,7 +470,7 @@ Per orientarsi, lo stato dell'app oggi:
 
 ### H1 — Campi configurabili da Impostazioni su tutte le pagine 🔴 · XL
 
-**Stato:** ⬜ Da fare (task grossa — da isolare in uno sprint dedicato)
+**Stato:** 🔄 In corso — widget `CampoConfigurabile` realizzato + **pilota Preventivo** completato (25/06/2026). Cascata a menu automatica sezione→categoria→(sottocategoria)→suggerimenti; binding persistito in `impostazioni/field_bindings`; `defaultCategoriaId` mantiene pre-configurati i campi già a lista; reset admin con conferma + "ripristina predefinita". Restano: Servizi lab (tecnico, tipo analisi) e Ondata 2 (campi a testo libero/dropdown chiusi nelle altre pagine).
 
 **Stato attuale.** Il meccanismo esiste ma è **parziale**:
 - Widget riusabili già pronti: [`CampoConSuggerimenti`](lib/widgets/campo_con_suggerimenti.dart) (testo libero + tendina da `impostazioni/{categoriaId}`) e `CategoriaDropdown` (sola selezione).
@@ -578,6 +578,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 25/06/2026 | **H1 — pilota Preventivo** | 🔄 | Widget `CampoConfigurabile` (cascata sezione→categoria→sottocategoria→suggerimenti, menu a catena automatici, tap-per-suggerimenti, reset con conferma + ripristina predefinita). Binding in `impostazioni/field_bindings` + `defaultCategoriaId` per non rompere i campi già a lista. Migrati i campi Preventivo: oggetto, pagamento, durata, rinnovo, periodo, validità, note. `flutter analyze`: 0 problemi sul widget. Commit `ea7c304`. Prossimo: Servizi lab, poi Ondata 2. |
 | 25/06/2026 | **Blocco 1 — Fix PDF** | ✅ | Implementati (da verificare in test): PDF ora legge `impostazioni/dati_azienda` → stampa **IBAN + banca** (prima assenti), footer con contatti (tel/lab/email/web) + riga legale (P.IVA/REA/Cod.Univ), **firma** da DatiAzienda (corretto refuso "Pur Chimici"). **D3 completato**: l'intera intestazione (logo, dati cliente, indirizzo servizio, oggetto) si ripete su ogni pagina. `flutter analyze`: 0 errori. Commit `d634e7a`. |
 | 25/06/2026 | **Area H (nuova)** | 📄 | Aggiunte H1–H4 da richieste cliente: H1 campi configurabili da Impostazioni su tutte le pagine (XL, isolata), H2 creazione sezioni admin (base già esistente), H3 rinomina + redesign Impostazioni, H4 spostare Dati azienda nel Profilo. Audit codice: tutte le voci ✅ Sprint 1/2/3a/3b verificate corrette. Emersi 3 fix PDF: IBAN/banca non stampati, PDF ignora `DatiAzienda` (telefoni/firma hardcoded, refuso "Pur Chimici"), D3 ripete solo logo e non il blocco dati cliente. Decisioni aperte: formato codice (AAMMGGxxx vs AAMMGG_ora), nuovo nome Impostazioni (H3), Dati azienda spostati o duplicati (H4). |
 | 22/06/2026 | **Sprint 3b (DaMo)** | ✅ | Dati DaMo estratti dalla carta intestata di riferimento (`2026_MOD_PREV_GENER.pdf`). **C1** (fornitore DaMo di default), **C6** (IBAN default read-only + editor admin "Dati azienda"), **C2** (dropdown indirizzo servizio da anagrafica), **D2** completato (+39 349 7644010 + lab). `flutter analyze`: 0 errori. Restano solo: **D1** (immagine/logo), **G1** (Excel + certificato), **F1** (già in gran parte coperto da Registro). |
