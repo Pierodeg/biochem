@@ -52,6 +52,7 @@ Ogni voce ha:
 | **E** | Servizi lab (nuova registrazione) | E1–E4 |
 | **F** | Report analitico | F1 |
 | **G** | ⭐ Collegamento dati laboratorio → certificato | G1 |
+| **H** | Impostazioni, configurabilità e profilo | H1–H4 |
 
 ---
 
@@ -80,6 +81,10 @@ Ogni voce ha:
 | E4 | Numero: eliminare la barra "/" tra anno e progressivo | 🟢 | S | ✅ |
 | F1 | Gestione parametri da pagina esterna per tipo campione | 🟡 | M | ⬜ |
 | G1 | ⭐ Collegamento risultati analisi → certificato | 🔴 | XL | ⏸️ |
+| H1 | Campi configurabili da Impostazioni su **tutte** le pagine | 🔴 | XL | ⬜ |
+| H2 | Admin: creare/gestire le sezioni (liste) da popolare | 🟡 | M | 🔄 |
+| H3 | Rinominare + ridisegnare la sezione Impostazioni | 🟡 | M | ⬜ |
+| H4 | Spostare "Dati azienda" nel Profilo (default, solo admin) | 🟡 | S | ⬜ |
 
 ---
 
@@ -459,6 +464,79 @@ Per orientarsi, lo stato dell'app oggi:
 
 ---
 
+## H — Impostazioni, configurabilità e profilo
+
+> Area nata dalle richieste del 25/06/2026. L'obiettivo è rendere l'app **configurabile dall'admin**: prima si definiscono le liste/opzioni in Impostazioni, poi i form di tutte le pagine le propongono come suggerimenti (con possibilità di testo libero). Inoltre: rinominare/ridisegnare Impostazioni e spostare i dati azienda nel profilo.
+
+### H1 — Campi configurabili da Impostazioni su tutte le pagine 🔴 · XL
+
+**Stato:** ⬜ Da fare (task grossa — da isolare in uno sprint dedicato)
+
+**Stato attuale.** Il meccanismo esiste ma è **parziale**:
+- Widget riusabili già pronti: [`CampoConSuggerimenti`](lib/widgets/campo_con_suggerimenti.dart) (testo libero + tendina da `impostazioni/{categoriaId}`) e `CategoriaDropdown` (sola selezione).
+- Backend già pronto: [impostazioni_service.dart](lib/services/impostazioni_service.dart) (`getItems`, `aggiungiItem`, sottocategorie, listino).
+- Applicato **solo ad alcuni campi**: preventivo (oggetto, pagamento, durata, rinnovo, periodo, validità, note), servizi lab (tecnico, tipo analisi). Molti altri campi nei vari form sono ancora testo libero puro o dropdown chiusi.
+
+**Richiesta.** In **tutte** le pagine (anagrafica, preventivo, servizi lab, pest, fatture, registro…), ogni campo a valore selezionabile deve poter attingere a una lista gestita in Impostazioni: l'admin **prima seleziona/definisce le opzioni in Impostazioni**, poi nel form quei valori compaiono come suggerimenti (restando possibile il testo libero). Esempio del cliente: un valore ricorrente (es. "Vodafone") definito una volta e poi richiamabile ovunque.
+
+**Soluzione proposta.**
+1. **Censimento**: elencare, pagina per pagina, tutti i campi candidati a diventare "configurabili" e mapparli a una `categoriaId` Firestore (tabella di mappatura campo → categoria).
+2. Sostituire i campi liberi/dropdown chiusi con `CampoConSuggerimenti` (o `CategoriaDropdown` dove serve sola selezione), riusando i widget esistenti.
+3. Garantire che ogni nuova categoria creata in Impostazioni sia immediatamente collegabile ai campi (dipende da H2).
+4. Definire convenzione di naming delle categorie per area (es. `prev_*`, `lab_*`, `pest_*`, `anag_*`).
+
+**File coinvolti.** Tutti i form (`lib/features/*/screens/*_form_page.dart`), [campo_con_suggerimenti.dart](lib/widgets/campo_con_suggerimenti.dart), [categoria_dropdown.dart](lib/widgets/categoria_dropdown.dart), [impostazioni_service.dart](lib/services/impostazioni_service.dart).
+
+> ⚠️ **Task XL trasversale**: va isolata in uno sprint a sé. Conviene partire dal censimento dei campi e da una pagina pilota prima di estendere a tutte.
+
+---
+
+### H2 — Admin: creare e gestire le sezioni (liste) da popolare 🟡 · M
+
+**Stato:** 🔄 In corso (base già esistente)
+
+**Stato attuale.** L'admin **può già** creare categorie libere col pulsante "Nuova categoria" ([admin_settings_page.dart:166](lib/features/admin/screens/admin_settings_page.dart#L166)) e gestire items/sottocategorie/listino. Le macro-sezioni (ANAGRAFICHE, REG LAB, SERVIZI PEST, PREVENTIVO, FATTURE) sono però **hardcoded** ([:61-116](lib/features/admin/screens/admin_settings_page.dart#L61)).
+
+**Richiesta.** L'admin deve poter creare con facilità tutte le "sezioni" che poi popolerà, in modo che siano subito utilizzabili come suggerimenti nei form (collegato a H1).
+
+**Soluzione proposta.** Verificare/migliorare il flusso di creazione categorie (e, se serve, rendere gestibili anche le macro-sezioni invece che hardcoded); UX chiara per associare una categoria a una pagina/campo.
+
+**File coinvolti.** [admin_settings_page.dart](lib/features/admin/screens/admin_settings_page.dart), [impostazioni_service.dart](lib/services/impostazioni_service.dart).
+
+---
+
+### H3 — Rinominare e ridisegnare la sezione Impostazioni 🟡 · M
+
+**Stato:** ⬜ Da fare
+
+**Stato attuale.** Titolo "Impostazioni", layout a macro-sezioni espandibili ([admin_settings_page.dart:157](lib/features/admin/screens/admin_settings_page.dart#L157)).
+
+**Richiesta.** Cambiare il **nome** della sezione e rifarne il **design/UX**.
+
+**Decisione presa (25/06/2026):** nuovo nome = **"Configurazione"**.
+
+**Soluzione proposta.** Rinominare la sezione in "Configurazione" (AppBar + etichetta link nel profilo + eventuale route) e rifare il layout. Da coordinare con H1/H2 (la pagina diventa il centro di configurazione dell'app).
+
+**File coinvolti.** [admin_settings_page.dart](lib/features/admin/screens/admin_settings_page.dart), routing (`/admin/impostazioni`), [profile_panel.dart](lib/features/profile/widgets/profile_panel.dart) (etichetta link).
+
+---
+
+### H4 — Spostare "Dati azienda" nel Profilo 🟡 · S
+
+**Stato:** ⬜ Da fare
+
+**Stato attuale.** La card "Dati azienda (DaMo)" (`_DatiAziendaCard`) è dentro la pagina Impostazioni ([admin_settings_page.dart:2048](lib/features/admin/screens/admin_settings_page.dart#L2048)). Il Profilo ([profile_panel.dart](lib/features/profile/widgets/profile_panel.dart)) non contiene dati azienda.
+
+**Richiesta.** Creare nella sezione **Profilo** i "Dati dell'azienda": sono i valori inseriti **di default** nei documenti (preventivo, ecc.) e **modificabili solo dall'admin**.
+
+**Decisione presa (25/06/2026):** i dati azienda si **spostano** nel Profilo e vengono **rimossi** da Impostazioni (unico punto).
+
+**Soluzione proposta.** Spostare l'editor `DatiAzienda` (`_DatiAziendaCard`) dal pannello Impostazioni al pannello Profilo, con accesso in scrittura riservato all'admin (lettura per tutti). Rimuovere la card da `admin_settings_page.dart`. Riusa `getDatiAzienda/salvaDatiAzienda` già esistenti.
+
+**File coinvolti.** [profile_panel.dart](lib/features/profile/widgets/profile_panel.dart), [admin_settings_page.dart](lib/features/admin/screens/admin_settings_page.dart), [impostazioni_service.dart](lib/services/impostazioni_service.dart).
+
+---
+
 ## Roadmap consigliata (ordine di esecuzione)
 
 Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
@@ -500,6 +578,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 25/06/2026 | **Area H (nuova)** | 📄 | Aggiunte H1–H4 da richieste cliente: H1 campi configurabili da Impostazioni su tutte le pagine (XL, isolata), H2 creazione sezioni admin (base già esistente), H3 rinomina + redesign Impostazioni, H4 spostare Dati azienda nel Profilo. Audit codice: tutte le voci ✅ Sprint 1/2/3a/3b verificate corrette. Emersi 3 fix PDF: IBAN/banca non stampati, PDF ignora `DatiAzienda` (telefoni/firma hardcoded, refuso "Pur Chimici"), D3 ripete solo logo e non il blocco dati cliente. Decisioni aperte: formato codice (AAMMGGxxx vs AAMMGG_ora), nuovo nome Impostazioni (H3), Dati azienda spostati o duplicati (H4). |
 | 22/06/2026 | **Sprint 3b (DaMo)** | ✅ | Dati DaMo estratti dalla carta intestata di riferimento (`2026_MOD_PREV_GENER.pdf`). **C1** (fornitore DaMo di default), **C6** (IBAN default read-only + editor admin "Dati azienda"), **C2** (dropdown indirizzo servizio da anagrafica), **D2** completato (+39 349 7644010 + lab). `flutter analyze`: 0 errori. Restano solo: **D1** (immagine/logo), **G1** (Excel + certificato), **F1** (già in gran parte coperto da Registro). |
 | 21/06/2026 | **Fase test** | ▶️ | Consegnata la lista test per Sprint 1/2/3a (15/21). Restano: **C1/C6/C2** (gruppo DaMo — serve il profilo dati azienda + admin editor, **bloccato su dati DaMo**), **D1** (serve immagine intestazione), **G1** (serve Excel + modello certificato), **D2** (manca numero personale), **F1** (in gran parte già coperto dalla pagina Registro). |
 | 21/06/2026 | **Sprint 3a** | ✅ | Nuovo widget riusabile `CampoConSuggerimenti` (elenco + manuale). Applicato a C3 (oggetto), C5 (pagamento/durata/rinnovo/periodo/validità), C8 (note). Lab: E3 (tecnico editabile), E2 (hint tipo analisi), E1 (dropdown cliente mostra committente, non città). ⚠️ Da popolare su Firestore le liste `impostazioni/preventivo_{oggetti,durata,periodo,note}` per avere i suggerimenti. `flutter analyze`: 0 errori. |
