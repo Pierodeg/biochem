@@ -6,7 +6,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/preventivo_model.dart';
+import '../models/dati_azienda_model.dart';
 import '../utils/web_download.dart';
+import 'impostazioni_service.dart';
 
 // ─── Colori brand BioChem ─────────────────────────────────────────────────────
 final _verde = PdfColor.fromHex('00A843');
@@ -18,10 +20,6 @@ final _bordo = PdfColor.fromHex('E0E0E0');
 final _bordoVerde = PdfColor.fromHex('C8F5DC');
 const _bianco = PdfColors.white;
 const _nero = PdfColors.black;
-
-// ─── Contatti footer ──────────────────────────────────────────────────────────
-const _telLaboratorio = '+39 375 8622574';
-const _telPersonale = '+39 349 7644010'; // numero principale DaMo (da carta intestata)
 
 /// Genera e condivide il PDF di un preventivo BioChem.
 /// Replica fedelmente il layout del documento cartaceo.
@@ -68,6 +66,10 @@ class PreventivoPdfService {
       logoImage = pw.MemoryImage(logoData.buffer.asUint8List());
     } catch (_) {}
 
+    // Dati azienda fornitrice (DaMo): footer, coordinate bancarie e firma.
+    // Modificabili solo da admin in Impostazioni → Dati azienda.
+    final dati = await ImpostazioniService().getDatiAzienda();
+
     final doc = pw.Document(
       title: p.numeroFormattato,
       author: 'Biochem',
@@ -83,20 +85,14 @@ class PreventivoPdfService {
           margin: const pw.EdgeInsets.fromLTRB(32, 28, 32, 44),
           theme: theme,
         ),
+        // D3 — l'intera intestazione (logo+meta, tagline, dati cliente,
+        // indirizzo servizio, oggetto) si ripete su OGNI pagina.
         header: (ctx) => pw.Padding(
           padding: const pw.EdgeInsets.only(bottom: 8),
-          child: _buildHeader(p, logoImage),
+          child: _buildIntestazione(p, logoImage, dati),
         ),
-        footer: (ctx) => _buildFooter(ctx, p),
+        footer: (ctx) => _buildFooter(ctx, p, dati),
         build: (ctx) => [
-          _buildTagline(),
-          pw.SizedBox(height: 10),
-          _buildDatiCliente(p),
-          pw.SizedBox(height: 10),
-          _buildIndirizzoServizio(p),
-          pw.SizedBox(height: 6),
-          _buildOggetto(p),
-          pw.SizedBox(height: 12),
           _buildDettaglioServizi(p),
           pw.SizedBox(height: 10),
           _buildTotale(p),
@@ -119,7 +115,7 @@ class PreventivoPdfService {
             textAlign: pw.TextAlign.justify,
           ),
           pw.SizedBox(height: 10),
-          _buildIban(p),
+          _buildIban(p, dati),
           pw.SizedBox(height: 8),
           _buildDisclaimer(),
           pw.SizedBox(height: 24),
@@ -134,7 +130,28 @@ class PreventivoPdfService {
   // ─── HEADER ───────────────────────────────────────────────────────────────
   // Logo | sito | QR-like box || pvr off n° | ora | data | mod: preventivo
 
-  pw.Widget _buildHeader(PreventivoModel p, pw.MemoryImage? logo) {
+  /// Intestazione completa ripetuta su ogni pagina (D3): logo/meta + tagline +
+  /// dati cliente + indirizzo servizio + oggetto.
+  pw.Widget _buildIntestazione(
+      PreventivoModel p, pw.MemoryImage? logo, DatiAzienda dati) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: [
+        _buildHeader(p, logo, dati),
+        pw.SizedBox(height: 8),
+        _buildTagline(),
+        pw.SizedBox(height: 8),
+        _buildDatiCliente(p),
+        pw.SizedBox(height: 8),
+        _buildIndirizzoServizio(p),
+        pw.SizedBox(height: 4),
+        _buildOggetto(p),
+      ],
+    );
+  }
+
+  pw.Widget _buildHeader(
+      PreventivoModel p, pw.MemoryImage? logo, DatiAzienda dati) {
     final numeroTesto = p.numeroFormattato;
     final oraTesto = p.ora.isNotEmpty ? p.ora : '';
     final dataTesto = _dateFmt.format(p.data);
@@ -156,7 +173,7 @@ class PreventivoPdfService {
               pw.Text('BioChem',
                   style: pw.TextStyle(font: _fb, fontSize: 20, color: _verde)),
             pw.SizedBox(height: 3),
-            pw.Text('www.biochemlabs.it',
+            pw.Text(dati.web.isNotEmpty ? dati.web : 'www.biochemlabs.it',
                 style: pw.TextStyle(fontSize: 7, color: _blu)),
           ],
         ),
@@ -619,7 +636,12 @@ class PreventivoPdfService {
 
   // ─── IBAN ─────────────────────────────────────────────────────────────────
 
-  pw.Widget _buildIban(PreventivoModel p) {
+  pw.Widget _buildIban(PreventivoModel p, DatiAzienda dati) {
+    // Coordinate bancarie sempre DaMo: IBAN dal preventivo (read-only) con
+    // fallback ai dati azienda; banca e intestatario dai dati azienda.
+    final iban = p.iban.isNotEmpty ? p.iban : dati.iban;
+    final intestatario =
+        p.intestatoA.isNotEmpty ? p.intestatoA : dati.intestatarioIban;
     return pw.Container(
       padding: const pw.EdgeInsets.all(8),
       decoration: pw.BoxDecoration(
@@ -634,17 +656,17 @@ class PreventivoPdfService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                if (p.intestatoA.isNotEmpty)
+                if (iban.isNotEmpty)
                   pw.Row(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        'Intestato a: ',
+                        'Coordinate IBAN: ',
                         style: pw.TextStyle(fontSize: 8, color: _grigio),
                       ),
                       pw.Expanded(
                         child: pw.Text(
-                          p.intestatoA,
+                          dati.banca.isNotEmpty ? '${dati.banca} — $iban' : iban,
                           style: pw.TextStyle(
                             font: _fb,
                             fontSize: 8,
@@ -654,6 +676,28 @@ class PreventivoPdfService {
                       ),
                     ],
                   ),
+                if (intestatario.isNotEmpty) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Intestato a: ',
+                        style: pw.TextStyle(fontSize: 8, color: _grigio),
+                      ),
+                      pw.Expanded(
+                        child: pw.Text(
+                          intestatario,
+                          style: pw.TextStyle(
+                            font: _fb,
+                            fontSize: 8,
+                            color: _nero,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (p.causale.isNotEmpty) ...[
                   pw.SizedBox(height: 4),
                   pw.Row(
@@ -688,18 +732,21 @@ class PreventivoPdfService {
                   'Biochemlabs',
                   style: pw.TextStyle(font: _fb, fontSize: 10, color: _verde),
                 ),
-                pw.Text(
-                  'il chimico',
-                  style: pw.TextStyle(font: _fi, fontSize: 9, color: _nero),
-                ),
-                pw.Text(
-                  'Dr. Leonardo Daga',
-                  style: pw.TextStyle(fontSize: 9, color: _nero),
-                ),
-                pw.Text(
-                  'iscr. Ord. Pur Chimici n° 219A',
-                  style: pw.TextStyle(fontSize: 7, color: _grigio),
-                ),
+                if (dati.firmaTitolo.isNotEmpty)
+                  pw.Text(
+                    dati.firmaTitolo,
+                    style: pw.TextStyle(font: _fi, fontSize: 9, color: _nero),
+                  ),
+                if (dati.firmaNome.isNotEmpty)
+                  pw.Text(
+                    dati.firmaNome,
+                    style: pw.TextStyle(fontSize: 9, color: _nero),
+                  ),
+                if (dati.firmaIscrizione.isNotEmpty)
+                  pw.Text(
+                    dati.firmaIscrizione,
+                    style: pw.TextStyle(fontSize: 7, color: _grigio),
+                  ),
               ],
             ),
           ),
@@ -756,7 +803,21 @@ class PreventivoPdfService {
 
   // ─── FOOTER ───────────────────────────────────────────────────────────────
 
-  pw.Widget _buildFooter(pw.Context ctx, PreventivoModel p) {
+  pw.Widget _buildFooter(pw.Context ctx, PreventivoModel p, DatiAzienda dati) {
+    // Riga contatti: telefono principale + laboratorio + email + web
+    final contatti = [
+      if (dati.telefono.isNotEmpty) 'T: ${dati.telefono}',
+      if (dati.telefonoLab.isNotEmpty) 'Lab. ${dati.telefonoLab}',
+      if (dati.email.isNotEmpty) 'E: ${dati.email}',
+      if (dati.web.isNotEmpty) dati.web,
+    ].join('   ·   ');
+    // Riga legale: ragione sociale + P.IVA + REA + cod. univoco
+    final legale = [
+      'parte di ${dati.ragioneSociale}',
+      if (dati.piva.isNotEmpty) 'P.I: ${dati.piva}',
+      if (dati.rea.isNotEmpty) 'Rea: ${dati.rea}',
+      if (dati.codiceUnivoco.isNotEmpty) 'Cod.Univ: ${dati.codiceUnivoco}',
+    ].join('   ');
     return pw.Container(
       decoration: const pw.BoxDecoration(
         border:
@@ -766,13 +827,10 @@ class PreventivoPdfService {
       child: pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
         children: [
-          // Riga contatti: laboratorio (+ numero personale se configurato)
-          pw.Text(
-            _telPersonale.isNotEmpty
-                ? 'Tel. $_telPersonale   ·   Lab. $_telLaboratorio'
-                : 'Lab. $_telLaboratorio',
-            style: pw.TextStyle(fontSize: 7, color: _grigio),
-          ),
+          if (contatti.isNotEmpty)
+            pw.Text(contatti,
+                style: pw.TextStyle(fontSize: 7, color: _grigio)),
+          pw.Text(legale, style: pw.TextStyle(fontSize: 6, color: _grigio)),
           pw.SizedBox(height: 2),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
