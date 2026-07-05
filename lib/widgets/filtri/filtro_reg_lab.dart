@@ -492,6 +492,23 @@ class FiltriAttiviRowRegLab extends StatelessWidget {
 
 // ─── Utility: applica filtro alla lista Reg Lab ───────────────────────────────
 
+/// Confronta due codici certificazione "AANNN"/"AANNNN" per anno e
+/// progressivo numerici, non per stringa: il progressivo può avere un
+/// numero di cifre diverso da un anno all'altro (vedi
+/// `ServiziLabService.getNextCertificazione`), quindi un confronto testuale
+/// darebbe un ordine sbagliato (es. "26999" > "260050").
+int _confrontaCertificazione(String a, String b) {
+  final annoA = int.tryParse(a.length >= 2 ? a.substring(0, 2) : '');
+  final annoB = int.tryParse(b.length >= 2 ? b.substring(0, 2) : '');
+  final progA = int.tryParse(a.length > 2 ? a.substring(2) : '');
+  final progB = int.tryParse(b.length > 2 ? b.substring(2) : '');
+  if (annoA == null || annoB == null || progA == null || progB == null) {
+    return a.compareTo(b);
+  }
+  final cmpAnno = annoA.compareTo(annoB);
+  return cmpAnno != 0 ? cmpAnno : progA.compareTo(progB);
+}
+
 List<ServizioLabModel> applicaFiltroRegLab(
     List<ServizioLabModel> servizi, FiltroRegLabStato filtro) {
   var risultato = servizi.where((s) {
@@ -532,8 +549,8 @@ List<ServizioLabModel> applicaFiltroRegLab(
       risultato.sort((a, b) =>
           a.inizioProveGenerali.compareTo(b.inizioProveGenerali));
     case OrdinamentoRegLab.certificazione:
-      risultato.sort((a, b) =>
-          a.certificazioneNumerica.compareTo(b.certificazioneNumerica));
+      risultato.sort((a, b) => _confrontaCertificazione(
+          a.certificazioneNumerica, b.certificazioneNumerica));
     case OrdinamentoRegLab.committenteAZ:
       risultato.sort((a, b) =>
           a.committente.toLowerCase().compareTo(b.committente.toLowerCase()));

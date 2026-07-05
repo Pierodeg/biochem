@@ -11,7 +11,14 @@ class ServiziLabService {
 
   // ─── Lettura ───────────────────────────────────────────────────────────────
 
-  /// Stream real-time di tutti i servizi lab, ordinati per certificazione
+  /// Stream real-time di tutti i servizi lab, ordinati per certificazione.
+  ///
+  /// Nota: questo è solo l'ordine iniziale dello stream — l'ordinamento
+  /// scelto dall'utente (per data, committente o numero di certificazione)
+  /// viene sempre riapplicato lato client in `applicaFiltroRegLab`, che
+  /// confronta anno/progressivo in modo numerico e non risente quindi di
+  /// eventuali differenze nel numero di cifre del progressivo (vedi
+  /// [getNextCertificazione]).
   Stream<List<ServizioLabModel>> getServiziLab() {
     return _collection
         .orderBy('certificazioneNumerica', descending: true)
@@ -30,10 +37,14 @@ class ServiziLabService {
 
   // ─── Generazione codici ────────────────────────────────────────────────────
 
-  /// Calcola la prossima certificazione in modo atomico nel formato "AANNN".
+  /// Calcola la prossima certificazione in modo atomico nel formato "AANNNN".
   ///
   /// Usa una transazione Firestore sul documento `contatori/servizi_lab_ANNO`
-  /// per evitare race condition. Il contatore riparte da 001 ogni anno.
+  /// per evitare race condition. Il contatore riparte da 0001 ogni anno.
+  ///
+  /// Progressivo su 4 cifre (fino a 9999/anno): il cliente prevede di poter
+  /// superare i 1000 certificati/anno, per cui le 3 cifre originarie
+  /// (formato "AANNN") non erano sufficienti.
   Future<String> getNextCertificazione() async {
     final now = DateTime.now();
     final anno = (now.year % 100).toString().padLeft(2, '0');
@@ -51,7 +62,7 @@ class ServiziLabService {
       return prossimo;
     });
 
-    return '$anno${prossimo.toString().padLeft(3, '0')}';
+    return '$anno${prossimo.toString().padLeft(4, '0')}';
   }
 
   /// Genera il codice A nel formato AAMMGG

@@ -100,9 +100,9 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 | **D1** | Carta intestata fedele al modello | 🟡 | ⏸️→pronta | logo HD + eventuale modello preventivo aggiornato (INFO §2) |
 | **F1** | Parametri per tipo campione (pagina esterna) | 🟡 | ⬜ **confermato dal cliente**, pronto per progettazione | — |
 | **G1** ⭐ | Collegamento risultati analisi → certificato | 🔴 | ⏸️ | **file Excel + modello certificato fisici (INFO §1)** — meccanismo (filtro colonna stile "stampa unione") già confermato |
-| **E4-bis** ⚠️ | Contatore certificazione: rischio overflow oltre 999/anno | 🔴 | ⬜ nuovo, da correggere | — (fix tecnico, vedi PIANO_FIX_CLIENTE.md) |
+| **E4-bis** | Contatore certificazione: overflow oltre 999/anno | 🔴 | ✅ fatto (05/07/2026) | — |
 
-**Ordine consigliato di ripresa:** H1 (completare) → **E4-bis (fix contatore certificazione, urgente)** → H4 → H3 → H2 → F1 → D1 → (G1 quando arrivano i file Excel+modello).
+**Ordine consigliato di ripresa:** H1 (completare) → H4 → H3 → H2 → F1 → D1 → (G1 quando arrivano i file Excel+modello).
 
 ---
 
@@ -112,7 +112,7 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 |------|-----------|------|
 | ~~B1 / D4~~ | ~~Formato codice preventivo~~ | ✅ **Risolto (05/07/2026):** cliente ok con entrambi → si mantiene `AAMMGGxxx` già in produzione. |
 | ~~E4~~ | ~~Storico certificazioni `AA/NNN`~~ | ✅ **Risolto (05/07/2026):** nessun certificato con vecchio formato, nessuna migrazione. |
-| E4-bis | Formato contatore certificazione oltre 999/anno | ⚠️ Il cliente prevede di superare i 1000/anno: il formato `AANNN` (3 cifre) va esteso. Da decidere: 4 cifre (`AANNNN`) + ordinamento su campo numerico invece che stringa. |
+| ~~E4-bis~~ | ~~Formato contatore certificazione oltre 999/anno~~ | ✅ **Risolto (05/07/2026):** progressivo a 4 cifre (`AANNNN`, fino a 9999/anno) + confronto numerico anno/progressivo per l'ordinamento client-side. |
 | F1 / G1 | Codifica condivisa Registro ↔ listino preventivi | Cliente conferma: stessa codifica delle tipologie di servizio, admin può aggiungere parametri. Schema di dettaglio da definire in fase di implementazione F1. |
 | D1 | Modello preventivo aggiornato? | Il cliente accenna a un modello "nuovo" diverso da `2026_MOD_PREV_GENER.pdf` — da chiarire/recuperare. |
 
