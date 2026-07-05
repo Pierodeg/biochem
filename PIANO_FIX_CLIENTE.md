@@ -407,11 +407,27 @@ Per orientarsi, lo stato dell'app oggi:
 
 ---
 
+### E4-bis — Contatore certificazione: overflow oltre 999/anno 🔴 · S
+
+**Stato:** ⬜ Da fare (emerso il 05/07/2026 dalle risposte del cliente)
+
+**Stato attuale.** `getNextCertificazione()` ([servizi_lab_service.dart:37-54](lib/services/servizi_lab_service.dart#L37)) genera il codice come `anno (2 cifre) + progressivo.padLeft(3, '0')` (max `999`/anno). L'elenco (`getServiziLab`) ordina per il campo **stringa** `certificazioneNumerica` ([servizi_lab_service.dart:17](lib/services/servizi_lab_service.dart#L17)), non un numero.
+
+**Richiesta (cliente).** Confermato formato senza barra, ma segnala che si potrebbero **superare i 1000 certificati/anno** — il formato a 3 cifre non basta.
+
+**Attenzione.** Non basta allargare il `padLeft` a 4 cifre a metà anno: mescolare stringhe di lunghezza diversa nello stesso anno (es. `"26999"` vs `"261000"`) rompe l'ordinamento lessicografico usato da `orderBy('certificazioneNumerica')`.
+
+**Soluzione proposta.** Passare a 4 cifre di progressivo (`AANNNN`, fino a 9999/anno) **e** smettere di ordinare sulla stringa: aggiungere un campo numerico dedicato (es. `certificazioneOrdinamento` = anno*10000+progressivo, intero) da usare in `orderBy`, così il formato testuale può cambiare senza rompere l'ordinamento storico. Verificare se serve un piccolo script di backfill per i record già esistenti nel 2026.
+
+**File coinvolti.** [servizi_lab_service.dart](lib/services/servizi_lab_service.dart), [servizio_lab_model.dart](lib/models/servizio_lab_model.dart).
+
+---
+
 ## F — Report analitico
 
 ### F1 — Gestione parametri da pagina esterna per tipo campione 🟡 · M
 
-**Stato:** ⬜ Da fare
+**Stato:** ⬜ Da fare — **confermato dal cliente (05/07/2026)**: sì, dividere per tipo campione, stessa codifica dei servizi, admin può aggiungere parametri. Pronto per la progettazione.
 
 **Stato attuale.** Esiste **già** la pagina **Registro** ([registro_page.dart](lib/features/registro/screens/registro_page.dart)) che gestisce i preset (categorie → parametri) e li associa ai **campioni di riferimento**; supporta anche import da CSV. Nel form servizio lab i parametri si caricano dal preset in base al campione e si gestiscono via popup.
 
@@ -563,12 +579,12 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 | Rif. | Cosa serve | Stato |
 |------|-----------|-------|
 | C1 / C6 | Dati anagrafici completi di **DaMo** (ragione sociale, indirizzo, P.IVA, CU, **IBAN**, intestatario) | ✅ ricavati dal PDF di riferimento |
-| D1 | **Immagine/screenshot** dell'intestazione di riferimento (o ok a ricostruirla da testo) | ⏳ |
+| D1 | **Immagine/screenshot** dell'intestazione di riferimento (o ok a ricostruirla da testo) | ⏳ logo HD ancora mancante; chiarire se esiste un modello preventivo più recente |
 | D2 | Conferma del **tuo numero** da affiancare a quello del laboratorio | ✅ +39 349 7644010 (dal PDF) |
-| B1 / D4 | Decisione: progressivo **azzerato ogni giorno** *oppure* **ora** nel codice | ⏳ |
-| E4 | Conferma formato certificazione senza barra (`26001`?) e gestione storico | ⏳ |
-| F1 / G1 | Schema di **codifica** condivisa tra registro analisi e listino preventivi | ⏳ |
-| **G1** | **File Excel** dati analisi + **modello certificato** + descrizione del meccanismo di collegamento | ⏳ |
+| B1 / D4 | Decisione: progressivo **azzerato ogni giorno** *oppure* **ora** nel codice | ✅ (05/07/2026) entrambi ok → mantenuto formato attuale |
+| E4 | Conferma formato certificazione senza barra (`26001`?) e gestione storico | ✅ (05/07/2026) confermato, nessun record col vecchio formato — ⚠️ nuovo problema: limite 999/anno da correggere (E4-bis) |
+| F1 / G1 | Schema di **codifica** condivisa tra registro analisi e listino preventivi | ✅ (05/07/2026) confermato: stessa codifica dei servizi |
+| **G1** | **File Excel** dati analisi + **modello certificato** + descrizione del meccanismo di collegamento | 🔄 meccanismo descritto (filtro colonna stile "stampa unione") ✅ — **file fisici ancora da ricevere** ⏳ |
 
 ---
 
@@ -578,6 +594,7 @@ Raggruppata per dare valore subito e tenere insieme i lavori che si toccano.
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 05/07/2026 | **Risposte cliente ricevute** | 📩 | Aggiornati `INFO_DAL_CLIENTE.md` e `DOMANDE_PER_IL_CLIENTE.md` con le risposte. **Risolto:** B1/D4 (formato preventivo confermato, nessuna modifica), E4 (formato senza barra confermato, nessuna migrazione storico), F1 (confermata divisione per tipo campione con codifica condivisa ai servizi — pronto per implementazione). **G1:** meccanismo di collegamento chiarito (filtro su colonna del registro, stile "stampa unione" Word), ma **mancano ancora i file** (Excel registro, modello certificato). **Nuovo problema (E4-bis):** il cliente prevede di superare i 1000 certificati/anno — il contatore attuale (`AANNN`, 3 cifre) va corretto prima di arrivare al limite; serve anche passare l'ordinamento da stringa a campo numerico (vedi voce E4-bis in area E). **Aperto:** logo HD (D1) ed eventuale modello preventivo aggiornato, elenchi puntuali per le tendine (H1). |
 | 25/06/2026 | **DEPLOY task cliente** | 🚀 | Deploy per mostrare al cliente le modifiche richieste (aree A–E + fix PDF D2/D3/C6). **H1 accantonato**: il lavoro "campi configurabili" (pilota Preventivo) è preservato sul branch `feature/campi-configurabili` e andrà nel **prossimo deploy**. `staging` riportato a `c48d4de` (solo task cliente). **Post-deploy backlog**: D1 (carta intestata, ora c'è il riferimento), F1, G1 (serve Excel+modello), H1 (riprendere dal branch), H2, H3, H4. |
 | 25/06/2026 | **Blocco 1 — Fix PDF** | ✅ | Implementati (da verificare in test): PDF ora legge `impostazioni/dati_azienda` → stampa **IBAN + banca** (prima assenti), footer con contatti (tel/lab/email/web) + riga legale (P.IVA/REA/Cod.Univ), **firma** da DatiAzienda (corretto refuso "Pur Chimici"). **D3 completato**: l'intera intestazione (logo, dati cliente, indirizzo servizio, oggetto) si ripete su ogni pagina. `flutter analyze`: 0 errori. Commit `d634e7a`. |
 | 25/06/2026 | **Area H (nuova)** | 📄 | Aggiunte H1–H4 da richieste cliente: H1 campi configurabili da Impostazioni su tutte le pagine (XL, isolata), H2 creazione sezioni admin (base già esistente), H3 rinomina + redesign Impostazioni, H4 spostare Dati azienda nel Profilo. Audit codice: tutte le voci ✅ Sprint 1/2/3a/3b verificate corrette. Emersi 3 fix PDF: IBAN/banca non stampati, PDF ignora `DatiAzienda` (telefoni/firma hardcoded, refuso "Pur Chimici"), D3 ripete solo logo e non il blocco dati cliente. Decisioni aperte: formato codice (AAMMGGxxx vs AAMMGG_ora), nuovo nome Impostazioni (H3), Dati azienda spostati o duplicati (H4). |

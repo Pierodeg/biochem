@@ -11,16 +11,23 @@
 
 È la parte più grande e critica. Senza questi elementi non si può progettare.
 
-- [ ] **File Excel attuale** (anche con dati finti) usato oggi per i certificati: serve per vedere
-      struttura reale, colonne, come sono organizzati i parametri per **tipo campione**.
-- [ ] **Modello/template del certificato** finale (il documento che il cliente compila).
-- [ ] **Come avviene oggi il collegamento** Excel → certificato:
-      `CERCA.VERT`/filtri? Tabella pivot? Foglio "database" + foglio "modello"?
-- [ ] **Chiave di aggancio**: i dati si collegano per **numero di certificato**, per **nome cliente**,
-      o entrambi?
-- [ ] **Layout del PDF certificato**: intestazione di accreditamento, loghi, diciture obbligatorie.
+- [x] **Struttura Excel**: il cliente ha condiviso un **registro editabile** con più fogli (es. un
+      foglio per le analisi primarie, uno per i metalli, ecc.). Serve un "database" che trasferisca
+      i dati dal registro al modello di certificato.
+- [x] **Come funziona il certificato**: il modello ha una struttura **fissa** (intestazione/layout),
+      i **risultati inseriti cambiano** in base alla tipologia di analisi richiesta.
+- [x] **Come avviene oggi il collegamento**: **filtro su una colonna a scelta** del foglio registro
+      (es. colonna "referente" → Mario Rossi; combinabile con filtro per anno/data). Il cliente lo
+      paragona alla **stampa unione di Word** — utile spunto per il meccanismo di import/generazione.
+      Non è quindi un aggancio fisso per "numero certificato" o "nome cliente": è un filtro libero
+      su colonne del registro.
+- [ ] **File Excel vero e proprio** (anche con dati finti) e **modello di certificato** in formato
+      file: da recuperare/allegare fisicamente per poter progettare struttura dati e PDF.
+- [ ] **Layout del PDF certificato**: intestazione di accreditamento, loghi, diciture obbligatorie
+      (non ancora arrivato).
 
 > Sblocca: **G1** (modello dati risultati, import, compilazione assistita, PDF certificato).
+> Meccanismo confermato (filtro colonna stile "stampa unione"); **mancano ancora i file** per iniziare l'implementazione.
 
 ---
 
@@ -29,43 +36,47 @@
 Il PDF di riferimento (`2026_MOD_PREV_GENER.pdf`) c'è già. Restano da chiarire:
 
 - [ ] **Logo** in alta risoluzione (PNG/SVG), se disponibile, per la testata.
-- [ ] Il codice **`rif. MQ_20251028_rev00`** in testata: cosa rappresenta? Va **fisso** o deve
-      aggiornarsi (es. per revisione modulo)?
-- [ ] Conferma se la grafica attuale va bene o ci sono **elementi specifici** del modello da
-      replicare fedelmente (disposizione colonne tabella, etichette, fascia footer).
+- [x] Il codice **`rif. MQ_...`** in testata: è un riferimento al **Manuale di Qualità**. Cambia
+      **solo** quando viene aggiornato il manuale, o il logo di qualità (in caso di ente esterno).
+      → in pratica è **fisso**, non calcolato per singolo documento.
+- [ ] Il cliente accenna a un **modello preventivo eventualmente nuovo/aggiornato** ("forse cambia
+      qualcosa in quello nuovo") — **da chiarire/recuperare**: c'è un file più recente rispetto a
+      `2026_MOD_PREV_GENER.pdf` da usare come riferimento?
 
-> Sblocca: **D1**.
+> Sblocca: **D1**. Manca ancora il logo HD e la conferma/il file del modello preventivo aggiornato.
 
 ---
 
-## 🟡 3. Decisione — Formato codice preventivo (B1 / D4)
+## ✅ 3. Decisione — Formato codice preventivo (B1 / D4) — RISOLTO
 
-- [ ] Il codice del preventivo (e il nome file PDF) deve essere:
-  - **`AAMMGGxxx`** → progressivo giornaliero (attuale), es. `260625001`, **oppure**
-  - **`AAMMGG_ora`** → come nel modello di riferimento, es. `260625_16:00`.
+- [x] Il cliente **va bene con entrambi** i formati (`AAMMGGxxx` progressivo giornaliero **oppure**
+      `AAMMGG_ora`). Si mantiene il formato **già implementato** (`AAMMGGxxx`, progressivo
+      giornaliero) — nessuna modifica necessaria.
 
-> Sblocca: rifinitura **B1** e **D4** + testata PDF.
+> **B1 / D4 confermati come sono in produzione.**
 
 ---
 
 ## 🟢 4. E4 — Formato certificazione e storico
 
-- [ ] Conferma formato senza barra: **`AANNN`** (es. `26001`). ✅ già implementato così.
-- [ ] I record **già salvati** con il vecchio formato `AA/NNN`: vanno **uniformati** (migrazione dati)
-      o si lasciano com'erano?
+- [x] Confermato formato senza barra: **`AANNN`**.
+- [x] **Nessun certificato** con il vecchio formato `AA/NNN` → **nessuna migrazione storica** necessaria.
+- [ ] ⚠️ **Nuovo problema emerso**: il cliente segnala che si potrebbero **superare i 1000
+      certificati/anno**. Il formato attuale usa 3 cifre di progressivo (`NNN`, max 999) →
+      **da correggere** prima che il limite venga raggiunto (vedi task tecnico in
+      `PIANO_FIX_CLIENTE.md`).
 
-> Sblocca: eventuale migrazione storico.
+> Sblocca: fix tecnico urgente sul contatore certificazione (capacità oltre 999/anno).
 
 ---
 
-## 🟡 5. F1 — Parametri per tipo campione
+## ✅ 5. F1 — Parametri per tipo campione — CONFERMATO, da implementare
 
-- [ ] La pagina **Registro** attuale (gestione parametri per campione) è **sufficiente**, o serve una
-      vista/gestione dedicata "per tipologia campione" (acque, terreni, olio idraulico…)?
-- [ ] Serve una **codifica unica** condivisa tra Registro analisi e listino preventivi? Con quale
-      schema di codici? (collegato a G1)
+- [x] Il cliente conferma: **sì, meglio dividere** per tipo di campione.
+- [x] Vuole la **stessa codifica** usata per le tipologie di servizio, con la possibilità per
+      l'admin di **aggiungere parametri**.
 
-> Sblocca: **F1** e parte di **G1**.
+> Sblocca: **F1** può passare in progettazione/implementazione (nessun input mancante).
 
 ---
 
@@ -80,6 +91,8 @@ Per popolare le tendine di suggerimenti servono gli **elenchi di valori standard
 - [ ] Eventuali **categorie/sottocategorie** ricorrenti (es. cliente con più sedi/indirizzi).
 
 > Sblocca: i suggerimenti reali nei campi configurabili (H1).
+> Il cliente non ha ancora mandato le liste puntuali; ha solo rimandato al "modello preventivo
+> condiviso" (probabile riferimento al punto D1) — **da richiedere ancora in modo specifico**.
 
 ---
 

@@ -1,6 +1,6 @@
 # Stato del progetto e roadmap — BioChem
 
-> **Ultimo aggiornamento:** 25/06/2026
+> **Ultimo aggiornamento:** 05/07/2026
 > **Scopo:** documento "master" per **riprendere il lavoro in qualsiasi sessione, anche a freddo**.
 > Raccoglie stato attuale, lavoro accantonato e backlog futuro.
 >
@@ -97,11 +97,12 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 | **H4** | Dati azienda nel **Profilo** (solo admin) | 🟡 | ⬜ | — |
 | **H3** | Rinomina sezione → **"Configurazione"** + redesign | 🟡 | ⬜ | — |
 | **H2** | Admin gestisce le macro-sezioni (oggi hardcoded) | 🟡 | 🔄 base esistente | — |
-| **D1** | Carta intestata fedele al modello | 🟡 | ⏸️→pronta | logo HD + chiarimenti (INFO §2) |
-| **F1** | Parametri per tipo campione (pagina esterna) | 🟡 | ⬜ | conferma cliente (INFO §5) |
-| **G1** ⭐ | Collegamento risultati analisi → certificato | 🔴 | ⏸️ | **Excel + modello certificato (INFO §1)** |
+| **D1** | Carta intestata fedele al modello | 🟡 | ⏸️→pronta | logo HD + eventuale modello preventivo aggiornato (INFO §2) |
+| **F1** | Parametri per tipo campione (pagina esterna) | 🟡 | ⬜ **confermato dal cliente**, pronto per progettazione | — |
+| **G1** ⭐ | Collegamento risultati analisi → certificato | 🔴 | ⏸️ | **file Excel + modello certificato fisici (INFO §1)** — meccanismo (filtro colonna stile "stampa unione") già confermato |
+| **E4-bis** ⚠️ | Contatore certificazione: rischio overflow oltre 999/anno | 🔴 | ⬜ nuovo, da correggere | — (fix tecnico, vedi PIANO_FIX_CLIENTE.md) |
 
-**Ordine consigliato di ripresa:** H1 (completare) → H4 → H3 → H2 → D1 → (G1 quando arrivano Excel+modello).
+**Ordine consigliato di ripresa:** H1 (completare) → **E4-bis (fix contatore certificazione, urgente)** → H4 → H3 → H2 → F1 → D1 → (G1 quando arrivano i file Excel+modello).
 
 ---
 
@@ -109,9 +110,11 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 
 | Rif. | Decisione | Note |
 |------|-----------|------|
-| B1 / D4 | Formato codice preventivo: `AAMMGGxxx` vs `AAMMGG_ora` | Influenza testata PDF + nome file. |
-| E4 | Storico certificazioni `AA/NNN`: migrare o lasciare | Solo se serve uniformare. |
-| F1 / G1 | Codifica condivisa Registro ↔ listino preventivi | Schema codici da definire. |
+| ~~B1 / D4~~ | ~~Formato codice preventivo~~ | ✅ **Risolto (05/07/2026):** cliente ok con entrambi → si mantiene `AAMMGGxxx` già in produzione. |
+| ~~E4~~ | ~~Storico certificazioni `AA/NNN`~~ | ✅ **Risolto (05/07/2026):** nessun certificato con vecchio formato, nessuna migrazione. |
+| E4-bis | Formato contatore certificazione oltre 999/anno | ⚠️ Il cliente prevede di superare i 1000/anno: il formato `AANNN` (3 cifre) va esteso. Da decidere: 4 cifre (`AANNNN`) + ordinamento su campo numerico invece che stringa. |
+| F1 / G1 | Codifica condivisa Registro ↔ listino preventivi | Cliente conferma: stessa codifica delle tipologie di servizio, admin può aggiungere parametri. Schema di dettaglio da definire in fase di implementazione F1. |
+| D1 | Modello preventivo aggiornato? | Il cliente accenna a un modello "nuovo" diverso da `2026_MOD_PREV_GENER.pdf` — da chiarire/recuperare. |
 
 ---
 
