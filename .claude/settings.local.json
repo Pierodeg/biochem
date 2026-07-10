@@ -8,7 +8,24 @@
       "Bash(grep -v \"^$\")",
       "Bash(flutter build:*)",
       "Bash(node *)",
-      "Bash(dart analyze *)"
+      "Bash(dart analyze *)",
+      "Bash(git ls-remote *)",
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git ls-tree *)",
+      "Bash(grep -iE \"\\\\.md$\")",
+      "Bash(git pull *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(flutter analyze *)",
+      "Bash(git merge --no-ff origin/feature/campi-configurabili -m 'merge\\(H1\\): porta il pilota campi configurabili in staging *)",
+      "Bash(git commit *)",
+      "Bash(git commit -m 'docs\\(roadmap\\): H1 rientrata in staging, feature/campi-configurabili da rimuovere *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git mv *)",
+      "Bash(git commit -m 'docs: riorganizza MD in set pulito a 3 file + archivia INFO *)"
     ]
   }
 }

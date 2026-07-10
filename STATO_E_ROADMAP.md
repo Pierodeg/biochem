@@ -4,9 +4,12 @@
 > **Scopo:** documento "master" per **riprendere il lavoro in qualsiasi sessione, anche a freddo**.
 > Raccoglie stato attuale, lavoro accantonato e backlog futuro.
 >
-> **Documenti collegati:**
-> - [PIANO_FIX_CLIENTE.md](PIANO_FIX_CLIENTE.md) — storico dettagliato di tutte le voci (A–H) con file/riga.
-> - [INFO_DAL_CLIENTE.md](INFO_DAL_CLIENTE.md) — cosa serve ricevere/sapere dal cliente.
+> **Struttura documenti (3 file):**
+> - **Questo file** — master: stato, roadmap e **cosa serve dal cliente** (§9).
+> - [PIANO_FIX_CLIENTE.md](PIANO_FIX_CLIENTE.md) — registro tecnico dettagliato di tutte le voci (A–H) con file/riga + changelog.
+> - [DOMANDE_PER_IL_CLIENTE.md](DOMANDE_PER_IL_CLIENTE.md) — questionario (solo domande ancora aperte) da girare al cliente.
+>
+> _Documenti superati archiviati in [`docs/archivio/`](docs/archivio/)._
 
 ---
 
@@ -14,7 +17,7 @@
 
 1. Leggi questo file (stato + roadmap).
 2. Per il dettaglio tecnico di una voce → cerca la sigla (es. `H1`, `G1`) in `PIANO_FIX_CLIENTE.md`.
-3. Per gli input mancanti dal cliente → `INFO_DAL_CLIENTE.md`.
+3. Per gli input mancanti dal cliente → §9 di questo file (e questionario in `DOMANDE_PER_IL_CLIENTE.md`).
 
 ---
 
@@ -79,7 +82,7 @@
 3. **Ondata 2 — censimento**: mappare e convertire i campi a testo libero/dropdown chiuso nelle altre pagine
    (anagrafiche, pest, ecc.).
 4. Popolare su Firestore le liste: `preventivo_oggetti`, `preventivo_durata`, `preventivo_periodo`, `preventivo_note`
-   (contenuti da chiedere al cliente — vedi INFO_DAL_CLIENTE.md §6).
+   (contenuti da chiedere al cliente — vedi §9).
 
 ---
 
@@ -91,9 +94,9 @@
 | **H4** | Dati azienda nel **Profilo** (solo admin) | 🟡 | ⬜ | — |
 | **H3** | Rinomina sezione → **"Configurazione"** + redesign | 🟡 | ⬜ | — |
 | **H2** | Admin gestisce le macro-sezioni (oggi hardcoded) | 🟡 | 🔄 base esistente | — |
-| **D1** | Carta intestata fedele al modello | 🟡 | ⏸️→pronta | logo HD + eventuale modello preventivo aggiornato (INFO §2) |
+| **D1** | Carta intestata fedele al modello | 🟡 | ⏸️→pronta | logo HD + eventuale modello preventivo aggiornato (§9) |
 | **F1** | Parametri per tipo campione (pagina esterna) | 🟡 | ⬜ **confermato dal cliente**, pronto per progettazione | — |
-| **G1** ⭐ | Collegamento risultati analisi → certificato | 🔴 | ⏸️ | **file Excel + modello certificato fisici (INFO §1)** — meccanismo (filtro colonna stile "stampa unione") già confermato |
+| **G1** ⭐ | Collegamento risultati analisi → certificato | 🔴 | ⏸️ | **file Excel + modello certificato fisici (§9)** — meccanismo (filtro colonna stile "stampa unione") già confermato |
 | **E4-bis** | Contatore certificazione: overflow oltre 999/anno | 🔴 | ✅ fatto (05/07/2026) | — |
 
 **Ordine consigliato di ripresa:** H1 (completare) → H4 → H3 → H2 → F1 → D1 → (G1 quando arrivano i file Excel+modello).
@@ -127,3 +130,28 @@
 
 Delle richieste del cliente, è rimasto: **D1** (pronta), **F1** (decisione), **G1** (bloccata su Excel+modello),
 e l'area **H** (H1 in corso in staging, H2/H3/H4 da fare). Tutto il resto è **in produzione**.
+
+---
+
+## 9. 📥 Input necessari dal cliente
+
+> Cosa serve **ricevere o sapere** dal cliente per sbloccare le voci ancora aperte.
+> Il questionario pronto da inviare è in [DOMANDE_PER_IL_CLIENTE.md](DOMANDE_PER_IL_CLIENTE.md).
+
+### 🔴 Ancora aperti (bloccano)
+
+| Rif. | Cosa serve | Sblocca |
+|------|-----------|---------|
+| **G1** | **File Excel** del registro analisi (anche con dati finti) + **modello di certificato** in formato file + **layout PDF** certificato (intestazione accreditamento, loghi, diciture) | Progettazione G1 (modello dati risultati, import, PDF). Meccanismo già chiarito: filtro libero su colonna del registro, stile "stampa unione" Word. |
+| **D1** | **Logo** in alta risoluzione (PNG/SVG) + conferma se esiste un **modello preventivo più recente** di `2026_MOD_PREV_GENER.pdf` | Carta intestata fedele |
+| **H1** | **Elenchi standard** per le tendine: oggetti preventivo, durate contratto, periodi intervento, note/condizioni d'offerta (+ eventuali sedi/indirizzi ricorrenti) | Suggerimenti reali nei campi configurabili |
+
+### ✅ Già ricevuti / decisi
+
+- **Dati DaMo** (ragione sociale, indirizzo, P.IVA, CU, **IBAN** Banco di Sardegna `IT13U0101585100000070694786`, REA) — dal PDF di riferimento.
+- **Telefoni**: personale **+39 349 7644010** + laboratorio **+39 375 8622574** (footer PDF).
+- **B1/D4** — formato codice preventivo: ok entrambi → mantenuto `AAMMGGxxx` (reset giornaliero).
+- **E4** — certificazione senza barra (`AANNN`); nessun record vecchio → nessuna migrazione.
+- **F1** — confermato: dividere per tipo campione, stessa codifica dei servizi, admin aggiunge parametri.
+- **`rif. MQ_...`** in testata preventivo = riferimento al Manuale di Qualità: **fisso**, non per singolo documento.
+- **Nome sezione** Impostazioni → **"Configurazione"** (H3); **Dati azienda** → solo nel **Profilo** (H4).
