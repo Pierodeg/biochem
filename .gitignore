@@ -1,3 +1,7 @@
+# File di riferimento locali (contengono dati reali dei clienti — PII).
+# Tenuti FUORI dal repo: restano solo in locale. Vedi CLAUDE.md.
+/riferimenti/
+
 # Miscellaneous
 *.class
 *.log
