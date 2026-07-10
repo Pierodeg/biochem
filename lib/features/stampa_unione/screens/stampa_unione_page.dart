@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../services/certificato_pdf_service.dart';
 import '../../laboratorio/famiglie_analisi.dart';
 import '../stampa_unione_service.dart';
 
@@ -161,6 +162,20 @@ class _RigaUnione extends StatelessWidget {
           children: [
             for (final fam in StampaUnioneService.famiglie)
               _buildFamiglia(fam),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    CertificatoPdfService().stampaCertificato(riga),
+                icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                label: const Text('Certificato (bozza)'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.accentGreenDark,
+                  side: const BorderSide(color: AppColors.glassBorder),
+                ),
+              ),
+            ),
           ],
         ),
       ),
