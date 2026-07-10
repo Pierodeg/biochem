@@ -1176,7 +1176,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Listino non configurato — vai in Impostazioni → Preventivo',
+                  'Listino non configurato — vai in Configurazione → Preventivo',
                   style: TextStyle(fontSize: 12, color: Color(0xFFD97706)),
                 ),
               ),
@@ -1739,7 +1739,7 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
               readOnly: true,
               style: const TextStyle(color: Colors.white70),
               decoration: _dec('Coordinate IBAN').copyWith(
-                helperText: 'DaMo — modificabile da Impostazioni → Dati azienda',
+                helperText: 'DaMo — modificabile da Configurazione → Dati azienda',
                 helperStyle: const TextStyle(
                     fontSize: 10, color: AppColors.textOnDarkMuted),
               )),

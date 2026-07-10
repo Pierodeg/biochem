@@ -1006,7 +1006,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
             const Padding(
               padding: EdgeInsets.only(top: 4, left: 4),
               child: Text(
-                'Per aggiungere nuove tipologie: Impostazioni → Categorie analisi',
+                'Per aggiungere nuove tipologie: Configurazione → Categorie analisi',
                 style:
                     TextStyle(fontSize: 11, color: AppColors.textOnDarkMuted),
               ),

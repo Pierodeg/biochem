@@ -285,7 +285,7 @@ class _CampoConfigurabileState extends ConsumerState<CampoConfigurabile> {
             : _macroDi(c.id) == macro)
         .toList();
     if (categorie.isEmpty) {
-      _avviso('Nessuna categoria in «$macro». Creane una in Impostazioni.');
+      _avviso('Nessuna categoria in «$macro». Creane una in Configurazione.');
       return;
     }
     final id = await _mostraMenu(categorie
@@ -304,7 +304,7 @@ class _CampoConfigurabileState extends ConsumerState<CampoConfigurabile> {
   Future<void> _apriMenuSottocategorie(CategoriaModel cat) async {
     final sub = cat.sottocategorie.keys.toList()..sort();
     if (sub.isEmpty) {
-      _avviso('«${cat.nome}» non ha sottocategorie. Creane in Impostazioni.');
+      _avviso('«${cat.nome}» non ha sottocategorie. Creane in Configurazione.');
       return;
     }
     final s = await _mostraMenu(sub.map((x) => (x, x)).toList());

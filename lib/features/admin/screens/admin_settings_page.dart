@@ -155,7 +155,7 @@ class AdminSettingsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Impostazioni'),
+        title: const Text('Configurazione'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),

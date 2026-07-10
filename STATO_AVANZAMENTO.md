@@ -13,7 +13,7 @@
 |------|-------------|-------|
 | **0** | Setup & documentazione | ✅ |
 | **A** | Navigazione & Home (task 2,3) | ✅ |
-| **B** | Configurazione (task 4, H2/H3/H4) | ⬜ |
+| **B** | Configurazione (task 4, H2/H3/H4) | 🔄 |
 | **C** | Sezioni lab risultati (task 5,6,7,9) | ⬜ |
 | **D** | Stampa unione (task 8) | ⬜ |
 | **E** | Certificato PDF (G1) | ⏸️ modello dal cliente |
@@ -45,10 +45,10 @@
 ### AREA B — Configurazione
 | # | Task | Stato |
 |---|------|-------|
-| B1 | Rinomina Impostazioni → "Configurazione" | ⬜ |
-| B2 | Redesign UX gestione dati | ⬜ |
-| B3 | Macro-sezioni gestibili (H2) | ⬜ |
-| B4 | Dati azienda in Configurazione (H4) | ⬜ |
+| B1 | Rinomina Impostazioni → "Configurazione" | ✅ |
+| B2 | Redesign UX gestione dati | 🔄 pass dedicato (da rivedere insieme) |
+| B3 | Macro-sezioni gestibili (H2) | 🔄 pass dedicato |
+| B4 | Dati azienda in Configurazione (H4) | ✅ già presente (non nel profilo) |
 
 ### AREA C — Sezioni Laboratorio
 | # | Task | Stato |
@@ -77,5 +77,6 @@
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 10/07/2026 | **AREA B — Configurazione (parziale)** | 🔄 | B1 ✅ rinomina visibile "Impostazioni"→"Configurazione" (AppBar + hint nei form; path interno `/admin/impostazioni` invariato). B4 ✅ già soddisfatto: l'editor Dati azienda è nella pagina Configurazione, non nel profilo. **B2 (redesign UX) e B3 (macro-sezioni gestibili) rimandati a un pass dedicato**: sono modifiche ampie/soggettive su una pagina di 2500 righe funzionante, da rivedere insieme all'utente. |
 | 10/07/2026 | **AREA A — Navigazione & Home** | ✅ | Nuova Home a griglia di card (`home_page.dart`) guidata dal registro `home_sections.dart` (fonte unica per Home/sidebar/bottom-nav). Landing post-login → `/home`. Sidebar desktop raggruppata (PRINCIPALE/LABORATORIO/AMMINISTRAZIONE) con Home in cima. Bottom-nav mobile: Home (1ª) al posto di Fatture. Profilo svuotato (via Calendario/Registro/Configurazione). 5 sezioni lab + stampa unione create come placeholder "in arrivo" (branch shell pronti). `flutter analyze`: 0 errori/warning. `flutter build web`: OK. |
 | 10/07/2026 | **AREA 0 — Setup** | ✅ | Creata `riferimenti/` (gitignored, PII locali). `CLAUDE.md` con regola desktop+mobile a componenti condivisi. `PIANO_GENERALE.md` + `STATO_AVANZAMENTO.md`. Vecchi doc archiviati in `docs/archivio/`. |
