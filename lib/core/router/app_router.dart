@@ -6,6 +6,12 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/calendario/screens/appuntamento_form_page.dart';
 import '../../features/calendario/screens/calendario_page.dart';
 import '../../features/home/screens/main_screen.dart';
+import '../../features/home/screens/home_page.dart';
+import '../../features/cationi/screens/cationi_page.dart';
+import '../../features/primarie/screens/primarie_page.dart';
+import '../../features/anioni/screens/anioni_page.dart';
+import '../../features/microbio/screens/microbio_page.dart';
+import '../../features/stampa_unione/screens/stampa_unione_page.dart';
 import '../../features/preventivo/screens/preventivi_page.dart';
 import '../../features/preventivo/screens/preventivo_form_page.dart';
 import '../../features/servizi_pest/screens/servizi_pest_page.dart';
@@ -48,7 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOnLogin = state.matchedLocation == '/login';
 
       if (!isAuthenticated && !isOnLogin) return '/login';
-      if (isAuthenticated && (isOnLogin || isOnSplash)) return '/anagrafiche';
+      if (isAuthenticated && (isOnLogin || isOnSplash)) return '/home';
 
       const routeProtetteEsatte = [
         '/admin/impostazioni',
@@ -125,6 +131,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             MainScreen(navigationShell: navigationShell),
         branches: [
+          // 0 — Home
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => const HomePage(),
+            ),
+          ]),
+          // 1 — Anagrafiche
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/anagrafiche',
@@ -159,6 +173,41 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: '/calendario',
               builder: (context, state) => const CalendarioPage(),
+            ),
+          ]),
+          // 7 — Cationi Metalli (AREA C)
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/cationi',
+              builder: (context, state) => const CationiPage(),
+            ),
+          ]),
+          // 8 — Primarie (AREA C)
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/primarie',
+              builder: (context, state) => const PrimariePage(),
+            ),
+          ]),
+          // 9 — Anioni (AREA C)
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/anioni',
+              builder: (context, state) => const AnioniPage(),
+            ),
+          ]),
+          // 10 — Microbiologia (AREA C)
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/microbio',
+              builder: (context, state) => const MicrobioPage(),
+            ),
+          ]),
+          // 11 — Stampa unione (AREA D)
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/stampa-unione',
+              builder: (context, state) => const StampaUnionePage(),
             ),
           ]),
         ],

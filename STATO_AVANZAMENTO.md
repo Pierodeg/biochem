@@ -11,8 +11,8 @@
 
 | Area | Descrizione | Stato |
 |------|-------------|-------|
-| **0** | Setup & documentazione | 🔄 |
-| **A** | Navigazione & Home (task 2,3) | ⬜ |
+| **0** | Setup & documentazione | ✅ |
+| **A** | Navigazione & Home (task 2,3) | ✅ |
 | **B** | Configurazione (task 4, H2/H3/H4) | ⬜ |
 | **C** | Sezioni lab risultati (task 5,6,7,9) | ⬜ |
 | **D** | Stampa unione (task 8) | ⬜ |
@@ -31,16 +31,16 @@
 | 0.1 | Cartella `riferimenti/` locale + `.gitignore` (task 1) | ✅ |
 | 0.2 | `CLAUDE.md` (regola desktop+mobile) | ✅ |
 | 0.3 | `PIANO_GENERALE.md` + `STATO_AVANZAMENTO.md` | ✅ |
-| 0.4 | Commit riorganizzazione su `staging` | 🔄 |
+| 0.4 | Commit riorganizzazione su `staging` | ✅ |
 
 ### AREA A — Navigazione & Home
 | # | Task | Stato |
 |---|------|-------|
-| A1 | Pagina Home (griglia card, desktop/mobile) | ⬜ |
-| A2 | Landing → Home (router + redirect) | ⬜ |
-| A3 | Sidebar desktop raggruppata + Home | ⬜ |
-| A4 | Bottom-nav mobile (Home al posto di Fatture) | ⬜ |
-| A5 | Svuotare il Profilo | ⬜ |
+| A1 | Pagina Home (griglia card, desktop/mobile) | ✅ |
+| A2 | Landing → Home (router + redirect) | ✅ |
+| A3 | Sidebar desktop raggruppata + Home | ✅ |
+| A4 | Bottom-nav mobile (Home al posto di Fatture) | ✅ |
+| A5 | Svuotare il Profilo | ✅ |
 
 ### AREA B — Configurazione
 | # | Task | Stato |
@@ -77,4 +77,5 @@
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
-| 10/07/2026 | **AREA 0 — Setup** | 🔄 | Creata `riferimenti/` (gitignored, PII locali). `CLAUDE.md` con regola desktop+mobile a componenti condivisi. `PIANO_GENERALE.md` + `STATO_AVANZAMENTO.md`. Vecchi doc archiviati in `docs/archivio/`. |
+| 10/07/2026 | **AREA A — Navigazione & Home** | ✅ | Nuova Home a griglia di card (`home_page.dart`) guidata dal registro `home_sections.dart` (fonte unica per Home/sidebar/bottom-nav). Landing post-login → `/home`. Sidebar desktop raggruppata (PRINCIPALE/LABORATORIO/AMMINISTRAZIONE) con Home in cima. Bottom-nav mobile: Home (1ª) al posto di Fatture. Profilo svuotato (via Calendario/Registro/Configurazione). 5 sezioni lab + stampa unione create come placeholder "in arrivo" (branch shell pronti). `flutter analyze`: 0 errori/warning. `flutter build web`: OK. |
+| 10/07/2026 | **AREA 0 — Setup** | ✅ | Creata `riferimenti/` (gitignored, PII locali). `CLAUDE.md` con regola desktop+mobile a componenti condivisi. `PIANO_GENERALE.md` + `STATO_AVANZAMENTO.md`. Vecchi doc archiviati in `docs/archivio/`. |

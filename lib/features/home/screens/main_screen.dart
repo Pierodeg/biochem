@@ -7,6 +7,7 @@ import '../../../core/router/app_router.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifiche/widgets/notifiche_panel.dart';
 import '../../profile/widgets/profile_panel.dart';
+import '../home_sections.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -19,32 +20,22 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  static const List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.people_outline, label: 'Anagrafiche'),
-    _NavItem(icon: Icons.description_outlined, label: 'Preventivo'),
-    _NavItem(icon: Icons.biotech_outlined, label: 'Reg Lab'),
-    _NavItem(icon: Icons.pest_control, label: 'Servizi Pest'),
-    _NavItem(icon: Icons.receipt_long_outlined, label: 'Fatture'),
-    _NavItem(icon: Icons.calendar_month_outlined, label: 'Calendario'),
-  ];
-
-  static const List<String> _titles = [
-    'Anagrafiche',
-    'Preventivo',
-    'Reg Lab',
-    'Servizi Pest',
-    'Fatture',
-    'Calendario',
-  ];
-
-  void _onTabSelected(int index) {
+  void _onTabSelected(int branchIndex) {
     widget.navigationShell.goBranch(
-      index,
-      initialLocation: index == widget.navigationShell.currentIndex,
+      branchIndex,
+      initialLocation: branchIndex == widget.navigationShell.currentIndex,
     );
   }
 
   int get _currentIndex => widget.navigationShell.currentIndex;
+
+  String get _titoloCorrente {
+    final s = sezioniApp.firstWhere(
+      (s) => s.branchIndex == _currentIndex,
+      orElse: () => sezioniApp.first,
+    );
+    return s.titolo;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +120,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   // ─── LAYOUT MOBILE ────────────────────────────────────────────────────────
 
   Widget _buildMobileLayout() {
+    final navSezioni = sezioniBottomNav;
+    final selectedPos =
+        navSezioni.indexWhere((s) => s.branchIndex == _currentIndex);
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
@@ -160,8 +155,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           ),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex < 5 ? _currentIndex : 0,
-          onTap: _onTabSelected,
+          currentIndex: selectedPos >= 0 ? selectedPos : 0,
+          onTap: (pos) => _onTabSelected(navSezioni[pos].branchIndex!),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           selectedItemColor: AppColors.accentGreenDark,
@@ -169,11 +164,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           selectedFontSize: 10,
           unselectedFontSize: 10,
           elevation: 0,
-          items: _navItems
-              .take(5)
-              .map((item) => BottomNavigationBarItem(
-                    icon: Icon(item.icon),
-                    label: item.label,
+          items: navSezioni
+              .map((s) => BottomNavigationBarItem(
+                    icon: Icon(s.icona),
+                    label: s.titolo,
                   ))
               .toList(),
         ),
@@ -206,8 +200,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Widget _buildSidebar() {
+    final home = sezioniApp.firstWhere((s) => s.id == 'home');
+
     return Container(
-      width: 220,
+      width: 230,
       decoration: const BoxDecoration(
         color: AppColors.glassDarkest,
         border: Border(
@@ -236,13 +232,19 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
             ),
             const SizedBox(height: 8),
-            // Voci nav
+            // Voci nav (Home + gruppi)
             Expanded(
-              child: ListView.builder(
+              child: ListView(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                itemCount: _navItems.length,
-                itemBuilder: (context, index) => _buildSidebarItem(index),
+                children: [
+                  _buildSidebarItem(home),
+                  for (final gruppo in GruppoSezione.values) ...[
+                    _buildGroupHeader(gruppo.label),
+                    for (final s in sezioniDelGruppo(gruppo))
+                      _buildSidebarItem(s),
+                  ],
+                ],
               ),
             ),
             Container(
@@ -257,9 +259,23 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  Widget _buildSidebarItem(int index) {
-    final item = _navItems[index];
-    final isSelected = _currentIndex == index;
+  Widget _buildGroupHeader(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 12, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textOnDarkMuted,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarItem(SezioneApp s) {
+    final isSelected = s.branchIndex != null && _currentIndex == s.branchIndex;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
@@ -277,14 +293,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       ),
       child: ListTile(
         leading: Icon(
-          item.icon,
+          s.icona,
           color: isSelected
               ? AppColors.accentGreenDark
               : AppColors.textOnDarkSecondary,
           size: 20,
         ),
         title: Text(
-          item.label,
+          s.titolo,
           style: TextStyle(
             color: isSelected
                 ? AppColors.accentGreenDark
@@ -293,7 +309,18 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
-        onTap: () => _onTabSelected(index),
+        trailing: s.inArrivo
+            ? const Icon(Icons.schedule,
+                size: 13, color: AppColors.textOnDarkMuted)
+            : null,
+        onTap: () {
+          if (s.branchIndex != null) {
+            _onTabSelected(s.branchIndex!);
+          } else {
+            // Route a sé (Registro/Configurazione): push per mantenere indietro.
+            context.push(s.route);
+          }
+        },
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -308,7 +335,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       child: Row(
         children: [
           Text(
-            _titles[_currentIndex],
+            _titoloCorrente,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -366,12 +393,6 @@ class _NotificaBadgeButton extends ConsumerWidget {
 final _nonLetteCountProvider = StreamProvider.family<int, String>((ref, uid) {
   return ref.watch(notificheServiceProvider).getNotificheNonLette(uid);
 });
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem({required this.icon, required this.label});
-}
 
 // ─── Avatar AppBar mobile ─────────────────────────────────────────────────────
 

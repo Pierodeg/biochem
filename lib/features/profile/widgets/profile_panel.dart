@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../services/fcm_service.dart';
@@ -43,15 +42,9 @@ class ProfilePanel extends ConsumerWidget {
                   isActive: user.isActive,
                   initials: user.initials,
                   onLogout: () => _handleLogout(context, ref),
-                  onImpostazioni: () => _handleImpostazioni(context),
-                  onCalendario: () => _handleCalendario(context),
-                  onRegistro: () => _handleRegistro(context),
                 )
               : _PanelContent.empty(
                   onLogout: () => _handleLogout(context, ref),
-                  onImpostazioni: () => _handleImpostazioni(context),
-                  onCalendario: () => _handleCalendario(context),
-                  onRegistro: () => _handleRegistro(context),
                 ),
           loading: () => const Center(
             child:
@@ -59,9 +52,6 @@ class ProfilePanel extends ConsumerWidget {
           ),
           error: (_, __) => _PanelContent.empty(
             onLogout: () => _handleLogout(context, ref),
-            onImpostazioni: () => _handleImpostazioni(context),
-            onCalendario: () => _handleCalendario(context),
-            onRegistro: () => _handleRegistro(context),
           ),
         ),
       ),
@@ -70,23 +60,9 @@ class ProfilePanel extends ConsumerWidget {
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     Navigator.of(context).pop();
-    await FcmService(ProviderScope.containerOf(context, listen: false)).eliminaToken();
+    await FcmService(ProviderScope.containerOf(context, listen: false))
+        .eliminaToken();
     await ref.read(authServiceProvider).signOut();
-  }
-
-  void _handleImpostazioni(BuildContext context) {
-    Navigator.of(context).pop();
-    context.push('/admin/impostazioni');
-  }
-
-  void _handleCalendario(BuildContext context) {
-    Navigator.of(context).pop();
-    context.go('/calendario');
-  }
-
-  void _handleRegistro(BuildContext context) {
-    Navigator.of(context).pop();
-    context.push('/registro');
   }
 }
 
@@ -102,16 +78,10 @@ class _PanelContent extends StatelessWidget {
     required this.isActive,
     required this.initials,
     required this.onLogout,
-    required this.onImpostazioni,
-    required this.onCalendario,
-    required this.onRegistro,
   });
 
   factory _PanelContent.empty({
     required VoidCallback onLogout,
-    required VoidCallback onImpostazioni,
-    required VoidCallback onCalendario,
-    required VoidCallback onRegistro,
   }) {
     return _PanelContent(
       displayName: 'Utente',
@@ -122,9 +92,6 @@ class _PanelContent extends StatelessWidget {
       isActive: true,
       initials: '?',
       onLogout: onLogout,
-      onImpostazioni: onImpostazioni,
-      onCalendario: onCalendario,
-      onRegistro: onRegistro,
     );
   }
 
@@ -136,9 +103,6 @@ class _PanelContent extends StatelessWidget {
   final bool isActive;
   final String initials;
   final VoidCallback onLogout;
-  final VoidCallback onImpostazioni;
-  final VoidCallback onCalendario;
-  final VoidCallback onRegistro;
 
   @override
   Widget build(BuildContext context) {
@@ -173,42 +137,16 @@ class _PanelContent extends StatelessWidget {
                           : const Color(0xFFFF7070),
                     ),
                   ]),
-
-                  if (isAdmin) ...[
-                    const SizedBox(height: 20),
-                    _buildSectionTitle('Amministrazione'),
-                    const SizedBox(height: 10),
-                    _buildGlassCard(children: [
-                      _buildVoceMenu(
-                        icon: Icons.calendar_month_outlined,
-                        label: 'Calendario',
-                        onTap: onCalendario,
-                      ),
-                      _buildDividerLine(),
-                      _buildVoceMenu(
-                        icon: Icons.menu_book_outlined,
-                        label: 'Registro',
-                        onTap: onRegistro,
-                      ),
-                      _buildDividerLine(),
-                      _buildVoceMenu(
-                        icon: Icons.settings_outlined,
-                        label: 'Impostazioni',
-                        onTap: onImpostazioni,
-                      ),
-                    ]),
-                  ],
-
                   const SizedBox(height: 20),
                   _buildSectionTitle('Altre informazioni'),
                   const SizedBox(height: 10),
-                  _buildGlassCard(children: [
+                  _buildGlassCard(children: const [
                     Row(
                       children: [
-                        const Icon(Icons.info_outline,
+                        Icon(Icons.info_outline,
                             size: 15, color: AppColors.textOnDarkMuted),
-                        const SizedBox(width: 10),
-                        const Text(
+                        SizedBox(width: 10),
+                        Text(
                           'Altre informazioni in arrivo...',
                           style: TextStyle(
                             fontSize: 13,
@@ -385,37 +323,6 @@ class _PanelContent extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildVoceMenu({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: AppColors.accentGreenDark),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textOnDark,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Spacer(),
-            const Icon(Icons.chevron_right,
-                size: 18, color: AppColors.textOnDarkMuted),
-          ],
-        ),
-      ),
     );
   }
 
