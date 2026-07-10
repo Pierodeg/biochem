@@ -138,7 +138,6 @@ const List<SezioneApp> sezioniApp = [
     route: '/cationi',
     gruppo: GruppoSezione.laboratorio,
     branchIndex: 7,
-    inArrivo: true,
   ),
   SezioneApp(
     id: 'primarie',
@@ -148,7 +147,6 @@ const List<SezioneApp> sezioniApp = [
     route: '/primarie',
     gruppo: GruppoSezione.laboratorio,
     branchIndex: 8,
-    inArrivo: true,
   ),
   SezioneApp(
     id: 'anioni',
@@ -158,7 +156,6 @@ const List<SezioneApp> sezioniApp = [
     route: '/anioni',
     gruppo: GruppoSezione.laboratorio,
     branchIndex: 9,
-    inArrivo: true,
   ),
   SezioneApp(
     id: 'microbio',
@@ -168,7 +165,6 @@ const List<SezioneApp> sezioniApp = [
     route: '/microbio',
     gruppo: GruppoSezione.laboratorio,
     branchIndex: 10,
-    inArrivo: true,
   ),
   SezioneApp(
     id: 'stampa_unione',
@@ -178,7 +174,6 @@ const List<SezioneApp> sezioniApp = [
     route: '/stampa-unione',
     gruppo: GruppoSezione.laboratorio,
     branchIndex: 11,
-    inArrivo: true,
   ),
 
   // ── Route a sé (pushate, fuori dallo shell) ─────────────────────────────────

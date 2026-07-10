@@ -9,6 +9,7 @@ import '../../services/listino_service.dart';
 import '../../services/notifiche_service.dart';
 import '../../services/preventivi_service.dart';
 import '../../services/preventivo_pdf_service.dart';
+import '../../services/risultati_analisi_service.dart';
 import '../../services/servizi_lab_service.dart';
 import '../../services/servizi_pest_service.dart';
 
@@ -63,6 +64,11 @@ final listinoServiceProvider =
     /// Singleton del servizio registro preset (Firestore collection 'registro_preset')
 final registroServiceProvider =
     Provider<RegistroService>((ref) => RegistroService());
+
+/// Singleton del servizio risultati analisi (collection per famiglia:
+/// risultati_cationi / risultati_primarie / risultati_anioni / risultati_microbio)
+final risultatiAnalisiServiceProvider =
+    Provider<RisultatiAnalisiService>((ref) => RisultatiAnalisiService());
 
 /// ID appuntamento da aprire in dettaglio — impostato da FcmService
 /// quando l'utente tocca una notifica push
