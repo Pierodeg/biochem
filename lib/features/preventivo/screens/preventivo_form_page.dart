@@ -16,7 +16,7 @@ import '../../../services/clienti_service.dart';
 import '../../../services/listino_service.dart';
 import '../../../services/indirizzi_servizio_service.dart';
 import '../../../models/indirizzo_servizio_model.dart';
-import '../../../widgets/campo_con_suggerimenti.dart';
+import '../../../widgets/campo_configurabile.dart';
 import '../../../services/preventivi_service.dart';
 import '../../../services/preventivo_pdf_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
@@ -997,11 +997,14 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
         const Text('Oggetto:',
             style: TextStyle(fontSize: 12, color: AppColors.textOnDarkSecondary)),
         const SizedBox(height: 4),
-        CampoConSuggerimenti(
-            categoriaId: 'preventivo_oggetti',
+        // DEMO H1 — campo configurabile: l'admin aggancia la categoria
+        // (cascata categoria → sottocategoria → suggerimenti), poi resta.
+        CampoConfigurabile(
+            fieldKey: 'preventivo_oggetto',
             label: 'Oggetto del preventivo',
             controller: _oggettoCtrl,
-            maxLines: 2),
+            maxLines: 2,
+            defaultCategoriaId: 'preventivo_oggetti'),
       ],
     );
   }
@@ -1667,31 +1670,36 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       onToggle: () => setState(() => _gruppo4Aperta = !_gruppo4Aperta),
       children: [
         // PAGAMENTO
-        CampoConSuggerimenti(
-            categoriaId: 'preventivo_pagamento',
+        CampoConfigurabile(
+            fieldKey: 'preventivo_pagamento',
             label: 'PAGAMENTO',
-            controller: _pagamentoCtrl),
+            controller: _pagamentoCtrl,
+            defaultCategoriaId: 'preventivo_pagamento'),
         const SizedBox(height: 12),
         _buildRiga(isDesktop, [
-          CampoConSuggerimenti(
-              categoriaId: 'preventivo_durata',
+          CampoConfigurabile(
+              fieldKey: 'preventivo_durata',
               label: 'Durata contratto',
-              controller: _durataContrattoCtrl),
-          CampoConSuggerimenti(
-              categoriaId: 'preventivo_rinnovo',
+              controller: _durataContrattoCtrl,
+              defaultCategoriaId: 'preventivo_durata'),
+          CampoConfigurabile(
+              fieldKey: 'preventivo_rinnovo',
               label: 'Rinnovo a scadenza',
-              controller: _rinnovoCtrl),
+              controller: _rinnovoCtrl,
+              defaultCategoriaId: 'preventivo_rinnovo'),
         ]),
         const SizedBox(height: 12),
         _buildRiga(isDesktop, [
-          CampoConSuggerimenti(
-              categoriaId: 'preventivo_periodo',
+          CampoConfigurabile(
+              fieldKey: 'preventivo_periodo',
               label: 'Periodo intervento',
-              controller: _periodoInterventoCtrl),
-          CampoConSuggerimenti(
-              categoriaId: 'preventivo_validita',
+              controller: _periodoInterventoCtrl,
+              defaultCategoriaId: 'preventivo_periodo'),
+          CampoConfigurabile(
+              fieldKey: 'preventivo_validita',
               label: 'Validità offerta',
-              controller: _validitaCtrl),
+              controller: _validitaCtrl,
+              defaultCategoriaId: 'preventivo_validita'),
         ]),
       ],
     );
@@ -1706,11 +1714,12 @@ class _PreventivoFormPageState extends ConsumerState<PreventivoFormPage> {
       isAperta: _gruppo5Aperta,
       onToggle: () => setState(() => _gruppo5Aperta = !_gruppo5Aperta),
       children: [
-        CampoConSuggerimenti(
-            categoriaId: 'preventivo_note',
+        CampoConfigurabile(
+            fieldKey: 'preventivo_note',
             label: 'Note',
             controller: _noteCtrl,
-            maxLines: 6),
+            maxLines: 6,
+            defaultCategoriaId: 'preventivo_note'),
       ],
     );
   }

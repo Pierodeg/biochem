@@ -233,4 +233,53 @@ class ImpostazioniService {
         .doc('dati_azienda')
         .set(dati.toMap(), SetOptions(merge: true));
   }
+
+  // ─── Binding campo → categoria (H1) ──────────────────────────────────────────
+  //
+  // Associa un campo configurabile dell'app (identificato da una chiave stabile)
+  // a una categoria di Impostazioni (e, opzionalmente, a una sua sottocategoria).
+  // Tutti i binding vivono nel documento `impostazioni/field_bindings`:
+  //   { "<fieldKey>": { "categoriaId": "...", "sottocategoria": "" }, ... }
+
+  /// Stream del binding di un campo. `null` se il campo non è ancora configurato.
+  Stream<FieldBinding?> getFieldBinding(String fieldKey) {
+    return _collection.doc('field_bindings').snapshots().map((snap) {
+      if (!snap.exists) return null;
+      final data = snap.data() as Map<String, dynamic>;
+      final b = data[fieldKey] as Map<String, dynamic>?;
+      final cat = b?['categoriaId'] as String? ?? '';
+      if (cat.isEmpty) return null;
+      return FieldBinding(
+        categoriaId: cat,
+        sottocategoria: b?['sottocategoria'] as String? ?? '',
+      );
+    });
+  }
+
+  /// Aggancia (o ri-aggancia) un campo a una categoria + eventuale sottocategoria.
+  Future<void> salvaFieldBinding(String fieldKey, String categoriaId,
+      {String sottocategoria = ''}) async {
+    await _collection.doc('field_bindings').set({
+      fieldKey: {
+        'categoriaId': categoriaId,
+        'sottocategoria': sottocategoria,
+      },
+    }, SetOptions(merge: true));
+  }
+
+  /// Rimuove il binding di un campo (torna "non configurato").
+  Future<void> rimuoviFieldBinding(String fieldKey) async {
+    await _collection.doc('field_bindings').set({
+      fieldKey: FieldValue.delete(),
+    }, SetOptions(merge: true));
+  }
+}
+
+/// Associazione campo → categoria (+ sottocategoria opzionale).
+class FieldBinding {
+  final String categoriaId;
+  final String sottocategoria;
+  const FieldBinding({required this.categoriaId, this.sottocategoria = ''});
+
+  bool get haSottocategoria => sottocategoria.isNotEmpty;
 }
