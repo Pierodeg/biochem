@@ -273,6 +273,100 @@ class ImpostazioniService {
       fieldKey: FieldValue.delete(),
     }, SetOptions(merge: true));
   }
+
+  // ─── Macro-sezioni personalizzate (H2/B3) ────────────────────────────────────
+  //
+  // Le 5 macro-sezioni "di sistema" restano nel codice; qui l'admin può creare
+  // sezioni **aggiuntive** e assegnarci categorie. Solo raggruppamento di
+  // visualizzazione nel pannello Configurazione: le tendine dell'app leggono le
+  // categorie per id, quindi non ne risentono.
+  // Documento: `impostazioni/_config_macro` → { sezioni: [ {titolo, categorieId:[]} ] }
+
+  static const _docMacro = '_config_macro';
+
+  Stream<List<MacroCustom>> getMacroCustom() {
+    return _collection.doc(_docMacro).snapshots().map((snap) {
+      if (!snap.exists) return <MacroCustom>[];
+      final data = snap.data() as Map<String, dynamic>;
+      final raw = data['sezioni'] as List<dynamic>? ?? [];
+      return raw
+          .whereType<Map<String, dynamic>>()
+          .map(MacroCustom.fromMap)
+          .toList();
+    });
+  }
+
+  Future<void> _salvaMacro(List<MacroCustom> sezioni) async {
+    await _collection.doc(_docMacro).set(
+      {'sezioni': sezioni.map((s) => s.toMap()).toList()},
+      SetOptions(merge: true),
+    );
+  }
+
+  Future<List<MacroCustom>> _leggiMacro() async {
+    final snap = await _collection.doc(_docMacro).get();
+    if (!snap.exists) return [];
+    final data = snap.data() as Map<String, dynamic>;
+    final raw = data['sezioni'] as List<dynamic>? ?? [];
+    return raw.whereType<Map<String, dynamic>>().map(MacroCustom.fromMap).toList();
+  }
+
+  Future<void> creaMacroCustom(String titolo) async {
+    final sezioni = await _leggiMacro();
+    if (sezioni.any((s) => s.titolo.toLowerCase() == titolo.toLowerCase())) {
+      return; // già esistente
+    }
+    sezioni.add(MacroCustom(titolo: titolo, categorieId: const []));
+    await _salvaMacro(sezioni);
+  }
+
+  Future<void> eliminaMacroCustom(String titolo) async {
+    final sezioni = await _leggiMacro();
+    sezioni.removeWhere((s) => s.titolo == titolo);
+    await _salvaMacro(sezioni);
+  }
+
+  Future<void> assegnaCategoriaAMacro(String titolo, String categoriaId) async {
+    final sezioni = await _leggiMacro();
+    for (var i = 0; i < sezioni.length; i++) {
+      final ids = List<String>.from(sezioni[i].categorieId)
+        ..remove(categoriaId); // toglila da eventuali altre sezioni
+      if (sezioni[i].titolo == titolo) ids.add(categoriaId);
+      sezioni[i] = MacroCustom(titolo: sezioni[i].titolo, categorieId: ids);
+    }
+    await _salvaMacro(sezioni);
+  }
+
+  Future<void> rimuoviCategoriaDaMacro(
+      String titolo, String categoriaId) async {
+    final sezioni = await _leggiMacro();
+    for (var i = 0; i < sezioni.length; i++) {
+      if (sezioni[i].titolo == titolo) {
+        final ids = List<String>.from(sezioni[i].categorieId)
+          ..remove(categoriaId);
+        sezioni[i] = MacroCustom(titolo: titolo, categorieId: ids);
+      }
+    }
+    await _salvaMacro(sezioni);
+  }
+}
+
+/// Macro-sezione personalizzata creata dall'admin (H2/B3).
+class MacroCustom {
+  final String titolo;
+  final List<String> categorieId;
+  const MacroCustom({required this.titolo, required this.categorieId});
+
+  factory MacroCustom.fromMap(Map<String, dynamic> m) => MacroCustom(
+        titolo: m['titolo'] as String? ?? '',
+        categorieId:
+            (m['categorieId'] as List<dynamic>? ?? []).cast<String>(),
+      );
+
+  Map<String, dynamic> toMap() => {
+        'titolo': titolo,
+        'categorieId': categorieId,
+      };
 }
 
 /// Associazione campo → categoria (+ sottocategoria opzionale).

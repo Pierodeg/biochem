@@ -38,6 +38,11 @@ final _categorieStreamProvider = StreamProvider<List<CategoriaModel>>((ref) {
   return ref.watch(impostazioniServiceProvider).getCategorie();
 });
 
+/// Sezioni (macro) personalizzate create dall'admin (B3/H2).
+final _macroCustomProvider = StreamProvider<List<MacroCustom>>((ref) {
+  return ref.watch(impostazioniServiceProvider).getMacroCustom();
+});
+
 // ─── Definizione macro sezioni ────────────────────────────────────────────────
 
 /// Rappresenta una macro-sezione del pannello impostazioni
@@ -161,6 +166,16 @@ class AdminSettingsPage extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         actions: [
+          // Bottone per creare una nuova sezione (macro) personalizzata
+          TextButton.icon(
+            onPressed: () => _mostraDialogNuovaSezione(context, ref),
+            icon: const Icon(Icons.create_new_folder_outlined,
+                size: 18, color: AppColors.surface),
+            label: const Text(
+              'Nuova sezione',
+              style: TextStyle(color: AppColors.surface, fontSize: 13),
+            ),
+          ),
           // Bottone per creare una nuova categoria libera
           TextButton.icon(
             onPressed: () => _mostraDialogNuovaCategoria(context, ref),
@@ -183,22 +198,39 @@ class AdminSettingsPage extends ConsumerWidget {
         data: (categorie) {
           // Mappa id → CategoriaModel per ricerca rapida
           final categorieMap = {for (final c in categorie) c.id: c};
+          final macroCustom = ref.watch(_macroCustomProvider).valueOrNull ?? [];
+          final service = ref.read(impostazioniServiceProvider);
+
+          // Categorie non assegnate ad alcuna macro (di sistema o custom).
+          final idInMacro = <String>{
+            ..._macroSezioni.expand((m) => m.categorieId),
+            ...macroCustom.expand((m) => m.categorieId),
+          };
+          final categorieLibere =
+              categorie.where((c) => !idInMacro.contains(c.id)).toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // Profilo azienda fornitrice (DaMo) — default preventivo + IBAN
-              _DatiAziendaCard(service: ref.read(impostazioniServiceProvider)),
+              _DatiAziendaCard(service: service),
               const SizedBox(height: 8),
-              // 5 macro sezioni come ExpansionTile di primo livello
+              // Macro sezioni di sistema come ExpansionTile di primo livello
               ..._macroSezioni.map((macro) => _MacroExpansionTile(
                     macro: macro,
                     categorieMap: categorieMap,
-                    service: ref.read(impostazioniServiceProvider),
+                    service: service,
+                  )),
+              // Sezioni personalizzate create dall'admin (B3/H2)
+              ...macroCustom.map((m) => _MacroCustomTile(
+                    macro: m,
+                    categorieMap: categorieMap,
+                    categorieLibere: categorieLibere,
+                    service: service,
                   )),
               const SizedBox(height: 16),
-              // Categorie libere (non associate a nessuna macro)
-              _buildCategorieLibere(context, categorie, ref),
+              // Categorie libere (non associate a nessuna sezione)
+              _buildCategorieLibere(context, categorieLibere, ref),
             ],
           );
         },
@@ -206,11 +238,9 @@ class AdminSettingsPage extends ConsumerWidget {
     );
   }
 
-  /// Mostra le categorie non incluse in nessuna macro (create dall'utente)
+  /// Mostra le categorie non incluse in nessuna sezione (create dall'utente)
   Widget _buildCategorieLibere(
-      BuildContext context, List<CategoriaModel> categorie, WidgetRef ref) {
-    final tuttiGliId = _macroSezioni.expand((m) => m.categorieId).toSet();
-    final libere = categorie.where((c) => !tuttiGliId.contains(c.id)).toList();
+      BuildContext context, List<CategoriaModel> libere, WidgetRef ref) {
     if (libere.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -372,6 +402,49 @@ class AdminSettingsPage extends ConsumerWidget {
     // effettivamente distrutti al termine dell'animazione.
   }
 
+  /// Dialog per creare una nuova sezione (macro) personalizzata (B3/H2).
+  Future<void> _mostraDialogNuovaSezione(
+      BuildContext context, WidgetRef ref) async {
+    final service = ref.read(impostazioniServiceProvider);
+    final titoloCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nuova sezione',
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: SizedBox(
+          width: 400,
+          child: TextField(
+            controller: titoloCtrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(
+              labelText: 'Nome sezione *',
+              border: OutlineInputBorder(),
+              helperText: 'Es. "REGISTRO", "MAGAZZINO"…',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () async {
+              final t = titoloCtrl.text.trim();
+              if (t.isEmpty) return;
+              await service.creaMacroCustom(t);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Crea'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _generaId(String nome) {
     return nome
         .toLowerCase()
@@ -383,6 +456,175 @@ class AdminSettingsPage extends ConsumerWidget {
         .replaceAll(RegExp(r'[^a-z0-9]'), '_')
         .replaceAll(RegExp(r'_+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+}
+
+// ─── Sezione personalizzata (macro custom, B3/H2) ─────────────────────────────
+
+class _MacroCustomTile extends StatelessWidget {
+  final MacroCustom macro;
+  final Map<String, CategoriaModel> categorieMap;
+  final List<CategoriaModel> categorieLibere;
+  final ImpostazioniService service;
+
+  const _MacroCustomTile({
+    required this.macro,
+    required this.categorieMap,
+    required this.categorieLibere,
+    required this.service,
+  });
+
+  Future<void> _assegna(BuildContext context) async {
+    if (categorieLibere.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Nessuna categoria libera. Creane una con "Nuova categoria".'),
+      ));
+      return;
+    }
+    final scelta = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text('Assegna categoria a «${macro.titolo}»'),
+        children: categorieLibere
+            .map((c) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, c.id),
+                  child: Text(c.nome),
+                ))
+            .toList(),
+      ),
+    );
+    if (scelta != null) {
+      await service.assegnaCategoriaAMacro(macro.titolo, scelta);
+    }
+  }
+
+  Future<void> _elimina(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminare la sezione?'),
+        content: Text(
+            '«${macro.titolo}» verrà rimossa. Le categorie NON vengono cancellate: torneranno tra le "Altre categorie".'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await service.eliminaMacroCustom(macro.titolo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final numCat = macro.categorieId.length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.divider),
+        ),
+        color: AppColors.surface,
+        child: ExpansionTile(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          collapsedShape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.blue.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.folder_outlined,
+                color: AppColors.blue, size: 20),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  macro.titolo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (numCat > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.badgeGreyBackground,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                      '$numCat ${numCat == 1 ? 'categoria' : 'categorie'}',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.badgeGreyText,
+                          fontWeight: FontWeight.w500)),
+                ),
+              IconButton(
+                tooltip: 'Elimina sezione',
+                icon: const Icon(Icons.delete_outline,
+                    size: 18, color: AppColors.textSecondary),
+                onPressed: () => _elimina(context),
+              ),
+            ],
+          ),
+          children: [
+            const Divider(height: 1, color: AppColors.divider),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  for (final id in macro.categorieId)
+                    if (categorieMap[id] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _CategoriaTile(
+                                  categoria: categorieMap[id]!,
+                                  service: service),
+                            ),
+                            IconButton(
+                              tooltip: 'Rimuovi dalla sezione',
+                              icon: const Icon(Icons.link_off,
+                                  size: 18, color: AppColors.textSecondary),
+                              onPressed: () => service.rimuoviCategoriaDaMacro(
+                                  macro.titolo, id),
+                            ),
+                          ],
+                        ),
+                      ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => _assegna(context),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Assegna categoria'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -47,7 +47,7 @@
 |---|------|-------|
 | B1 | Rinomina Impostazioni → "Configurazione" | ✅ |
 | B2 | Redesign UX gestione dati | 🔄 pass dedicato (da rivedere insieme) |
-| B3 | Macro-sezioni gestibili (H2) | 🔄 pass dedicato |
+| B3 | Macro-sezioni gestibili (H2) | ✅ sezioni personalizzate create/eliminabili dall'admin + assegna/rimuovi categorie |
 | B4 | Dati azienda in Configurazione (H4) | ✅ già presente (non nel profilo) |
 
 ### AREA C — Sezioni Laboratorio
@@ -79,6 +79,7 @@
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 10/07/2026 | **AREA B3 — Sezioni Configurazione gestibili (H2)** | ✅ | L'admin può creare **sezioni personalizzate** ("Nuova sezione") oltre alle 5 di sistema, assegnare/rimuovere categorie e eliminarle. Solo raggruppamento di visualizzazione (`impostazioni/_config_macro`): le tendine dell'app leggono le categorie per id, quindi non ne risentono. Widget `_MacroCustomTile` + metodi in `ImpostazioniService` (`getMacroCustom`/`creaMacroCustom`/`assegnaCategoriaAMacro`/…). **B2 (redesign UX completo) resta** un pass di design da fare con l'utente. |
 | 10/07/2026 | **AREA F — Campi configurabili (Servizi lab)** | 🔄 | Aggiunto supporto `validator` a `CampoConfigurabile` (avvolto in `FormField`), così i campi obbligatori non regrediscono. Migrati **tipo analisi** (da `CategoriaDropdown`) e **tecnico** (da `CampoConSuggerimenti`) a `CampoConfigurabile` con `defaultCategoriaId`. Resta l'ondata 2 sulle altre pagine (XL). `flutter build web`: OK. |
 | 10/07/2026 | **AREA E — Certificato PDF (bozza)** | 🔄 | `CertificatoPdfService`: genera un certificato PDF da una riga di Stampa unione (intestazione DaMo + box campione + tabelle parametro/valore per famiglia + firma), riusando l'impianto di `preventivo_pdf_service`. Pulsante "Certificato (bozza)" nelle righe espanse di Stampa unione. ⚠️ **Layout provvisorio** (marcato "BOZZA" nel footer): da rifinire quando arriva il modello certificato del cliente. **F (H1):** migrazione campi lab a `CampoConfigurabile` bloccata — il widget non supporta `validator` e i campi sono obbligatori; prima serve aggiungere validazione al pilota. `flutter build web`: OK. |
 | 10/07/2026 | **AREA C + D — Laboratorio & Stampa unione** | ✅ | Framework generico `laboratorio/` (DRY): `FamigliaAnalisi` (descrittore colonne dai file Excel), `RisultatoAnalisi` (model con `valori` map), `RisultatiAnalisiService` (CRUD generico per collection), `ImportRisultatiService` (CSV per intestazione, provvisorio), `RisultatiPage` (lista+ricerca+import) e `RisultatoFormPage` (selezione campione da Reg Lab via bottom-sheet + valori). Le 4 sezioni (Cationi/Primarie/Anioni/Microbio) sono istanze del framework. **Stampa unione**: `StampaUnioneService` unisce Reg Lab + 4 famiglie per `certNumb`; pagina sola lettura con righe espandibili. `flutter analyze`: 0. `flutter build web`: OK. |
