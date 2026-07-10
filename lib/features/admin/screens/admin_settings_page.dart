@@ -212,6 +212,47 @@ class AdminSettingsPage extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Introduzione — spiega la pagina in linguaggio semplice
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.infoLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: AppColors.blue.withValues(alpha: 0.20)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.lightbulb_outline,
+                        size: 20, color: AppColors.blue),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              height: 1.4),
+                          children: [
+                            TextSpan(
+                              text: 'Qui prepari gli elenchi di valori ',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            TextSpan(
+                                text:
+                                    'che poi compaiono come suggerimenti nei form (es. tecnici, prodotti, tipi di analisi). '),
+                            TextSpan(
+                                text:
+                                    'Usa "Nuova categoria" per un elenco, "Nuova sezione" per raggrupparli.'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               // Profilo azienda fornitrice (DaMo) — default preventivo + IBAN
               _DatiAziendaCard(service: service),
               const SizedBox(height: 8),
@@ -274,7 +315,11 @@ class AdminSettingsPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref) async {
     final service = ref.read(impostazioniServiceProvider);
     final nomeCtrl = TextEditingController();
-    final idCtrl = TextEditingController();
+    final esistenti = <String>{
+      for (final c in (ref.read(_categorieStreamProvider).valueOrNull ??
+          <CategoriaModel>[]))
+        c.id
+    };
     bool hasSottocategorie = false;
     bool isSaving = false;
 
@@ -282,10 +327,6 @@ class AdminSettingsPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          void aggiornaNome(String nome) {
-            idCtrl.text = _generaId(nome);
-          }
-
           return AlertDialog(
             title: const Text(
               'Nuova categoria',
@@ -300,26 +341,16 @@ class AdminSettingsPage extends ConsumerWidget {
                   TextField(
                     controller: nomeCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Nome categoria *',
+                      labelText: 'Nome elenco *',
+                      helperText:
+                          'Es. "Tecnici", "Prodotti" — i valori che potrai poi richiamare nei form',
+                      helperMaxLines: 2,
                       border: OutlineInputBorder(),
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
-                    onChanged: aggiornaNome,
                     textCapitalization: TextCapitalization.words,
                     autofocus: true,
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: idCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'ID documento Firestore *',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      helperText: 'Auto-generato dal nome, modificabile',
-                      helperStyle: TextStyle(fontSize: 11),
-                    ),
                   ),
                   const SizedBox(height: 14),
                   SwitchListTile(
@@ -356,8 +387,8 @@ class AdminSettingsPage extends ConsumerWidget {
                     ? null
                     : () async {
                         final nome = nomeCtrl.text.trim();
-                        final id = idCtrl.text.trim();
-                        if (nome.isEmpty || id.isEmpty) return;
+                        if (nome.isEmpty) return;
+                        final id = _idUnivoco(_generaId(nome), esistenti);
 
                         setDialogState(() => isSaving = true);
                         try {
@@ -456,6 +487,18 @@ class AdminSettingsPage extends ConsumerWidget {
         .replaceAll(RegExp(r'[^a-z0-9]'), '_')
         .replaceAll(RegExp(r'_+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+
+  /// Restituisce un id non ancora usato, aggiungendo `_2`, `_3`… se serve.
+  /// Evita di sovrascrivere una categoria esistente con lo stesso nome.
+  String _idUnivoco(String base, Set<String> esistenti) {
+    final radice = base.isEmpty ? 'elenco' : base;
+    if (!esistenti.contains(radice)) return radice;
+    var n = 2;
+    while (esistenti.contains('${radice}_$n')) {
+      n++;
+    }
+    return '${radice}_$n';
   }
 }
 

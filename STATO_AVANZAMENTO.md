@@ -13,7 +13,7 @@
 |------|-------------|-------|
 | **0** | Setup & documentazione | ✅ |
 | **A** | Navigazione & Home (task 2,3) | ✅ |
-| **B** | Configurazione (task 4, H2/H3/H4) | 🔄 |
+| **B** | Configurazione (task 4, H2/H3/H4) | ✅ |
 | **C** | Sezioni lab risultati (task 5,6,7,9) | ✅ |
 | **D** | Stampa unione (task 8) | ✅ |
 | **E** | Certificato PDF (G1) | 🔄 bozza fatta, da rifinire col modello |
@@ -46,7 +46,7 @@
 | # | Task | Stato |
 |---|------|-------|
 | B1 | Rinomina Impostazioni → "Configurazione" | ✅ |
-| B2 | Redesign UX gestione dati | 🔄 pass dedicato (da rivedere insieme) |
+| B2 | Redesign UX gestione dati | ✅ creazione elenchi semplificata (niente "ID Firestore", id univoco auto) + banner esplicativo |
 | B3 | Macro-sezioni gestibili (H2) | ✅ sezioni personalizzate create/eliminabili dall'admin + assegna/rimuovi categorie |
 | B4 | Dati azienda in Configurazione (H4) | ✅ già presente (non nel profilo) |
 
@@ -79,6 +79,7 @@
 
 | Data | Voce | Stato | Note |
 |------|------|-------|------|
+| 11/07/2026 | **AREA B2 — UX Configurazione semplificata** | ✅ | Creazione elenco ("Nuova categoria"): rimosso il campo tecnico "ID documento Firestore" (auto-generato con id **univoco**, niente sovrascritture); etichetta → "Nome elenco" con esempio. Banner introduttivo in cima che spiega la pagina in linguaggio semplice. Con B1/B3/B4 l'**AREA B (task 4) è completa**. `flutter analyze`: 0. `flutter build web`: OK. |
 | 10/07/2026 | **AREA B3 — Sezioni Configurazione gestibili (H2)** | ✅ | L'admin può creare **sezioni personalizzate** ("Nuova sezione") oltre alle 5 di sistema, assegnare/rimuovere categorie e eliminarle. Solo raggruppamento di visualizzazione (`impostazioni/_config_macro`): le tendine dell'app leggono le categorie per id, quindi non ne risentono. Widget `_MacroCustomTile` + metodi in `ImpostazioniService` (`getMacroCustom`/`creaMacroCustom`/`assegnaCategoriaAMacro`/…). **B2 (redesign UX completo) resta** un pass di design da fare con l'utente. |
 | 10/07/2026 | **AREA F — Campi configurabili (Servizi lab)** | 🔄 | Aggiunto supporto `validator` a `CampoConfigurabile` (avvolto in `FormField`), così i campi obbligatori non regrediscono. Migrati **tipo analisi** (da `CategoriaDropdown`) e **tecnico** (da `CampoConSuggerimenti`) a `CampoConfigurabile` con `defaultCategoriaId`. Resta l'ondata 2 sulle altre pagine (XL). `flutter build web`: OK. |
 | 10/07/2026 | **AREA E — Certificato PDF (bozza)** | 🔄 | `CertificatoPdfService`: genera un certificato PDF da una riga di Stampa unione (intestazione DaMo + box campione + tabelle parametro/valore per famiglia + firma), riusando l'impianto di `preventivo_pdf_service`. Pulsante "Certificato (bozza)" nelle righe espanse di Stampa unione. ⚠️ **Layout provvisorio** (marcato "BOZZA" nel footer): da rifinire quando arriva il modello certificato del cliente. **F (H1):** migrazione campi lab a `CampoConfigurabile` bloccata — il widget non supporta `validator` e i campi sono obbligatori; prima serve aggiungere validazione al pilota. `flutter build web`: OK. |
