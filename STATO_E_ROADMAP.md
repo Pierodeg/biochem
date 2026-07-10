@@ -1,6 +1,6 @@
 # Stato del progetto e roadmap — BioChem
 
-> **Ultimo aggiornamento:** 05/07/2026
+> **Ultimo aggiornamento:** 10/07/2026
 > **Scopo:** documento "master" per **riprendere il lavoro in qualsiasi sessione, anche a freddo**.
 > Raccoglie stato attuale, lavoro accantonato e backlog futuro.
 >
@@ -42,16 +42,10 @@
 
 ## 2. Stato Git
 
-- **`staging`** → ramo di lavoro, **deployato e pushato** su origin. Contiene tutte le task cliente + fix PDF.
-- **`feature/campi-configurabili`** → ramo con il **lavoro H1 accantonato** (pilota Preventivo). Pushato su origin.
+- **`staging`** → **unico ramo di lavoro**. Contiene tutte le task cliente + fix PDF **e ora anche il pilota H1** (merge del 10/07/2026).
+- **`feature/campi-configurabili`** → ⚠️ **ridondante**, il suo contenuto è stato mergiato in `staging`. **Da eliminare** (locale + origin) una volta pushato `staging`.
 
-**Per riprendere H1:**
-```bash
-git checkout staging
-git pull
-git merge feature/campi-configurabili     # oppure cherry-pick dei commit
-```
-(allineare prima il branch a staging aggiornato)
+> **Workflow:** si lavora solo su `staging`; a test superati si allinea `main` e si fa il deploy.
 
 ---
 
@@ -67,11 +61,11 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 
 ---
 
-## 4. ⏸️ Lavoro ACCANTONATO — H1 (pronto da riprendere)
+## 4. 🔄 H1 in corso — pilota Preventivo (ora in `staging`)
 
-**Dove:** branch `feature/campi-configurabili`.
+**Dove:** mergiato in `staging` il 10/07/2026 (non più su branch separato).
 
-**Già pronto sul branch:**
+**Già pronto e in staging:**
 - Widget `lib/widgets/campo_configurabile.dart`: cascata **sezione → categoria → (sottocategoria) → suggerimenti**,
   menu a catena automatici, tap sulla casella per i suggerimenti, reset admin con conferma + "ripristina predefinita".
 - `ImpostazioniService`: `getFieldBinding` / `salvaFieldBinding` / `rimuoviFieldBinding` + classe `FieldBinding`
@@ -80,7 +74,7 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 - Migrazione campi **Preventivo**: oggetto, pagamento, durata, rinnovo, periodo, validità, note.
 
 **Da completare:**
-1. Merge del branch su `staging`.
+1. ~~Merge del branch su `staging`.~~ ✅ fatto (10/07/2026).
 2. **Servizi lab**: migrare `tecnico` e `tipo analisi` a `CampoConfigurabile`.
 3. **Ondata 2 — censimento**: mappare e convertire i campi a testo libero/dropdown chiuso nelle altre pagine
    (anagrafiche, pest, ecc.).
@@ -93,7 +87,7 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 
 | # | Voce | Priorità | Stato | Bloccato da |
 |---|------|----------|-------|-------------|
-| **H1** | Campi configurabili su tutte le pagine | 🔴 | 🔄 pilota su branch | — (continuare) |
+| **H1** | Campi configurabili su tutte le pagine | 🔴 | 🔄 pilota in staging | — (continuare) |
 | **H4** | Dati azienda nel **Profilo** (solo admin) | 🟡 | ⬜ | — |
 | **H3** | Rinomina sezione → **"Configurazione"** + redesign | 🟡 | ⬜ | — |
 | **H2** | Admin gestisce le macro-sezioni (oggi hardcoded) | 🟡 | 🔄 base esistente | — |
@@ -132,4 +126,4 @@ git merge feature/campi-configurabili     # oppure cherry-pick dei commit
 ## 8. Riepilogo "cosa manca al cliente"
 
 Delle richieste del cliente, è rimasto: **D1** (pronta), **F1** (decisione), **G1** (bloccata su Excel+modello),
-e l'area **H** (H1 in corso sul branch, H2/H3/H4 da fare). Tutto il resto è **in produzione**.
+e l'area **H** (H1 in corso in staging, H2/H3/H4 da fare). Tutto il resto è **in produzione**.
