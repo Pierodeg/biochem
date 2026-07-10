@@ -14,7 +14,7 @@ import '../../../models/servizio_lab_model.dart';
 import '../../../services/indirizzi_servizio_service.dart';
 import '../../../services/registro_service.dart';
 import '../../../widgets/categoria_dropdown.dart';
-import '../../../widgets/campo_con_suggerimenti.dart';
+import '../../../widgets/campo_configurabile.dart';
 
 class ServizioLabFormPage extends ConsumerStatefulWidget {
   final String? servizioId;
@@ -46,7 +46,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   // Gruppo 1
   final _clienteDisplayCtrl = TextEditingController();
   String _codiceClienteId = '';
-  String? _tipoAnalisi;
+  final _tipoAnalisiCtrl = TextEditingController();
   final _certificazioneCtrl = TextEditingController();
   final _codiceACtrl = TextEditingController();
   final _oraCtrl = TextEditingController();
@@ -144,6 +144,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
     _notePrezzoCtrl.dispose();
     _noteTecnicheCtrl.dispose();
     _tecnicoCtrl.dispose();
+    _tipoAnalisiCtrl.dispose();
     super.dispose();
   }
 
@@ -180,7 +181,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
   void _popolaDaModello(ServizioLabModel s) {
     _codiceClienteId = s.codiceCliente;
     _clienteDisplayCtrl.text = s.committente;
-    _tipoAnalisi = s.tipoAnalisi.isNotEmpty ? s.tipoAnalisi : null;
+    _tipoAnalisiCtrl.text = s.tipoAnalisi;
     _certificazioneCtrl.text = s.certificazioneNumerica;
     _codiceACtrl.text = s.codiceA;
     _oraCtrl.text = s.ora;
@@ -372,7 +373,7 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
     return ServizioLabModel(
       id: _servizioIdCorrente ?? '',
       codiceCliente: _codiceClienteId,
-      tipoAnalisi: _tipoAnalisi ?? '',
+      tipoAnalisi: _tipoAnalisiCtrl.text.trim(),
       certificazioneNumerica: _certificazioneCtrl.text.trim(),
       codiceA: _codiceACtrl.text.trim(),
       ora: _oraCtrl.text.trim(),
@@ -995,11 +996,11 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CategoriaDropdown(
-              categoriaId: 'categorie_analisi',
+            CampoConfigurabile(
+              fieldKey: 'lab_tipo_analisi',
               label: 'Tipo analisi *',
-              initialValue: _tipoAnalisi,
-              onChanged: (v) => setState(() => _tipoAnalisi = v),
+              controller: _tipoAnalisiCtrl,
+              defaultCategoriaId: 'categorie_analisi',
               validator: (v) =>
                   v == null || v.isEmpty ? 'Campo obbligatorio' : null,
             ),
@@ -1016,10 +1017,11 @@ class _ServizioLabFormPageState extends ConsumerState<ServizioLabFormPage> {
       ),
       SizedBox(
         width: w,
-        child: CampoConSuggerimenti(
-          categoriaId: 'lab_tecnici',
+        child: CampoConfigurabile(
+          fieldKey: 'lab_tecnico',
           label: 'Tecnico *',
           controller: _tecnicoCtrl,
+          defaultCategoriaId: 'lab_tecnici',
           validator: (v) =>
               v == null || v.isEmpty ? 'Campo obbligatorio' : null,
         ),

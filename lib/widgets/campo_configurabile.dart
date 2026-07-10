@@ -62,6 +62,10 @@ class CampoConfigurabile extends ConsumerStatefulWidget {
   final String? defaultCategoriaId;
   final String defaultSottocategoria;
 
+  /// Validatore opzionale (es. campo obbligatorio). Valuta il testo corrente
+  /// del [controller] al momento del `Form.validate()`.
+  final String? Function(String?)? validator;
+
   const CampoConfigurabile({
     super.key,
     required this.fieldKey,
@@ -70,6 +74,7 @@ class CampoConfigurabile extends ConsumerStatefulWidget {
     this.maxLines = 1,
     this.defaultCategoriaId,
     this.defaultSottocategoria = '',
+    this.validator,
   });
 
   @override
@@ -92,6 +97,30 @@ class _CampoConfigurabileState extends ConsumerState<CampoConfigurabile> {
 
   @override
   Widget build(BuildContext context) {
+    final content = _buildContent(context);
+    if (widget.validator == null) return content;
+    // Avvolge il campo in un FormField per la validazione (es. obbligatorietà),
+    // valutata sul testo corrente del controller al `Form.validate()`.
+    return FormField<String>(
+      validator: (_) => widget.validator!(widget.controller.text),
+      builder: (state) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          content,
+          if (state.hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 12),
+              child: Text(
+                state.errorText!,
+                style: const TextStyle(color: AppColors.error, fontSize: 12),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final isAdmin =
         ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
 
