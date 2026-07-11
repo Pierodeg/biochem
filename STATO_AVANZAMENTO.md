@@ -3,7 +3,7 @@
 > Cruscotto di stato del [PIANO_GENERALE.md](PIANO_GENERALE.md). Aggiornare la riga a ogni task iniziata/completata.
 > Legenda: ⬜ da fare · 🔄 in corso · ✅ fatto · ⏸️ bloccata (attende input) · 🧪 in test
 
-**Ultimo aggiornamento:** 10/07/2026
+**Ultimo aggiornamento:** 11/07/2026
 
 ---
 
@@ -14,12 +14,39 @@
 | **0** | Setup & documentazione | ✅ |
 | **A** | Navigazione & Home (task 2,3) | ✅ |
 | **B** | Configurazione (task 4, H2/H3/H4) | ✅ |
-| **C** | Sezioni lab risultati (task 5,6,7,9) | ✅ |
-| **D** | Stampa unione (task 8) | ✅ |
+| **C** | Sezioni lab risultati (task 5,6,7,9) | ⚠️ codice ✅ ma **bloccate da regole Firestore** (vedi "Da sistemare") |
+| **D** | Stampa unione (task 8) | ⚠️ codice ✅ ma **bloccata da regole Firestore** |
 | **E** | Certificato PDF (G1) | 🔄 bozza fatta, da rifinire col modello |
 | **F** | Campi configurabili (H1) | 🔄 Servizi lab migrato; ondata 2 (altre pagine) resta |
 | **G** | Carta intestata (D1) | ⏸️ logo HD |
 | **Z** | Permessi admin/dipendente | ⬜ finale, col cliente |
+
+---
+
+## 🔧 Da sistemare (feedback test 11/07/2026)
+
+Priorità dall'alto. Dettaglio anche in [TEST_DA_FARE.md](TEST_DA_FARE.md).
+
+1. 🔴 **BLOCCANTE — `permission-denied` su sezioni lab (C) e Stampa unione (D).**
+   Le nuove collection Firestore `risultati_cationi`, `risultati_primarie`,
+   `risultati_anioni`, `risultati_microbio` **non hanno regole di sicurezza**.
+   Le regole **non sono nel repo** (nessuna chiave `firestore` in `firebase.json`):
+   vanno aggiunte **nella console Firebase** (Firestore → Regole), sullo stesso
+   pattern delle collection esistenti (es. `servizi_lab`: read/write se autenticato).
+   → Consigliato: valutare di **portare le regole nel repo** (`firestore.rules` +
+   voce `firestore` in `firebase.json`) per versionarle.
+   Collection/doc nuovi introdotti da versionare nelle regole:
+   `risultati_*` (4) e il doc `impostazioni/_config_macro` (già coperto da `impostazioni/`).
+
+2. 🟡 **UI card Home troppo grandi** — ridurre parecchio su **mobile** e
+   leggermente su **desktop** (`lib/features/home/screens/home_page.dart`,
+   `childAspectRatio` / dimensioni card/icona).
+
+3. 🟡 **Redesign grafico Configurazione** — la pagina admin usa ancora il tema
+   **chiaro Material**, mentre il resto dell'app usa il **glass scuro**: renderla
+   **coerente con le altre schermate** e semplificare/riordinare la creazione
+   delle configurazioni (`lib/features/admin/screens/admin_settings_page.dart`).
+   Estende B2 (già semplificato il dialog) verso un vero allineamento visivo.
 
 ---
 
